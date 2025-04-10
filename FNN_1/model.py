@@ -7,7 +7,6 @@ import keras.backend as K
 
 from sklearn.cluster import KMeans
 from sklearn import metrics
-from keras.utils.vis_utils import plot_model
 
 from .DEC import cluster_acc, ClusteringLayer, autoencoder
 import torch
