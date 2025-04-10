@@ -37,7 +37,7 @@ class FNN(object):
         self.class_labels = {0: 'negative', 1: 'positive'}
         self.stop_words = set()
 
-    def initialize_model(self, ae_weights=None, gamma=0.1, eta=1.0, optimizer='sgd'):
+    def initialize_model(self, ae_weights=None, gamma=0.1, eta=1.0, optimizer=SGD(lr=0.001, momentum=0.9)):
         if ae_weights is not None:
             self.autoencoder.load_weights(ae_weights)
             print('Pretrained AE weights are loaded successfully.')
@@ -76,7 +76,7 @@ class FNN(object):
         # Compile with multiple losses
         self.model.compile(loss={'clustering': 'kld', 'sentiment': 'categorical_crossentropy'},
                           loss_weights=[gamma, eta],  # Balance between clustering and sentiment tasks
-                          optimizer=SGD(learning_rate=0.001, momentum=0.9))
+                          optimizer=optimizer)
 
     def load_weights(self, weights_path):
         self.model.load_weights(weights_path)
