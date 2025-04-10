@@ -162,6 +162,7 @@ class FNN(object):
             numpy array of cluster assignments
         """
         x = np.expand_dims(x.cpu().detach().numpy(), axis=0) if isinstance(x, torch.Tensor) else np.expand_dims(x, axis=0)
+        x = x.squeeze(0)
         cluster_output, _ = self.model.predict(x, verbose=0)
         return cluster_output.argmax(1)
 
@@ -248,6 +249,7 @@ class FNN(object):
         print(df_clusters)
         
         return df_clusters
+    
     def pretrain_autoencoder(self, dataset, batch_size=256, epochs=200, optimizer='adam'):
         """
         Pretrain the autoencoder using the provided PyTorch dataset
