@@ -76,7 +76,7 @@ class FNN(object):
         # Compile with multiple losses
         self.model.compile(loss={'clustering': 'kld', 'sentiment': 'categorical_crossentropy'},
                           loss_weights=[gamma, eta],  # Balance between clustering and sentiment tasks
-                          optimizer=SGD(learning_rate=0.01, momentum=0.9))
+                          optimizer=SGD(learning_rate=0.001, momentum=0.9))
 
     def load_weights(self, weights_path):
         self.model.load_weights(weights_path)
