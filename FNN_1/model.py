@@ -128,7 +128,6 @@ class FNN(object):
         else:
             raise ValueError("Input must be a list of texts or embeddings tensor")
         
-        print("Shape sebelum predict:", embeddings_numpy.shape)
         cluster_output, sentiment_output = self.model.predict(embeddings_numpy, verbose=0)
         
         # Get the predicted clusters and sentiments
