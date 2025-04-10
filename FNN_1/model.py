@@ -386,7 +386,7 @@ class FNN(object):
                 progress_desc = f'Iter {ite}: Cluster Loss {loss[1]}, Sentiment Loss {loss[2]}, Acc_sentiment {np.round(acc_sentiment, 5)}; loss={loss}'
                 progress_bar.set_description(progress_desc)
                 
-                # print('Iter', ite,': Cluster Loss', loss[1], ', Sentiment Loss', loss[2] , ', Acc_sentiment', np.round(acc_sentiment, 5), '; loss=', loss)
+                print('Iter', ite,': Cluster Loss', loss[1], ', Sentiment Loss', loss[2] , ', Acc_sentiment', np.round(acc_sentiment, 5), '; loss=', loss)
                 
                 # Check stop criterion based on cluster stability
                 if ite > 0 and delta_label < tol:
