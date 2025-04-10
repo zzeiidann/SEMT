@@ -4,14 +4,14 @@ from keras.models import Model
 from keras.optimizers import SGD
 from keras.layers import Dense, BatchNormalization, Dropout, Activation
 import keras.backend as K
-from collections import Counter
-import pandas as pd
-import torch
 
 from sklearn.cluster import KMeans
 from sklearn import metrics
 
+from transformers import AutoTokenizer, AutoModel
+
 from .DEC import cluster_acc, ClusteringLayer, autoencoder
+import torch
 
 class FNN(object):
     def __init__(self,
@@ -89,12 +89,16 @@ class FNN(object):
         _, s = self.model.predict(x, verbose=0)
         return s.argmax(1)
 
+    from transformers import AutoModel
+
     def predict(self, inputs, bert_model=None):
         if isinstance(inputs, str):
             inputs = [inputs]
 
         if isinstance(inputs, list) and isinstance(inputs[0], str):
-            tokens = self.bert_tokenizer(
+
+            tokenizer = AutoTokenizer.from_pretrained(bert_model if isinstance(bert_model, str) else "indolem/indobert-base-uncased")
+            tokens = tokenizer(
                 inputs,
                 padding=True,
                 truncation=True,
@@ -104,7 +108,6 @@ class FNN(object):
 
             with torch.no_grad():
                 if not callable(self.bert_model):
-                    from transformers import AutoModel
                     device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
                     bert_model = AutoModel.from_pretrained(bert_model if isinstance(bert_model, str) else "indolem/indobert-base-uncased")
                     bert_model.to(device)
@@ -191,7 +194,7 @@ class FNN(object):
             
         Returns:
             tuple: (clusters dict mapping cluster IDs to texts, 
-                   common_words dict mapping cluster IDs to word frequencies)
+                common_words dict mapping cluster IDs to word frequencies)
         """
         clusters = {}
         
@@ -217,37 +220,30 @@ class FNN(object):
             cluster_common_words[cluster] = top_words
         
         return clusters, cluster_common_words
-    
-    def analyze_clusters(self, x, texts):
-        """
-        Analyze clusters by getting assignments and mapping texts
-        
-        Args:
-            x: Input features as numpy array
-            texts: List of corresponding text strings
-            
-        Returns:
-            DataFrame with cluster analysis
-        """
-        cluster_assignments = self.get_cluster_assignments(x)
-        text_clusters, cluster_words = self.map_texts_to_clusters(texts, cluster_assignments)
-    
-        df_clusters = pd.DataFrame([
-            {"Cluster": cluster, "Common Words": ", ".join([f"{word} ({count})" for word, count in words[:10]]),
-             "Text Count": len(text_clusters[cluster])}
-            for cluster, words in cluster_words.items()
-        ]).sort_values(by=['Cluster']).reset_index(drop=True)        
-        
-        return df_clusters
 
-    def pretrain_autoencoder(self, x, batch_size=256, epochs=200, optimizer='adam'):
+    def pretrain_autoencoder(self, dataset, batch_size=256, epochs=200, optimizer='adam'):
         """
-        Pretrain the autoencoder using numpy array input
+        Pretrain the autoencoder using the provided PyTorch dataset
         """
         print('Pretraining autoencoder...')
         self.autoencoder.compile(optimizer=optimizer, loss='mse')
         
-        print(f"Input data shape: {x.shape}")
+        # Convert PyTorch dataset to numpy arrays
+        embeddings = []
+        
+        # Extract embeddings from the dataset
+        for i in range(len(dataset)):
+            item = dataset[i]
+            if isinstance(item, tuple):  # If dataset returns (embedding, label)
+                embedding, _ = item
+                embeddings.append(embedding.cpu().numpy())
+            else:  # If dataset returns only embedding
+                embeddings.append(item.cpu().numpy())
+        
+        # Convert to numpy array
+        x = np.array(embeddings)
+        
+        print(f"Converted dataset to numpy array with shape: {x.shape}")
         
         # Train the autoencoder
         self.autoencoder.fit(x, x, batch_size=batch_size, epochs=epochs)
@@ -267,23 +263,37 @@ class FNN(object):
         weight = q ** 2 / q.sum(0)
         return (weight.T / weight.sum(1)).T
 
-    def clustering_with_sentiment(self, x, y=None, tol=1e-3, update_interval=140, maxiter=2e4, 
+    def clustering_with_sentiment(self, dataset, tol=1e-3, update_interval=140, maxiter=2e4, 
                                  save_dir='./results/idec_sentiment'):
         """
-        x: Input features as numpy array
-        y: Optional sentiment labels as numpy array
+        dataset: CachedBERTDataset instance containing texts and labels
         """
         print('Update interval', update_interval)
         
-        if y is not None:
+        # Convert PyTorch dataset to NumPy arrays for Keras
+        embeddings = []
+        sentiment_labels = []
+        
+        # Extract embeddings and labels from dataset
+        for i in range(len(dataset)):
+            item = dataset[i]
+            if isinstance(item, tuple):  # If dataset returns (embedding, label)
+                embedding, label = item
+                embeddings.append(embedding.cpu().numpy())
+                sentiment_labels.append(label.cpu().numpy())
+            else:  # If dataset returns only embedding
+                embeddings.append(item.cpu().numpy())
+                
+        x = np.array(embeddings)
+        
+        if sentiment_labels:
+            y_sentiment = np.array(sentiment_labels)
             # One-hot encoding for categorical crossentropy
             from keras.utils import to_categorical
-            if len(y.shape) == 1:
-                y_sentiment = to_categorical(y, num_classes=2)
-            else:
-                y_sentiment = y
+            if len(y_sentiment.shape) == 1:
+                y_sentiment = to_categorical(y_sentiment, num_classes=2)
         else:
-            print("Warning: No labels provided. Clustering only.")
+            print("Warning: No labels found in dataset. Clustering only.")
             y_sentiment = None
             
         save_interval = x.shape[0] / self.batch_size * 5  # 5 epochs
