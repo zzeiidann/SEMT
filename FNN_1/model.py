@@ -119,13 +119,16 @@ class FNN(object):
             
             embeddings_tensor = outputs.last_hidden_state[:, 0, :]
             embeddings_numpy = np.expand_dims(embeddings_tensor.cpu().detach().numpy(), axis=0)
+            embeddings_numpy = embeddings_numpy.squeeze(0)
 
         elif isinstance(inputs, torch.Tensor):
             embeddings_tensor = inputs
             embeddings_numpy = np.expand_dims(embeddings_tensor.cpu().detach().numpy(), axis=0)
+            embeddings_numpy = embeddings_numpy.squeeze(0)
         else:
             raise ValueError("Input must be a list of texts or embeddings tensor")
-
+        
+        print("Shape sebelum predict:", embeddings_numpy.shape)
         cluster_output, sentiment_output = self.model.predict(embeddings_numpy, verbose=0)
         
         # Get the predicted clusters and sentiments
