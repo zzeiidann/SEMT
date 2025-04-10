@@ -13,6 +13,8 @@ from transformers import AutoTokenizer, AutoModel
 from .DEC import cluster_acc, ClusteringLayer, autoencoder
 import torch
 
+device = torch.device("cuda" if torch.cuda.is_available() else "cpu")   
+
 class FNN(object):
     def __init__(self,
                  dims,
@@ -104,15 +106,14 @@ class FNN(object):
                 truncation=True,
                 return_tensors="pt",
                 max_length=512
-            ).to(self.device)
+            ).to(device)
 
             with torch.no_grad():
-                if not callable(self.bert_model):
-                    device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
+                if not callable(bert_model):
                     bert_model = AutoModel.from_pretrained(bert_model if isinstance(bert_model, str) else "indolem/indobert-base-uncased")
                     bert_model.to(device)
                 else:
-                    bert_model = self.bert_model
+                    bert_model = AutoModel.from_pretrained("indolem/indobert-base-uncased")
                 
                 outputs = bert_model(**tokens)
             
