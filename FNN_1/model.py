@@ -88,12 +88,29 @@ class FNN(object):
         _, s = self.model.predict(x, verbose=0)
         return s.argmax(1)
 
-    def pretrain_autoencoder(self, x, batch_size=256, epochs=200, optimizer='adam'):
+    def pretrain_autoencoder(self, dataset, batch_size=256, epochs=200, optimizer='adam'):
         """
-        Pretrain the autoencoder using the provided data
+        Pretrain the autoencoder using the provided PyTorch dataset
         """
         print('Pretraining autoencoder...')
         self.autoencoder.compile(optimizer=optimizer, loss='mse')
+        
+        # Convert PyTorch dataset to numpy arrays
+        embeddings = []
+        
+        # Extract embeddings from the dataset
+        for i in range(len(dataset)):
+            item = dataset[i]
+            if isinstance(item, tuple):  # If dataset returns (embedding, label)
+                embedding, _ = item
+                embeddings.append(embedding.cpu().numpy())
+            else:  # If dataset returns only embedding
+                embeddings.append(item.cpu().numpy())
+        
+        # Convert to numpy array
+        x = np.array(embeddings)
+        
+        print(f"Converted dataset to numpy array with shape: {x.shape}")
         
         # Train the autoencoder
         self.autoencoder.fit(x, x, batch_size=batch_size, epochs=epochs)
