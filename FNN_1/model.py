@@ -208,8 +208,7 @@ class FNN(object):
                               acc_sentiment=np.round(acc_sentiment, 5),
                               L=loss[0], Lc=loss[1], Ls=loss[2])
                 logwriter.writerow(logdict)
-                print('Iter', ite, ': Acc_cluster', acc_cluster, ', nmi', nmi, ', ari', ari, 
-                     ', Acc_sentiment', np.round(acc_sentiment, 5), '; loss=', loss)
+                print('Iter', ite,': Cluster Loss', loss[1], ', Sentiment Loss', loss[2] , ', Acc_sentiment', np.round(acc_sentiment, 5), '; loss=', loss)
                 
                 # Check stop criterion based on cluster stability
                 if ite > 0 and delta_label < tol:
