@@ -45,18 +45,15 @@ class FNN(object):
         # Define the sentiment classifier
         hidden_size = self.dims[-1]  # Size of the bottleneck encoding
         
-        # Create sentiment classifier layers
+
         x = Dense(128)(hidden)
         x = BatchNormalization()(x)
-        # Define gelu activation if needed
-        def gelu(x):
-            return 0.5 * x * (1 + K.tanh(np.sqrt(2 / np.pi) * (x + 0.044715 * K.pow(x, 3))))
-        x = Activation(gelu)(x)
+        x = Activation('relu')(x)  # Changed from gelu to 'relu'
         x = Dropout(0.4)(x)
-        
+
         x = Dense(32)(x)
         x = BatchNormalization()(x)
-        x = Activation(gelu)(x)
+        x = Activation('relu')(x)  # Changed from gelu to 'relu'
         x = Dropout(0.4)(x)
         
         sentiment_output = Dense(2, activation='softmax', name='sentiment')(x)
