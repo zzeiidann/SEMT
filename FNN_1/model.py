@@ -9,6 +9,7 @@ from sklearn.cluster import KMeans
 from sklearn import metrics
 
 from transformers import AutoTokenizer, AutoModel
+from collections import Counter
 
 from .DEC import cluster_acc, ClusteringLayer, autoencoder
 import torch
