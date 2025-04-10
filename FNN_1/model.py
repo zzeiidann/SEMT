@@ -4,12 +4,14 @@ from keras.models import Model
 from keras.optimizers import SGD
 from keras.layers import Dense, BatchNormalization, Dropout, Activation
 import keras.backend as K
+from collections import Counter
+import pandas as pd
+import torch
 
 from sklearn.cluster import KMeans
 from sklearn import metrics
 
 from .DEC import cluster_acc, ClusteringLayer, autoencoder
-import torch
 
 class FNN(object):
     def __init__(self,
@@ -27,7 +29,9 @@ class FNN(object):
         self.n_clusters = n_clusters
         self.alpha = alpha
         self.batch_size = batch_size
-        self.autoencoder = autoencoder(self.dims) 
+        self.autoencoder = autoencoder(self.dims)
+        self.class_labels = {0: 'negative', 1: 'positive'}
+        self.stop_words = set()
 
     def initialize_model(self, ae_weights=None, gamma=0.1, eta=1.0, optimizer='sgd'):
         if ae_weights is not None:
@@ -85,29 +89,165 @@ class FNN(object):
         _, s = self.model.predict(x, verbose=0)
         return s.argmax(1)
 
-    def pretrain_autoencoder(self, dataset, batch_size=256, epochs=200, optimizer='adam'):
+    def predict(self, inputs, bert_model=None):
+        if isinstance(inputs, str):
+            inputs = [inputs]
+
+        if isinstance(inputs, list) and isinstance(inputs[0], str):
+            tokens = self.bert_tokenizer(
+                inputs,
+                padding=True,
+                truncation=True,
+                return_tensors="pt",
+                max_length=512
+            ).to(self.device)
+
+            with torch.no_grad():
+                if not callable(self.bert_model):
+                    from transformers import AutoModel
+                    device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
+                    bert_model = AutoModel.from_pretrained(bert_model if isinstance(bert_model, str) else "indolem/indobert-base-uncased")
+                    bert_model.to(device)
+                else:
+                    bert_model = self.bert_model
+                
+                outputs = bert_model(**tokens)
+            
+            embeddings_tensor = outputs.last_hidden_state[:, 0, :]
+            embeddings_numpy = np.expand_dims(embeddings_tensor.cpu().detach().numpy(), axis=0)
+
+        elif isinstance(inputs, torch.Tensor):
+            embeddings_tensor = inputs
+            embeddings_numpy = np.expand_dims(embeddings_tensor.cpu().detach().numpy(), axis=0)
+        else:
+            raise ValueError("Input must be a list of texts or embeddings tensor")
+
+        cluster_output, sentiment_output = self.model.predict(embeddings_numpy, verbose=0)
+        
+        # Get the predicted clusters and sentiments
+        cluster_preds = cluster_output.argmax(1)
+        sentiment_preds = sentiment_output.argmax(1)
+        # sentiment_probs = np.max(sentiment_output, axis=1)
+        
+        # Prepare results
+        results = []
+        for i in range(len(sentiment_preds)):
+            sentiment_label = self.class_labels[sentiment_preds[i]]
+            result = {
+                'sentiment': sentiment_label,
+                # 'sentiment_confidence': float(sentiment_probs[i]),
+                'cluster': int(cluster_preds[i])
+            }
+            
+            # if isinstance(inputs, list) and isinstance(inputs[0], str):
+            #     result['text'] = inputs[i]               
+            results.append(result)
+        
+        return results
+
+    def get_cluster_assignments(self, x):
         """
-        Pretrain the autoencoder using the provided PyTorch dataset
+        Get cluster assignments for a batch of inputs
+        
+        Args:
+            x: Input features as numpy array
+            
+        Returns:
+            numpy array of cluster assignments
+        """
+        x = np.expand_dims(x.cpu().detach().numpy(), axis=0) if isinstance(x, torch.Tensor) else np.expand_dims(x, axis=0)
+        cluster_output, _ = self.model.predict(x, verbose=0)
+        return cluster_output.argmax(1)
+
+    def set_stop_words(self, stop_words):
+        """
+        Set custom stopwords for cluster text analysis
+        
+        Args:
+            stop_words: List or set of stopwords to use when analyzing text clusters
+            
+        Returns:
+            self: For method chaining
+        """
+        if isinstance(stop_words, list):
+            self.stop_words = set(stop_words)
+        elif isinstance(stop_words, set):
+            self.stop_words = stop_words
+        else:
+            try:
+                self.stop_words = set(stop_words)
+            except:
+                raise ValueError("stop_words must be a list, set, or convertible to a set")
+        
+        return self
+
+    def map_texts_to_clusters(self, texts, cluster_assignments):
+        """
+        Map texts to their assigned clusters and extract common words
+        
+        Args:
+            texts: List of text strings
+            cluster_assignments: Numpy array of cluster assignments
+            
+        Returns:
+            tuple: (clusters dict mapping cluster IDs to texts, 
+                   common_words dict mapping cluster IDs to word frequencies)
+        """
+        clusters = {}
+        
+        n = min(len(texts), len(cluster_assignments))
+        
+        for i in range(n):
+            cluster = int(cluster_assignments[i])
+            if cluster not in clusters:
+                clusters[cluster] = []
+            clusters[cluster].append(texts[i])
+        
+        cluster_common_words = {}
+        for cluster, cluster_texts in clusters.items():
+            all_text = " ".join(cluster_texts)
+            
+            words = all_text.lower().split()
+            
+            filtered_words = [word for word in words if word not in self.stop_words and len(word) > 2]
+            
+            word_counts = Counter(filtered_words)
+        
+            top_words = word_counts.most_common(20)
+            cluster_common_words[cluster] = top_words
+        
+        return clusters, cluster_common_words
+    
+    def analyze_clusters(self, x, texts):
+        """
+        Analyze clusters by getting assignments and mapping texts
+        
+        Args:
+            x: Input features as numpy array
+            texts: List of corresponding text strings
+            
+        Returns:
+            DataFrame with cluster analysis
+        """
+        cluster_assignments = self.get_cluster_assignments(x)
+        text_clusters, cluster_words = self.map_texts_to_clusters(texts, cluster_assignments)
+    
+        df_clusters = pd.DataFrame([
+            {"Cluster": cluster, "Common Words": ", ".join([f"{word} ({count})" for word, count in words[:10]]),
+             "Text Count": len(text_clusters[cluster])}
+            for cluster, words in cluster_words.items()
+        ]).sort_values(by=['Cluster']).reset_index(drop=True)        
+        
+        return df_clusters
+
+    def pretrain_autoencoder(self, x, batch_size=256, epochs=200, optimizer='adam'):
+        """
+        Pretrain the autoencoder using numpy array input
         """
         print('Pretraining autoencoder...')
         self.autoencoder.compile(optimizer=optimizer, loss='mse')
         
-        # Convert PyTorch dataset to numpy arrays
-        embeddings = []
-        
-        # Extract embeddings from the dataset
-        for i in range(len(dataset)):
-            item = dataset[i]
-            if isinstance(item, tuple):  # If dataset returns (embedding, label)
-                embedding, _ = item
-                embeddings.append(embedding.cpu().numpy())
-            else:  # If dataset returns only embedding
-                embeddings.append(item.cpu().numpy())
-        
-        # Convert to numpy array
-        x = np.array(embeddings)
-        
-        print(f"Converted dataset to numpy array with shape: {x.shape}")
+        print(f"Input data shape: {x.shape}")
         
         # Train the autoencoder
         self.autoencoder.fit(x, x, batch_size=batch_size, epochs=epochs)
@@ -127,37 +267,23 @@ class FNN(object):
         weight = q ** 2 / q.sum(0)
         return (weight.T / weight.sum(1)).T
 
-    def clustering_with_sentiment(self, dataset, tol=1e-3, update_interval=140, maxiter=2e4, 
+    def clustering_with_sentiment(self, x, y=None, tol=1e-3, update_interval=140, maxiter=2e4, 
                                  save_dir='./results/idec_sentiment'):
         """
-        dataset: CachedBERTDataset instance containing texts and labels
+        x: Input features as numpy array
+        y: Optional sentiment labels as numpy array
         """
         print('Update interval', update_interval)
         
-        # Convert PyTorch dataset to NumPy arrays for Keras
-        embeddings = []
-        sentiment_labels = []
-        
-        # Extract embeddings and labels from dataset
-        for i in range(len(dataset)):
-            item = dataset[i]
-            if isinstance(item, tuple):  # If dataset returns (embedding, label)
-                embedding, label = item
-                embeddings.append(embedding.cpu().numpy())
-                sentiment_labels.append(label.cpu().numpy())
-            else:  # If dataset returns only embedding
-                embeddings.append(item.cpu().numpy())
-                
-        x = np.array(embeddings)
-        
-        if sentiment_labels:
-            y_sentiment = np.array(sentiment_labels)
+        if y is not None:
             # One-hot encoding for categorical crossentropy
             from keras.utils import to_categorical
-            if len(y_sentiment.shape) == 1:
-                y_sentiment = to_categorical(y_sentiment, num_classes=2)
+            if len(y.shape) == 1:
+                y_sentiment = to_categorical(y, num_classes=2)
+            else:
+                y_sentiment = y
         else:
-            print("Warning: No labels found in dataset. Clustering only.")
+            print("Warning: No labels provided. Clustering only.")
             y_sentiment = None
             
         save_interval = x.shape[0] / self.batch_size * 5  # 5 epochs
