@@ -251,12 +251,12 @@ class FNN(object):
             
             # Save intermediate model
             if ite % save_interval == 0:
-                print('saving model to:', save_dir + '/FNN_model_' + str(ite) + '.h5')
-                self.model.save_weights(save_dir + '/FNN_model_' + str(ite) + '.h5')
+                print('saving model to:', save_dir + '/FNN_model_' + str(ite) + '.weights.' + '.h5')
+                self.model.save_weights(save_dir + '/FNN_model_' + str(ite) + '.weights.' + '.h5')
         
         # Save the trained model
         logfile.close()
-        print('saving model to:', save_dir + '/FNN_model_final.h5')
-        self.model.save_weights(save_dir + '/FNN_model_final.h5')
+        print('saving model to:', save_dir + '/FNN_model_final.weights.h5')
+        self.model.save_weights(save_dir + '/FNN_model_final.weights.h5')
         
         return y_pred, s_pred if y_sentiment is not None else y_pred
