@@ -76,7 +76,7 @@ class FNN(object):
         # Compile with multiple losses
         self.model.compile(loss={'clustering': 'kld', 'sentiment': 'categorical_crossentropy'},
                           loss_weights=[gamma, eta],  # Balance between clustering and sentiment tasks
-                          optimizer=SGD(learning_rate=0.0001, momentum=0.9))
+                          optimizer=SGD(learning_rate=0.01, momentum=0.9))
 
     def load_weights(self, weights_path):
         self.model.load_weights(weights_path)
@@ -295,17 +295,10 @@ class FNN(object):
         return (weight.T / weight.sum(1)).T
 
     def clustering_with_sentiment(self, dataset, tol=1e-3, update_interval=140, maxiter=2e4, 
-                             save_dir='./results/FNN_RESULTS'):
+                                 save_dir='./results/fnnjst'):
         """
         dataset: CachedBERTDataset instance containing texts and labels
         """
-        # Make sure tqdm is imported correctly at the beginning
-        try:
-            from tqdm.notebook import tqdm
-        except ImportError:
-            from tqdm import tqdm
-            print("Warning: tqdm.notebook not found, using standard tqdm instead")
-        
         print('Update interval', update_interval)
         
         # Convert PyTorch dataset to NumPy arrays for Keras
@@ -356,79 +349,55 @@ class FNN(object):
         loss = [0, 0, 0]  # Total loss, clustering loss, sentiment loss
         index = 0
         
-        # Initialize metrics dictionary to track values between updates
-        metrics = {
-            'acc_sentiment': 0,
-            'Cluster_Loss': 0,
-            'Sentiment_Loss': 0
-        }
-        
-        # Create the progress bar outside the loop to avoid conflicts
-        pbar = tqdm(range(int(maxiter)), desc=f"Iter 0: Cluster Loss 0, Sentiment Loss 0, Acc_sentiment 0; loss= [0 0 0]")
-        
-        # Main training loop
-        for ite in pbar:
+        for ite in range(int(maxiter)):
             if ite % update_interval == 0:
                 q, s_pred = self.model.predict(x, verbose=0)
                 p = self.target_distribution(q)  # Update auxiliary target distribution
-
+                
                 # Evaluate clustering performance
                 y_pred = q.argmax(1)
                 delta_label = np.sum(y_pred != y_pred_last).astype(np.float32) / y_pred.shape[0]
                 y_pred_last = y_pred
-
+                
                 # Compute sentiment prediction accuracy if labels available
                 if y_sentiment is not None:
                     s_pred_label = s_pred.argmax(1)
                     sentiment_true_label = y_sentiment.argmax(1) if len(y_sentiment.shape) > 1 else y_sentiment
                     acc_sentiment = np.sum(s_pred_label == sentiment_true_label).astype(np.float32) / s_pred_label.shape[0]
-                    metrics['acc_sentiment'] = np.round(acc_sentiment, 5)
                 else:
                     acc_sentiment = 0
-                    metrics['acc_sentiment'] = 0
-
+                
                 # For now, we don't have ground truth cluster labels
                 acc_cluster = nmi = ari = 0
-
+                
                 loss = np.round(loss, 5)
                 logdict = dict(iter=ite, acc_cluster=acc_cluster, nmi=nmi, ari=ari, 
-                            acc_sentiment=np.round(acc_sentiment, 5),
-                            L=loss[0], Lc=loss[1], Ls=loss[2])
+                              acc_sentiment=np.round(acc_sentiment, 5),
+                              L=loss[0], Lc=loss[1], Ls=loss[2])
                 logwriter.writerow(logdict)
+                print('Iter', ite,': Cluster Loss', loss[1], ', Sentiment Loss', loss[2] , ', Acc_sentiment', np.round(acc_sentiment, 5), '; loss=', loss)
                 
-                # Update metrics for progress bar
-                metrics['Cluster_Loss'] = loss[1]
-                metrics['Sentiment_Loss'] = loss[2]
-                
-                # Update progress bar description with current metrics
-                pbar_desc = f'Iter {ite}: Cluster Loss {loss[1]}, Sentiment Loss {loss[2]}, Acc_sentiment {metrics["acc_sentiment"]}; loss= {loss}'
-                pbar.set_description(pbar_desc)
-                
-                # Also keep the original print for console logging
-                print('Iter', ite,': Cluster Loss', loss[1], ', Sentiment Loss', loss[2], 
-                    ', Acc_sentiment', np.round(acc_sentiment, 5), '; loss=', loss)
-
                 # Check stop criterion based on cluster stability
                 if ite > 0 and delta_label < tol:
                     print('delta_label ', delta_label, '< tol ', tol)
                     print('Reached tolerance threshold. Stopping training.')
                     logfile.close()
                     break
-
+            
             # Train on batch
             if y_sentiment is not None:
                 if (index + 1) * self.batch_size > x.shape[0]:
                     loss = self.model.train_on_batch(
                         x=x[index * self.batch_size::],
                         y=[p[index * self.batch_size::], 
-                        y_sentiment[index * self.batch_size::]]
+                           y_sentiment[index * self.batch_size::]]
                     )
                     index = 0
                 else:
                     loss = self.model.train_on_batch(
                         x=x[index * self.batch_size:(index + 1) * self.batch_size],
                         y=[p[index * self.batch_size:(index + 1) * self.batch_size],
-                        y_sentiment[index * self.batch_size:(index + 1) * self.batch_size]]
+                           y_sentiment[index * self.batch_size:(index + 1) * self.batch_size]]
                     )
                     index += 1
             else:
@@ -446,13 +415,6 @@ class FNN(object):
                     )
                     index += 1
             
-            # Update progress bar postfix with latest metrics
-            pbar.set_postfix({
-                'Cluster_Loss': loss[1] if isinstance(loss, (list, np.ndarray)) else 0,
-                'Sentiment_Loss': loss[2] if isinstance(loss, (list, np.ndarray)) and len(loss) > 2 else 0,
-                'Acc_sentiment': metrics['acc_sentiment']
-            })
-
             # Save intermediate model
             if ite % save_interval == 0:
                 print('saving model to:', save_dir + '/FNN_model_' + str(ite) + '.weights' + '.h5')
