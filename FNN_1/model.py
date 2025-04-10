@@ -116,8 +116,8 @@ class FNN(object):
         self.autoencoder.fit(x, x, batch_size=batch_size, epochs=epochs)
         
         # Save the weights
-        self.autoencoder.save_weights('pretrained_ae_weights.h5')
-        print('Autoencoder pretrained and weights saved to pretrained_ae_weights.h5')
+        self.autoencoder.save_weights('pretrained_ae.weights.h5')
+        print('Autoencoder pretrained and weights saved to pretrained_ae.weights.h5')
         
         # Initialize encoder from the trained autoencoder
         hidden = self.autoencoder.get_layer(name='encoder_%d' % (self.n_stacks - 1)).output
