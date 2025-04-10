@@ -251,8 +251,8 @@ class FNN(object):
             
             # Save intermediate model
             if ite % save_interval == 0:
-                print('saving model to:', save_dir + '/FNN_model_' + str(ite) + '.weights.' + '.h5')
-                self.model.save_weights(save_dir + '/FNN_model_' + str(ite) + '.weights.' + '.h5')
+                print('saving model to:', save_dir + '/FNN_model_' + str(ite) + '.weights' + '.h5')
+                self.model.save_weights(save_dir + '/FNN_model_' + str(ite) + '.weights' + '.h5')
         
         # Save the trained model
         logfile.close()
