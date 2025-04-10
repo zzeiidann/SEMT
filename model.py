@@ -1,0 +1,228 @@
+from time import time
+import numpy as np
+from keras.models import Model
+from keras.optimizers import SGD
+from keras.layers import Dense, BatchNormalization, Dropout, Activation
+import keras.backend as K
+
+from sklearn.cluster import KMeans
+from sklearn import metrics
+
+from .DEC import cluster_acc, ClusteringLayer, autoencoder
+import torch
+
+class FNN(object):
+    def __init__(self,
+                 dims,
+                 n_clusters=10,
+                 alpha=1.0,
+                 batch_size=256):
+
+        super(FNN, self).__init__()
+
+        self.dims = dims
+        self.input_dim = dims[0]
+        self.n_stacks = len(self.dims) - 1
+
+        self.n_clusters = n_clusters
+        self.alpha = alpha
+        self.batch_size = batch_size
+        self.autoencoder = autoencoder(self.dims) 
+
+    def initialize_model(self, ae_weights=None, gamma=0.1, eta=1.0, optimizer='sgd'):
+        if ae_weights is not None:
+            self.autoencoder.load_weights(ae_weights)
+            print('Pretrained AE weights are loaded successfully.')
+        else:
+            print('ae_weights must be given. E.g.')
+            print('    python FNN_1/model.py --ae_weights weights.h5')
+            exit()
+
+        # Get the encoder part from autoencoder
+        hidden = self.autoencoder.get_layer(name='encoder_%d' % (self.n_stacks - 1)).output
+        self.encoder = Model(inputs=self.autoencoder.input, outputs=hidden)
+        
+        # Define the sentiment classifier
+        hidden_size = self.dims[-1]  # Size of the bottleneck encoding
+        
+        # Create sentiment classifier layers
+        x = Dense(128)(hidden)
+        x = BatchNormalization()(x)
+        # Define gelu activation if needed
+        def gelu(x):
+            return 0.5 * x * (1 + K.tanh(np.sqrt(2 / np.pi) * (x + 0.044715 * K.pow(x, 3))))
+        x = Activation(gelu)(x)
+        x = Dropout(0.4)(x)
+        
+        x = Dense(32)(x)
+        x = BatchNormalization()(x)
+        x = Activation(gelu)(x)
+        x = Dropout(0.4)(x)
+        
+        sentiment_output = Dense(2, activation='softmax', name='sentiment')(x)
+        
+        # Create clustering layer
+        clustering_layer = ClusteringLayer(self.n_clusters, name='clustering')(hidden)
+        
+        # Create the combined model
+        self.model = Model(inputs=self.autoencoder.input,
+                          outputs=[clustering_layer, sentiment_output])
+        
+        # Compile with multiple losses
+        self.model.compile(loss={'clustering': 'kld', 'sentiment': 'categorical_crossentropy'},
+                          loss_weights=[gamma, eta],  # Balance between clustering and sentiment tasks
+                          optimizer=SGD(learning_rate=0.01, momentum=0.9))
+
+    def load_weights(self, weights_path):
+        self.model.load_weights(weights_path)
+
+    def extract_feature(self, x):
+        encoder = Model(self.model.input, self.model.get_layer('encoder_%d' % (self.n_stacks - 1)).output)
+        return encoder.predict(x)
+
+    def predict_clusters(self, x):
+        q, _ = self.model.predict(x, verbose=0)
+        return q.argmax(1)
+        
+    def predict_sentiment(self, x):
+        _, s = self.model.predict(x, verbose=0)
+        return s.argmax(1)
+
+    @staticmethod
+    def target_distribution(q):
+        weight = q ** 2 / q.sum(0)
+        return (weight.T / weight.sum(1)).T
+
+    def clustering_with_sentiment(self, dataset, tol=1e-3, update_interval=140, maxiter=2e4, 
+                                 save_dir='./results/idec_sentiment'):
+        """
+        dataset: CachedBERTDataset instance containing texts and labels
+        """
+        print('Update interval', update_interval)
+        
+        # Convert PyTorch dataset to NumPy arrays for Keras
+        embeddings = []
+        sentiment_labels = []
+        
+        # Extract embeddings and labels from dataset
+        for i in range(len(dataset)):
+            item = dataset[i]
+            if isinstance(item, tuple):  # If dataset returns (embedding, label)
+                embedding, label = item
+                embeddings.append(embedding.cpu().numpy())
+                sentiment_labels.append(label.cpu().numpy())
+            else:  # If dataset returns only embedding
+                embeddings.append(item.cpu().numpy())
+                
+        x = np.array(embeddings)
+        
+        if sentiment_labels:
+            y_sentiment = np.array(sentiment_labels)
+            # One-hot encoding for categorical crossentropy
+            from keras.utils import to_categorical
+            if len(y_sentiment.shape) == 1:
+                y_sentiment = to_categorical(y_sentiment, num_classes=2)
+        else:
+            print("Warning: No labels found in dataset. Clustering only.")
+            y_sentiment = None
+            
+        save_interval = x.shape[0] / self.batch_size * 5  # 5 epochs
+        print('Save interval', save_interval)
+
+        # Initialize cluster centers using k-means
+        print('Initializing cluster centers with k-means.')
+        kmeans = KMeans(n_clusters=self.n_clusters, n_init=20)
+        y_pred = kmeans.fit_predict(self.encoder.predict(x))
+        y_pred_last = y_pred
+        self.model.get_layer(name='clustering').set_weights([kmeans.cluster_centers_])
+
+        # Logging file
+        import csv, os
+        if not os.path.exists(save_dir):
+            os.makedirs(save_dir)
+        logfile = open(save_dir + '/idec_sentiment_log.csv', 'w')
+        fieldnames = ['iter', 'acc_cluster', 'nmi', 'ari', 'acc_sentiment', 'L', 'Lc', 'Ls']
+        logwriter = csv.DictWriter(logfile, fieldnames=fieldnames)
+        logwriter.writeheader()
+
+        loss = [0, 0, 0]  # Total loss, clustering loss, sentiment loss
+        index = 0
+        
+        for ite in range(int(maxiter)):
+            if ite % update_interval == 0:
+                q, s_pred = self.model.predict(x, verbose=0)
+                p = self.target_distribution(q)  # Update auxiliary target distribution
+                
+                # Evaluate clustering performance
+                y_pred = q.argmax(1)
+                delta_label = np.sum(y_pred != y_pred_last).astype(np.float32) / y_pred.shape[0]
+                y_pred_last = y_pred
+                
+                # Compute sentiment prediction accuracy if labels available
+                if y_sentiment is not None:
+                    s_pred_label = s_pred.argmax(1)
+                    sentiment_true_label = y_sentiment.argmax(1) if len(y_sentiment.shape) > 1 else y_sentiment
+                    acc_sentiment = np.sum(s_pred_label == sentiment_true_label).astype(np.float32) / s_pred_label.shape[0]
+                else:
+                    acc_sentiment = 0
+                
+                # For now, we don't have ground truth cluster labels
+                acc_cluster = nmi = ari = 0
+                
+                loss = np.round(loss, 5)
+                logdict = dict(iter=ite, acc_cluster=acc_cluster, nmi=nmi, ari=ari, 
+                              acc_sentiment=np.round(acc_sentiment, 5),
+                              L=loss[0], Lc=loss[1], Ls=loss[2])
+                logwriter.writerow(logdict)
+                print('Iter', ite, ': Acc_cluster', acc_cluster, ', nmi', nmi, ', ari', ari, 
+                     ', Acc_sentiment', np.round(acc_sentiment, 5), '; loss=', loss)
+                
+                # Check stop criterion based on cluster stability
+                if ite > 0 and delta_label < tol:
+                    print('delta_label ', delta_label, '< tol ', tol)
+                    print('Reached tolerance threshold. Stopping training.')
+                    logfile.close()
+                    break
+            
+            # Train on batch
+            if y_sentiment is not None:
+                if (index + 1) * self.batch_size > x.shape[0]:
+                    loss = self.model.train_on_batch(
+                        x=x[index * self.batch_size::],
+                        y=[p[index * self.batch_size::], 
+                           y_sentiment[index * self.batch_size::]]
+                    )
+                    index = 0
+                else:
+                    loss = self.model.train_on_batch(
+                        x=x[index * self.batch_size:(index + 1) * self.batch_size],
+                        y=[p[index * self.batch_size:(index + 1) * self.batch_size],
+                           y_sentiment[index * self.batch_size:(index + 1) * self.batch_size]]
+                    )
+                    index += 1
+            else:
+                # Handle case with no labels (clustering only)
+                if (index + 1) * self.batch_size > x.shape[0]:
+                    loss = self.model.train_on_batch(
+                        x=x[index * self.batch_size::],
+                        y=[p[index * self.batch_size::]]
+                    )
+                    index = 0
+                else:
+                    loss = self.model.train_on_batch(
+                        x=x[index * self.batch_size:(index + 1) * self.batch_size],
+                        y=[p[index * self.batch_size:(index + 1) * self.batch_size]]
+                    )
+                    index += 1
+            
+            # Save intermediate model
+            if ite % save_interval == 0:
+                print('saving model to:', save_dir + '/FNN_model_' + str(ite) + '.h5')
+                self.model.save_weights(save_dir + '/FNN_model_' + str(ite) + '.h5')
+        
+        # Save the trained model
+        logfile.close()
+        print('saving model to:', save_dir + '/FNN_model_final.h5')
+        self.model.save_weights(save_dir + '/FNN_model_final.h5')
+        
+        return y_pred, s_pred if y_sentiment is not None else y_pred
