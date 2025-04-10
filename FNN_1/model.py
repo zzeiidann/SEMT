@@ -7,6 +7,7 @@ import keras.backend as K
 
 from sklearn.cluster import KMeans
 from sklearn import metrics
+from keras.utils.vis_utils import plot_model
 
 from .DEC import cluster_acc, ClusteringLayer, autoencoder
 import torch
@@ -88,6 +89,26 @@ class FNN(object):
         _, s = self.model.predict(x, verbose=0)
         return s.argmax(1)
 
+    def pretrain_autoencoder(self, x, batch_size=256, epochs=200, optimizer='adam'):
+        """
+        Pretrain the autoencoder using the provided data
+        """
+        print('Pretraining autoencoder...')
+        self.autoencoder.compile(optimizer=optimizer, loss='mse')
+        
+        # Train the autoencoder
+        self.autoencoder.fit(x, x, batch_size=batch_size, epochs=epochs)
+        
+        # Save the weights
+        self.autoencoder.save_weights('pretrained_ae_weights.h5')
+        print('Autoencoder pretrained and weights saved to pretrained_ae_weights.h5')
+        
+        # Initialize encoder from the trained autoencoder
+        hidden = self.autoencoder.get_layer(name='encoder_%d' % (self.n_stacks - 1)).output
+        self.encoder = Model(inputs=self.autoencoder.input, outputs=hidden)
+        
+        return self.autoencoder.get_weights()
+    
     @staticmethod
     def target_distribution(q):
         weight = q ** 2 / q.sum(0)
