@@ -224,7 +224,31 @@ class FNN(object):
             cluster_common_words[cluster] = top_words
         
         return clusters, cluster_common_words
-
+    
+    def analyze_clusters(self, x, texts):
+        """
+        Analyze clusters by getting assignments and mapping texts
+        
+        Args:
+            x: Input features as numpy array
+            texts: List of corresponding text strings
+            
+        Returns:
+            DataFrame with cluster analysis
+        """
+        cluster_assignments = self.get_cluster_assignments(x)
+        text_clusters, cluster_words = self.map_texts_to_clusters(texts, cluster_assignments)
+    
+        df_clusters = pd.DataFrame([
+            {"Cluster": cluster, "Common Words": ", ".join([f"{word} ({count})" for word, count in words[:10]]),
+             "Text Count": len(text_clusters[cluster])}
+            for cluster, words in cluster_words.items()
+        ]).sort_values(by=['Cluster']).reset_index(drop=True)
+        
+        print("\n============== CLUSTER ANALYSIS ==============")
+        print(df_clusters)
+        
+        return df_clusters
     def pretrain_autoencoder(self, dataset, batch_size=256, epochs=200, optimizer='adam'):
         """
         Pretrain the autoencoder using the provided PyTorch dataset
