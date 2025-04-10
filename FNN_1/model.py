@@ -295,10 +295,13 @@ class FNN(object):
         return (weight.T / weight.sum(1)).T
 
     def clustering_with_sentiment(self, dataset, tol=1e-3, update_interval=140, maxiter=2e4, 
-                                 save_dir='./results/idec_sentiment'):
+                             save_dir='./results/idec_sentiment'):
         """
         dataset: CachedBERTDataset instance containing texts and labels
         """
+        # Import tqdm for notebook
+        from tqdm.notebook import tqdm
+        
         print('Update interval', update_interval)
         
         # Convert PyTorch dataset to NumPy arrays for Keras
@@ -349,6 +352,9 @@ class FNN(object):
         loss = [0, 0, 0]  # Total loss, clustering loss, sentiment loss
         index = 0
         
+        # Create tqdm progress bar
+        progress_bar = tqdm(total=int(maxiter), desc="Training")
+        
         for ite in range(int(maxiter)):
             if ite % update_interval == 0:
                 q, s_pred = self.model.predict(x, verbose=0)
@@ -372,16 +378,22 @@ class FNN(object):
                 
                 loss = np.round(loss, 5)
                 logdict = dict(iter=ite, acc_cluster=acc_cluster, nmi=nmi, ari=ari, 
-                              acc_sentiment=np.round(acc_sentiment, 5),
-                              L=loss[0], Lc=loss[1], Ls=loss[2])
+                            acc_sentiment=np.round(acc_sentiment, 5),
+                            L=loss[0], Lc=loss[1], Ls=loss[2])
                 logwriter.writerow(logdict)
-                print('Iter', ite,': Cluster Loss', loss[1], ', Sentiment Loss', loss[2] , ', Acc_sentiment', np.round(acc_sentiment, 5), '; loss=', loss)
+                
+                # Update progress bar description
+                progress_desc = f'Iter {ite}: Cluster Loss {loss[1]}, Sentiment Loss {loss[2]}, Acc_sentiment {np.round(acc_sentiment, 5)}; loss={loss}'
+                progress_bar.set_description(progress_desc)
+                
+                # print('Iter', ite,': Cluster Loss', loss[1], ', Sentiment Loss', loss[2] , ', Acc_sentiment', np.round(acc_sentiment, 5), '; loss=', loss)
                 
                 # Check stop criterion based on cluster stability
                 if ite > 0 and delta_label < tol:
                     print('delta_label ', delta_label, '< tol ', tol)
                     print('Reached tolerance threshold. Stopping training.')
                     logfile.close()
+                    progress_bar.close()
                     break
             
             # Train on batch
@@ -390,14 +402,14 @@ class FNN(object):
                     loss = self.model.train_on_batch(
                         x=x[index * self.batch_size::],
                         y=[p[index * self.batch_size::], 
-                           y_sentiment[index * self.batch_size::]]
+                        y_sentiment[index * self.batch_size::]]
                     )
                     index = 0
                 else:
                     loss = self.model.train_on_batch(
                         x=x[index * self.batch_size:(index + 1) * self.batch_size],
                         y=[p[index * self.batch_size:(index + 1) * self.batch_size],
-                           y_sentiment[index * self.batch_size:(index + 1) * self.batch_size]]
+                        y_sentiment[index * self.batch_size:(index + 1) * self.batch_size]]
                     )
                     index += 1
             else:
@@ -415,10 +427,23 @@ class FNN(object):
                     )
                     index += 1
             
+            # Update progress bar after each iteration
+            progress_bar.update(1)
+            
+            # Update postfix with the latest metrics
+            progress_bar.set_postfix({
+                'Cluster_Loss': loss[1],
+                'Sentiment_Loss': loss[2],
+                'Acc_sentiment': np.round(acc_sentiment, 5) if 'acc_sentiment' in locals() else 0
+            })
+            
             # Save intermediate model
             if ite % save_interval == 0:
                 print('saving model to:', save_dir + '/FNN_model_' + str(ite) + '.weights' + '.h5')
                 self.model.save_weights(save_dir + '/FNN_model_' + str(ite) + '.weights' + '.h5')
+        
+        # Close progress bar
+        progress_bar.close()
         
         # Save the trained model
         logfile.close()
