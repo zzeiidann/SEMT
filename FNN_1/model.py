@@ -423,45 +423,53 @@ class FNN(object):
             
             # Train on batch with class weights for sentiment
             if y_sentiment is not None:
-                # Create class weight dictionary for Keras
-                if sentiment_class_weights:
-                    class_weights = {
-                        'clustering': None,  # No class weights for clustering
-                        'sentiment': sentiment_class_weights  # Apply class weights to sentiment task
-                    }
-                else:
-                    class_weights = None
+                if (index + 1) * self.batch_size > x.shape[0]:
+                    batch_x = x[index * self.batch_size::]
+                    batch_p = p[index * self.batch_size::]
+                    batch_y_sentiment = y_sentiment[index * self.batch_size::]
                     
-                # Train on batch with class weights
-                if (index + 1) * self.batch_size > x.shape[0]:
-                    loss = self.model.train_on_batch(
-                        x=x[index * self.batch_size::],
-                        y=[p[index * self.batch_size::], 
-                           y_sentiment[index * self.batch_size::]],
-                        class_weight=class_weights
-                    )
+                    # Apply class weights manually to sentiment loss
+                    if sentiment_class_weights:
+                        # Get sample weights based on class labels
+                        sample_weights = np.ones(batch_y_sentiment.shape[0])
+                        for i, label in enumerate(np.argmax(batch_y_sentiment, axis=1)):
+                            sample_weights[i] = sentiment_class_weights[label]
+                            
+                        # Pass sample weights as a list - None for clustering, weights for sentiment
+                        loss = self.model.train_on_batch(
+                            x=batch_x,
+                            y=[batch_p, batch_y_sentiment],
+                            sample_weight=[None, sample_weights]
+                        )
+                    else:
+                        loss = self.model.train_on_batch(
+                            x=batch_x,
+                            y=[batch_p, batch_y_sentiment]
+                        )
                     index = 0
                 else:
-                    loss = self.model.train_on_batch(
-                        x=x[index * self.batch_size:(index + 1) * self.batch_size],
-                        y=[p[index * self.batch_size:(index + 1) * self.batch_size],
-                           y_sentiment[index * self.batch_size:(index + 1) * self.batch_size]],
-                        class_weight=class_weights
-                    )
-                    index += 1
-            else:
-                # Handle case with no labels (clustering only)
-                if (index + 1) * self.batch_size > x.shape[0]:
-                    loss = self.model.train_on_batch(
-                        x=x[index * self.batch_size::],
-                        y=[p[index * self.batch_size::]]
-                    )
-                    index = 0
-                else:
-                    loss = self.model.train_on_batch(
-                        x=x[index * self.batch_size:(index + 1) * self.batch_size],
-                        y=[p[index * self.batch_size:(index + 1) * self.batch_size]]
-                    )
+                    batch_x = x[index * self.batch_size:(index + 1) * self.batch_size]
+                    batch_p = p[index * self.batch_size:(index + 1) * self.batch_size]
+                    batch_y_sentiment = y_sentiment[index * self.batch_size:(index + 1) * self.batch_size]
+                    
+                    # Apply class weights manually to sentiment loss
+                    if sentiment_class_weights:
+                        # Get sample weights based on class labels
+                        sample_weights = np.ones(batch_y_sentiment.shape[0])
+                        for i, label in enumerate(np.argmax(batch_y_sentiment, axis=1)):
+                            sample_weights[i] = sentiment_class_weights[label]
+                            
+                        # Pass sample weights as a list - None for clustering, weights for sentiment
+                        loss = self.model.train_on_batch(
+                            x=batch_x,
+                            y=[batch_p, batch_y_sentiment],
+                            sample_weight=[None, sample_weights]
+                        )
+                    else:
+                        loss = self.model.train_on_batch(
+                            x=batch_x,
+                            y=[batch_p, batch_y_sentiment]
+                        )
                     index += 1
             
             # Save intermediate model
