@@ -7,6 +7,7 @@ import keras.backend as K
 
 from sklearn.cluster import KMeans
 from sklearn import metrics
+from sklearn.utils.class_weight import compute_class_weight
 
 from transformers import AutoTokenizer, AutoModel
 from collections import Counter
@@ -92,8 +93,6 @@ class FNN(object):
     def predict_sentiment(self, x):
         _, s = self.model.predict(x, verbose=0)
         return s.argmax(1)
-
-    from transformers import AutoModel
 
     def predict(self, inputs, bert_model=None):
         if isinstance(inputs, str):
@@ -294,6 +293,33 @@ class FNN(object):
         weight = q ** 2 / q.sum(0)
         return (weight.T / weight.sum(1)).T
 
+    def compute_class_weights(self, y):
+        """
+        Compute class weights for imbalanced sentiment classes
+        
+        Args:
+            y: Sentiment labels (can be one-hot encoded or class indices)
+            
+        Returns:
+            Dictionary of class weights
+        """
+        # If y is one-hot encoded, convert to class indices
+        if len(y.shape) > 1:
+            y_indices = np.argmax(y, axis=1)
+        else:
+            y_indices = y
+            
+        # Calculate class distribution
+        unique_classes, class_counts = np.unique(y_indices, return_counts=True)
+        print(f"Class distribution: {dict(zip(unique_classes, class_counts))}")
+        
+        # Compute balanced class weights
+        class_weights = compute_class_weight('balanced', classes=unique_classes, y=y_indices)
+        class_weight_dict = dict(zip(unique_classes, class_weights))
+        
+        print(f"Computed class weights: {class_weight_dict}")
+        return class_weight_dict
+
     def clustering_with_sentiment(self, dataset, tol=1e-3, update_interval=140, maxiter=2e4, 
                                  save_dir='./results/fnnjst'):
         """
@@ -323,9 +349,13 @@ class FNN(object):
             from keras.utils import to_categorical
             if len(y_sentiment.shape) == 1:
                 y_sentiment = to_categorical(y_sentiment, num_classes=2)
+            
+            # Compute class weights for handling imbalanced classes
+            sentiment_class_weights = self.compute_class_weights(y_sentiment)
         else:
             print("Warning: No labels found in dataset. Clustering only.")
             y_sentiment = None
+            sentiment_class_weights = None
             
         save_interval = x.shape[0] / self.batch_size * 5  # 5 epochs
         print('Save interval', save_interval)
@@ -364,6 +394,13 @@ class FNN(object):
                     s_pred_label = s_pred.argmax(1)
                     sentiment_true_label = y_sentiment.argmax(1) if len(y_sentiment.shape) > 1 else y_sentiment
                     acc_sentiment = np.sum(s_pred_label == sentiment_true_label).astype(np.float32) / s_pred_label.shape[0]
+                    
+                    # Compute per-class accuracy to monitor imbalance effects
+                    if len(np.unique(sentiment_true_label)) > 1:
+                        for cls in np.unique(sentiment_true_label):
+                            cls_mask = sentiment_true_label == cls
+                            cls_acc = np.sum((s_pred_label == sentiment_true_label) & cls_mask).astype(np.float32) / np.sum(cls_mask)
+                            print(f"Class {self.class_labels[cls]} accuracy: {np.round(cls_acc, 5)}")
                 else:
                     acc_sentiment = 0
                 
@@ -384,20 +421,32 @@ class FNN(object):
                     logfile.close()
                     break
             
-            # Train on batch
+            # Train on batch with class weights for sentiment
             if y_sentiment is not None:
+                # Create class weight dictionary for Keras
+                if sentiment_class_weights:
+                    class_weights = {
+                        'clustering': None,  # No class weights for clustering
+                        'sentiment': sentiment_class_weights  # Apply class weights to sentiment task
+                    }
+                else:
+                    class_weights = None
+                    
+                # Train on batch with class weights
                 if (index + 1) * self.batch_size > x.shape[0]:
                     loss = self.model.train_on_batch(
                         x=x[index * self.batch_size::],
                         y=[p[index * self.batch_size::], 
-                           y_sentiment[index * self.batch_size::]]
+                           y_sentiment[index * self.batch_size::]],
+                        class_weight=class_weights
                     )
                     index = 0
                 else:
                     loss = self.model.train_on_batch(
                         x=x[index * self.batch_size:(index + 1) * self.batch_size],
                         y=[p[index * self.batch_size:(index + 1) * self.batch_size],
-                           y_sentiment[index * self.batch_size:(index + 1) * self.batch_size]]
+                           y_sentiment[index * self.batch_size:(index + 1) * self.batch_size]],
+                        class_weight=class_weights
                     )
                     index += 1
             else:
@@ -426,3 +475,64 @@ class FNN(object):
         self.model.save_weights(save_dir + '/FNN_model_final.weights.h5')
         
         return y_pred, s_pred if y_sentiment is not None else y_pred
+
+    def evaluate_sentiment_performance(self, x, y_true):
+        """
+        Evaluate sentiment classification performance with metrics for imbalanced data
+        
+        Args:
+            x: Input features 
+            y_true: True sentiment labels
+            
+        Returns:
+            Dictionary of evaluation metrics
+        """
+        from sklearn.metrics import precision_recall_fscore_support, confusion_matrix
+        
+        _, y_pred_probs = self.model.predict(x, verbose=0)
+        y_pred = y_pred_probs.argmax(1)
+        
+        if len(y_true.shape) > 1:
+            y_true = np.argmax(y_true, axis=1)
+        
+        precision, recall, f1, support = precision_recall_fscore_support(y_true, y_pred, average=None)
+        cm = confusion_matrix(y_true, y_pred)
+        
+        per_class_acc = cm.diagonal() / cm.sum(axis=1)
+        
+        # Print evaluation results
+        print("\n============ SENTIMENT EVALUATION ============")
+        print(f"Confusion Matrix:\n{cm}")
+        print("\nPer-class metrics:")
+        for i, class_name in self.class_labels.items():
+            print(f"Class {class_name}: Precision={precision[i]:.3f}, Recall={recall[i]:.3f}, F1={f1[i]:.3f}, Accuracy={per_class_acc[i]:.3f}")
+        
+        # Calculate macro and weighted averages
+        macro_precision = np.mean(precision)
+        macro_recall = np.mean(recall)
+        macro_f1 = np.mean(f1)
+        
+        weighted_precision = np.average(precision, weights=support)
+        weighted_recall = np.average(recall, weights=support)
+        weighted_f1 = np.average(f1, weights=support)
+        
+        print(f"\nMacro Avg: Precision={macro_precision:.3f}, Recall={macro_recall:.3f}, F1={macro_f1:.3f}")
+        print(f"Weighted Avg: Precision={weighted_precision:.3f}, Recall={weighted_recall:.3f}, F1={weighted_f1:.3f}")
+        
+        return {
+            'confusion_matrix': cm,
+            'precision': precision,
+            'recall': recall,
+            'f1': f1,
+            'per_class_accuracy': per_class_acc,
+            'macro_avg': {
+                'precision': macro_precision,
+                'recall': macro_recall,
+                'f1': macro_f1
+            },
+            'weighted_avg': {
+                'precision': weighted_precision,
+                'recall': weighted_recall,
+                'f1': weighted_f1
+            }
+        }
