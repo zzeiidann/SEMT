@@ -400,6 +400,7 @@ class FNN(object):
                         for cls in np.unique(sentiment_true_label):
                             cls_mask = sentiment_true_label == cls
                             cls_acc = np.sum((s_pred_label == sentiment_true_label) & cls_mask).astype(np.float32) / np.sum(cls_mask)
+                            print(f"Class {self.class_labels[cls]} accuracy: {np.round(cls_acc, 5)}")
                 else:
                     acc_sentiment = 0
                 
@@ -412,8 +413,8 @@ class FNN(object):
                               L=loss[0], Lc=loss[1], Ls=loss[2])
                 logwriter.writerow(logdict)
                 print('Iter', ite,': Cluster Loss', loss[1], ', Sentiment Loss', loss[2] , ', Acc_sentiment', np.round(acc_sentiment, 5), '; loss=', loss)
-                print(f"Class {self.class_labels[cls]} accuracy: {np.round(cls_acc, 5)}")
-                
+        
+
                 # Check stop criterion based on cluster stability
                 if ite > 0 and delta_label < tol:
                     print('delta_label ', delta_label, '< tol ', tol)
