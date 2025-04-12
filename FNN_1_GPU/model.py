@@ -241,7 +241,6 @@ class FNNGPU(nn.Module):
         
     def save_weights(self, weights_path):
         """Save model weights to .pth file"""
-        os.makedirs(os.path.dirname(weights_path), exist_ok=True)
         torch.save({
             'model_state_dict': self.state_dict(),
         }, weights_path)
