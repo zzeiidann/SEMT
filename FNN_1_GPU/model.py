@@ -421,34 +421,42 @@ class FNNGPU(nn.Module):
         return results
     
     def clustering_with_sentiment(self, dataset, tol=1e-3, update_interval=140, maxiter=2e4, 
-                                save_dir='./results/fnnjst'):
+                            save_dir='./results/fnnjst'):
         """
         Train the model with joint clustering and sentiment tasks
         """
         print('Update interval', update_interval)
-        
+
         # Create directories for saving
         os.makedirs(save_dir, exist_ok=True)
-        
-        # Set up data loader
+
         data_loader = DataLoader(dataset, batch_size=self.batch_size, shuffle=False)
-        
-        # Extract all data for K-means initialization
+
         all_embeddings = []
         all_labels = []
-        
+
         with torch.no_grad():
             for batch in tqdm(data_loader, desc="Extracting features"):
                 if isinstance(batch, tuple):
                     embeddings, labels = batch
+                    if not isinstance(embeddings, torch.Tensor):
+                        embeddings = torch.tensor(embeddings, dtype=torch.float32)
                     all_embeddings.append(embeddings)
                     all_labels.append(labels)
                 else:
+                    if not isinstance(batch, torch.Tensor):
+                        batch = torch.tensor(batch, dtype=torch.float32)
                     all_embeddings.append(batch)
             
-            all_embeddings = torch.cat(all_embeddings, dim=0).to(device)
+            if all_embeddings:
+                all_embeddings = torch.cat(all_embeddings, dim=0).to(device)
+            else:
+                raise ValueError("No embeddings were extracted from the dataset")
+                
             if all_labels:
-                all_labels = torch.cat(all_labels, dim=0).to(device)
+                # Check if all_labels has elements before concatenating
+                if all_labels:
+                    all_labels = torch.cat(all_labels, dim=0).to(device)
         
         # Create a tensor dataset for batch training
         if all_labels and len(all_labels) > 0:
