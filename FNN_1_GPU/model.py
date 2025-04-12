@@ -444,9 +444,12 @@ class FNNGPU(nn.Module):
                     all_embeddings.append(embeddings)
                     all_labels.append(labels)
                 else:
-                    if not isinstance(batch, torch.Tensor):
+                    try:
                         batch = torch.tensor(batch, dtype=torch.float32)
+                    except Exception:
+                        batch = torch.stack([torch.tensor(b, dtype=torch.float32) for b in batch])
                     all_embeddings.append(batch)
+
             
             if all_embeddings:
                 all_embeddings = torch.cat(all_embeddings, dim=0).to(device)
