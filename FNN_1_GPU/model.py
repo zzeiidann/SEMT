@@ -266,23 +266,23 @@ class FNNGPU(nn.Module):
             total_loss = 0
             with tqdm(data_loader, desc=f"Epoch {epoch+1}/{epochs}") as pbar:
                 for data in pbar:
-                    # Get the inputs
+                    # Get the inputs based on the dataset's format
                     if isinstance(data, tuple):
-                        inputs, _ = data  # If dataset returns (embedding, label)
+                        # Dataset returns (embedding, label)
+                        inputs, _ = data  
                     else:
-                        inputs = data  # If dataset returns only embedding
+                        # Dataset returns only embedding
+                        inputs = data
                     
-                    # More robust tensor conversion
-                    if isinstance(inputs, list):
+                    # Ensure inputs is a proper tensor
+                    if not isinstance(inputs, torch.Tensor):
                         try:
-                            # Try numpy first which is more tolerant of complex structures
-                            inputs = np.array(inputs, dtype=np.float32)
-                            inputs = torch.from_numpy(inputs)
+                            inputs = torch.stack(inputs)
                         except:
-                            print("Could not convert list to tensor, data may be irregular")
+                            print(f"Could not process inputs of type {type(inputs)}")
                             continue
                     
-                    # Ensure inputs is on the right device
+                    # Move to device
                     inputs = inputs.to(device)
                     
                     # Zero the parameter gradients
@@ -297,11 +297,10 @@ class FNNGPU(nn.Module):
                     # Update statistics
                     total_loss += loss.item()
                     pbar.set_postfix({'loss': total_loss / (pbar.n + 1)})
-            
-        # Save weights
+
         self.save_weights('pretrained_ae.weights.pth')
         print('Autoencoder pretrained and weights saved to pretrained_ae.weights.pth')
-    
+        
     @staticmethod
     def target_distribution(q):
         """
