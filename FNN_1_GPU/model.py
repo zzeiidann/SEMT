@@ -266,41 +266,64 @@ class FNNGPU(nn.Module):
             total_loss = 0
             with tqdm(data_loader, desc=f"Epoch {epoch+1}/{epochs}") as pbar:
                 for data in pbar:
-                    # Get the inputs based on the dataset's format
-                    if isinstance(data, tuple):
-                        # Dataset returns (embedding, label)
-                        inputs, _ = data  
-                    else:
-                        # Dataset returns only embedding
-                        inputs = data
+                    # Debug information to understand the data structure
+                    print(f"Data type: {type(data)}")
+                    if isinstance(data, list):
+                        print(f"List length: {len(data)}")
+                        if len(data) > 0:
+                            print(f"First element type: {type(data[0])}")
                     
-                    # Ensure inputs is a proper tensor
-                    if not isinstance(inputs, torch.Tensor):
-                        try:
-                            inputs = torch.stack(inputs)
-                        except:
-                            print(f"Could not process inputs of type {type(inputs)}")
-                            continue
+                    # Try several approaches to convert data to tensors
+                    try:
+                        if isinstance(data, tuple) and len(data) == 2:
+                            # Dataset returns (embedding, label)
+                            inputs, _ = data
+                        else:
+                            # Dataset returns only embedding
+                            inputs = data
+                        
+                        # Convert list of tensors to a batched tensor
+                        if isinstance(inputs, list):
+                            if all(isinstance(item, torch.Tensor) for item in inputs):
+                                # Handle list of tensors
+                                inputs = torch.stack(inputs)
+                            else:
+                                # Try to convert each item to tensor then stack
+                                tensor_list = []
+                                for item in inputs:
+                                    if isinstance(item, torch.Tensor):
+                                        tensor_list.append(item)
+                                    else:
+                                        tensor_list.append(torch.tensor(item, dtype=torch.float32))
+                                inputs = torch.stack(tensor_list)
+                        
+                        # Move to device
+                        inputs = inputs.to(device)
+                        
+                        # Zero the parameter gradients
+                        optimizer.zero_grad()
+                        
+                        # Forward + backward + optimize
+                        _, reconstructed = self.autoencoder(inputs)
+                        loss = criterion(reconstructed, inputs)
+                        loss.backward()
+                        optimizer.step()
+                        
+                        # Update statistics
+                        total_loss += loss.item()
+                        pbar.set_postfix({'loss': total_loss / (pbar.n + 1)})
                     
-                    # Move to device
-                    inputs = inputs.to(device)
-                    
-                    # Zero the parameter gradients
-                    optimizer.zero_grad()
-                    
-                    # Forward + backward + optimize
-                    _, reconstructed = self.autoencoder(inputs)
-                    loss = criterion(reconstructed, inputs)
-                    loss.backward()
-                    optimizer.step()
-                    
-                    # Update statistics
-                    total_loss += loss.item()
-                    pbar.set_postfix({'loss': total_loss / (pbar.n + 1)})
-
+                    except Exception as e:
+                        print(f"Error processing batch: {e}")
+                        # Print the first few elements to debug
+                        if isinstance(data, list) and len(data) > 0:
+                            print(f"First element sample: {data[0]}")
+                        continue
+            
+        # Save weights
         self.save_weights('pretrained_ae.weights.pth')
         print('Autoencoder pretrained and weights saved to pretrained_ae.weights.pth')
-        
+            
     @staticmethod
     def target_distribution(q):
         """
