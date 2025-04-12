@@ -164,7 +164,7 @@ class Autoencoder(nn.Module):
 
 class FNNGPU(nn.Module):
     def __init__(self, dims, n_clusters=10, alpha=1.0, batch_size=256):
-        super(FNN, self).__init__()
+        super(FNNGPU, self).__init__()
         
         self.dims = dims
         self.input_dim = dims[0]
