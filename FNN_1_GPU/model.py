@@ -12,7 +12,7 @@ from transformers import AutoTokenizer, AutoModel
 from collections import Counter
 import pandas as pd
 import torch.nn.functional as F
-from sklearn.utils.linear_assignment_ import linear_assignment
+from scipy.optimize import linear_sum_assignment as linear_assignment
 
 # Set device for computation
 device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
