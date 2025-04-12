@@ -272,10 +272,17 @@ class FNNGPU(nn.Module):
                     else:
                         inputs = data  # If dataset returns only embedding
                     
-                    # Convert to tensor if it's a list
+                    # More robust tensor conversion
                     if isinstance(inputs, list):
-                        inputs = torch.tensor(inputs, dtype=torch.float32)
+                        try:
+                            # Try numpy first which is more tolerant of complex structures
+                            inputs = np.array(inputs, dtype=np.float32)
+                            inputs = torch.from_numpy(inputs)
+                        except:
+                            print("Could not convert list to tensor, data may be irregular")
+                            continue
                     
+                    # Ensure inputs is on the right device
                     inputs = inputs.to(device)
                     
                     # Zero the parameter gradients
@@ -290,7 +297,7 @@ class FNNGPU(nn.Module):
                     # Update statistics
                     total_loss += loss.item()
                     pbar.set_postfix({'loss': total_loss / (pbar.n + 1)})
-        
+            
         # Save weights
         self.save_weights('pretrained_ae.weights.pth')
         print('Autoencoder pretrained and weights saved to pretrained_ae.weights.pth')
