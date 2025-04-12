@@ -258,12 +258,15 @@ class FNNGPU(nn.Module):
             item = dataset[i]
             if isinstance(item, tuple):  # If dataset returns (embedding, label)
                 embedding, _ = item
-                embeddings.append(embedding)
+                # Make sure embeddings are on CPU for stacking
+                embeddings.append(embedding.cpu())
             else:  # If dataset returns only embedding
-                embeddings.append(item)
+                embeddings.append(item.cpu())
         
         # Create tensor dataset of just embeddings
-        embeddings_tensor = torch.stack(embeddings).to(device)
+        embeddings_tensor = torch.stack(embeddings)
+        # Move the combined tensor to the target device after stacking
+        embeddings_tensor = embeddings_tensor.to(device)
         embeddings_dataset = TensorDataset(embeddings_tensor)
         
         print(f"Created tensor dataset with shape: {embeddings_tensor.shape}")
@@ -276,6 +279,9 @@ class FNNGPU(nn.Module):
         
         # Loss function
         criterion = nn.MSELoss()
+        
+        # Make sure the model is on the same device
+        self.autoencoder.to(device)
         
         # Training loop
         self.autoencoder.train()
