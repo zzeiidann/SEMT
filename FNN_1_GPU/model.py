@@ -272,6 +272,10 @@ class FNNGPU(nn.Module):
                     else:
                         inputs = data  # If dataset returns only embedding
                     
+                    # Convert to tensor if it's a list
+                    if isinstance(inputs, list):
+                        inputs = torch.tensor(inputs, dtype=torch.float32)
+                    
                     inputs = inputs.to(device)
                     
                     # Zero the parameter gradients
