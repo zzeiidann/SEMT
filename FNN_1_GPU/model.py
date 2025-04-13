@@ -182,16 +182,16 @@ class FNNGPU(nn.Module):
         # Sentiment classifier
         sentiment_layers = []
         # First layer
-        sentiment_layers.append(nn.Linear(dims[-1], 128))
-        sentiment_layers.append(nn.BatchNorm1d(128))
-        sentiment_layers.append(nn.ReLU())
-        sentiment_layers.append(nn.Dropout(0.4))
+        sentiment_layers.append(nn.Linear(dims[-1], 256))
+        sentiment_layers.append(nn.BatchNorm1d(256))
+        sentiment_layers.append(nn.GELU())
+        sentiment_layers.append(nn.Dropout(0.5))
         
         # Second layer
-        sentiment_layers.append(nn.Linear(128, 32))
+        sentiment_layers.append(nn.Linear(256, 32))
         sentiment_layers.append(nn.BatchNorm1d(32))
-        sentiment_layers.append(nn.ReLU())
-        sentiment_layers.append(nn.Dropout(0.4))
+        sentiment_layers.append(nn.GELU())
+        sentiment_layers.append(nn.Dropout(0.5))
         
         # Output layer
         sentiment_layers.append(nn.Linear(32, 2))  # 2 classes: positive and negative
