@@ -421,14 +421,18 @@ class FNNGPU(nn.Module):
         return results
     
     def clustering_with_sentiment(self, dataset, tol=1e-3, update_interval=140, batch_size=128, maxiter=2e4, 
-                            save_dir='./results/fnnjst'):
+                        save_dir='./results/fnnjst'):
         """
         Train the model with joint clustering and sentiment tasks
         """
         print('Update interval', update_interval)
 
+        # Ensure model is on the correct device
+        self.to(device)
+
         # Create directories for saving
         os.makedirs(save_dir, exist_ok=True)
+        
         # Collect all embeddings and labels
         embeddings = []
         labels = []
@@ -450,14 +454,13 @@ class FNNGPU(nn.Module):
         if len(set(shapes)) > 1:
             print(f"Warning: Inconsistent embedding shapes detected: {set(shapes)}")
             print("Attempting to handle this case...")
-            # You might need special handling for inconsistent shapes
 
         # Stack embeddings
         embeddings_tensor = torch.stack(embeddings)
         embeddings_tensor = embeddings_tensor.to(device)
 
         # Create the final dataset
-        if labels:
+        if labels and len(labels) > 0:
             # Convert labels to tensor if they exist
             labels_tensor = torch.stack(labels).to(device)
             combined_dataset = TensorDataset(embeddings_tensor, labels_tensor)
@@ -473,33 +476,28 @@ class FNNGPU(nn.Module):
 
         with torch.no_grad():
             for batch in tqdm(data_loader, desc="Extracting features"):
-                if len(batch) > 1:  # If the batch contains both embeddings and labels
+                if isinstance(batch, tuple) and len(batch) > 1:  # If batch contains embeddings and labels
                     embeddings, labels = batch
-                    if not isinstance(embeddings, torch.Tensor):
-                        embeddings = torch.tensor(embeddings, dtype=torch.float32)
+                    embeddings = embeddings.to(device)
+                    labels = labels.to(device)
                     all_embeddings.append(embeddings)
                     all_labels.append(labels)
-                else:  # If the batch contains only embeddings
-                    embeddings = batch[0]  # Get the first (and only) item from the tuple
-                    try:
-                        if not isinstance(embeddings, torch.Tensor):
-                            embeddings = torch.tensor(embeddings, dtype=torch.float32)
-                    except Exception as e:
-                        print(f"Error converting to tensor: {e}")
-                        # Add error handling as needed
-                        continue
+                else:  # If batch contains only embeddings
+                    if isinstance(batch, tuple):
+                        embeddings = batch[0].to(device)
+                    else:
+                        embeddings = batch.to(device)
                     all_embeddings.append(embeddings)
-
             
+            # Concatenate all embeddings
             if all_embeddings:
                 all_embeddings = torch.cat(all_embeddings, dim=0).to(device)
             else:
                 raise ValueError("No embeddings were extracted from the dataset")
                 
-            if all_labels:
-                # Check if all_labels has elements before concatenating
-                if all_labels:
-                    all_labels = torch.cat(all_labels, dim=0).to(device)
+            # Concatenate all labels if they exist
+            if all_labels and len(all_labels) > 0:
+                all_labels = torch.cat(all_labels, dim=0).to(device)
         
         # Create a tensor dataset for batch training
         if all_labels is not None and len(all_labels) > 0:
@@ -566,8 +564,15 @@ class FNNGPU(nn.Module):
                     q_batch = []
                     s_pred_batch = []
                     
+                    # Create a DataLoader for prediction
                     for batch in tqdm(DataLoader(all_embeddings, batch_size=self.batch_size), 
                                     desc=f"Updating distribution (iter {ite})"):
+                        # Ensure batch is on the same device as the model
+                        if isinstance(batch, tuple):
+                            batch = batch[0].to(device)
+                        else:
+                            batch = batch.to(device)
+                        
                         q, s = self(batch)
                         q_batch.append(q)
                         s_pred_batch.append(s)
@@ -637,24 +642,33 @@ class FNNGPU(nn.Module):
                     break
                 
                 # Update dataset with new target distribution
-                if all_labels and len(all_labels) > 0:
+                if all_labels is not None and len(all_labels) > 0:
+                    # Make sure all tensors are on the same device
                     train_loader = DataLoader(TensorDataset(all_embeddings, p, all_labels), 
-                                           batch_size=self.batch_size, shuffle=True)
+                                        batch_size=self.batch_size, shuffle=True)
                 else:
                     train_loader = DataLoader(TensorDataset(all_embeddings, p), 
-                                           batch_size=self.batch_size, shuffle=True)
+                                        batch_size=self.batch_size, shuffle=True)
             
             # Train on batch
             self.train()
             for batch in tqdm(train_loader, desc=f"Training iter {ite}", leave=False):
-                if y_sentiment is not None and len(all_labels) > 0:
+                if y_sentiment is not None and all_labels is not None and len(all_labels) > 0:
                     if len(batch) == 3:  # With labels
                         x_batch, p_batch, y_batch = batch
+                        # Ensure all tensors are on the correct device
+                        x_batch = x_batch.to(device)
+                        p_batch = p_batch.to(device)
+                        y_batch = y_batch.to(device)
                     else:
                         x_batch, p_batch = batch
+                        x_batch = x_batch.to(device)
+                        p_batch = p_batch.to(device)
                         y_batch = None
                 else:
                     x_batch, p_batch = batch
+                    x_batch = x_batch.to(device)
+                    p_batch = p_batch.to(device)
                     y_batch = None
                 
                 # Forward pass
@@ -697,8 +711,8 @@ class FNNGPU(nn.Module):
         with torch.no_grad():
             q, s_pred = self(all_embeddings)
             y_pred = torch.argmax(q, dim=1).cpu().numpy()
-            if y_sentiment is not None and len(all_labels) > 0:
-                s_pred = s_pred.cpu().numpy()
+            if y_sentiment is not None and all_labels is not None and len(all_labels) > 0:
+                s_pred = torch.argmax(s_pred, dim=1).cpu().numpy()
                 return y_pred, s_pred
             else:
                 return y_pred
