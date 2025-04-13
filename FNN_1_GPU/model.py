@@ -420,7 +420,8 @@ class FNNGPU(nn.Module):
         
         return results
     
-    def clustering_with_sentiment(self, dataset, tol=1e-3, update_interval=140, batch_size=128, maxiter=2e4, 
+    def clustering_with_sentiment(self, dataset, gamma=0.7, eta=1,
+                        tol=1e-3, update_interval=140, batch_size=128, maxiter=2e4, 
                         save_dir='./results/fnnjst'):
         """
         Train the model with joint clustering and sentiment tasks
@@ -566,8 +567,8 @@ class FNNGPU(nn.Module):
         iter_count = 0
         total_loss = cluster_loss = sent_loss = 0
         
-        gamma = 0.1  # Weight for clustering loss
-        eta = 1.0    # Weight for sentiment loss
+        gamma = gamma  # Weight for clustering loss
+        eta = eta    # Weight for sentiment loss
         
         for ite in range(int(maxiter)):
             # Update target distribution periodically
