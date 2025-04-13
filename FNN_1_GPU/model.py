@@ -504,12 +504,15 @@ class FNNGPU(nn.Module):
                 raise ValueError("No embeddings were extracted from the dataset")
                 
             if all_labels:
-                # Check if all_labels has elements before concatenating
-                if all_labels:
-                    all_labels = torch.cat(all_labels, dim=0).to(device)
+                # Create a tensor from all_labels if there are items in the list
+                all_labels = torch.cat(all_labels, dim=0).to(device)
+                has_labels = True
+            else:
+                all_labels = None
+                has_labels = False
         
         # Create a tensor dataset for batch training
-        if all_labels is not None and len(all_labels) > 0:
+        if has_labels and isinstance(all_labels, torch.Tensor) and all_labels.numel() > 0:
             x_dataset = TensorDataset(all_embeddings, all_labels)
             y_sentiment = all_labels.cpu().numpy()
             
@@ -648,7 +651,7 @@ class FNNGPU(nn.Module):
                     break
                 
                 # Update dataset with new target distribution - ensure all on same device
-                if all_labels and len(all_labels) > 0:
+                if has_labels and isinstance(all_labels, torch.Tensor) and all_labels.numel() > 0:
                     train_loader = DataLoader(TensorDataset(all_embeddings, p, all_labels), 
                                         batch_size=self.batch_size, shuffle=True)
                 else:
@@ -658,7 +661,7 @@ class FNNGPU(nn.Module):
             # Train on batch
             self.train()
             for batch in tqdm(train_loader, desc=f"Training iter {ite}", leave=False):
-                if y_sentiment is not None and len(all_labels) > 0:
+                if y_sentiment is not None:
                     if len(batch) == 3:  # With labels
                         x_batch, p_batch, y_batch = batch
                     else:
@@ -714,7 +717,7 @@ class FNNGPU(nn.Module):
         with torch.no_grad():
             q, s_pred = self(all_embeddings)
             y_pred = torch.argmax(q, dim=1).cpu().numpy()
-            if y_sentiment is not None and len(all_labels) > 0:
+            if y_sentiment is not None and has_labels:
                 s_pred = s_pred.cpu().numpy()
                 return y_pred, s_pred
             else:
