@@ -502,14 +502,14 @@ class FNNGPU(nn.Module):
                     all_labels = torch.cat(all_labels, dim=0).to(device)
         
         # Create a tensor dataset for batch training
-        if all_labels and len(all_labels) > 0:
+        if all_labels is not None and len(all_labels) > 0:
             x_dataset = TensorDataset(all_embeddings, all_labels)
             y_sentiment = all_labels.cpu().numpy()
             
             # Compute class weights for handling imbalanced classes
             sentiment_class_weights = self.compute_class_weights(y_sentiment)
             class_weight_tensor = torch.tensor([sentiment_class_weights[i] for i in range(len(self.class_labels))], 
-                                             dtype=torch.float32).to(device)
+                                            dtype=torch.float32).to(device)
         else:
             x_dataset = TensorDataset(all_embeddings)
             y_sentiment = None
