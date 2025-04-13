@@ -420,8 +420,9 @@ class FNNGPU(nn.Module):
         
         return results
     
-    def clustering_with_sentiment(self, dataset, tol=1e-3, update_interval=140, maxiter=2e4, 
-                            save_dir='./results/fnnjst'):
+    def clustering_with_sentiment(self, dataset, tol=1e-3, gamma=1.0, eta=1.0,
+                        update_interval=140, batch_size=128, maxiter=2e4, 
+                        save_dir='./results/fnnjst'):
         """
         Train the model with joint clustering and sentiment tasks
         """
@@ -430,51 +431,101 @@ class FNNGPU(nn.Module):
         # Create directories for saving
         os.makedirs(save_dir, exist_ok=True)
 
-        data_loader = DataLoader(dataset, batch_size=self.batch_size, shuffle=False)
-
+        # Create data loader with a small batch size for debugging
+        debug_loader = DataLoader(dataset, batch_size=1, shuffle=False)
+        
+        # Inspect the first item to understand dataset structure
+        first_item = next(iter(debug_loader))
+        print(f"Dataset returns: {type(first_item)}")
+        
+        # Flag to track whether dataset provides labels
+        has_labels = False
+        
+        if isinstance(first_item, tuple) and len(first_item) == 2:
+            print("Dataset returns (embeddings, labels) tuples")
+            has_labels = True
+        else:
+            print("Dataset returns embeddings only")
+        
+        # Extract all embeddings and labels
         all_embeddings = []
         all_labels = []
-
+        
+        print("Extracting features...")
         with torch.no_grad():
-            for batch in tqdm(data_loader, desc="Extracting features"):
-                if isinstance(batch, tuple):
+            # Create a DataLoader with a reasonable batch size
+            extract_loader = DataLoader(dataset, batch_size=batch_size, shuffle=False)
+            
+            for batch_idx, batch in enumerate(tqdm(extract_loader, desc="Extracting features")):
+                if has_labels:
+                    # Dataset returns (embeddings, labels)
                     embeddings, labels = batch
                     if not isinstance(embeddings, torch.Tensor):
                         embeddings = torch.tensor(embeddings, dtype=torch.float32)
+                    
+                    # Handle labels
+                    if not isinstance(labels, torch.Tensor):
+                        labels = torch.tensor(labels, dtype=torch.float32)
+                    
                     all_embeddings.append(embeddings)
                     all_labels.append(labels)
                 else:
-                    try:
-                        batch = torch.tensor(batch, dtype=torch.float32)
-                    except Exception:
-                        batch = torch.stack([torch.tensor(b, dtype=torch.float32) for b in batch])
-                    all_embeddings.append(batch)
-
+                    # Dataset returns just embeddings
+                    embeddings = batch
+                    
+                    if not isinstance(embeddings, torch.Tensor):
+                        try:
+                            # Try to convert to tensor if possible
+                            embeddings = torch.tensor(embeddings, dtype=torch.float32)
+                        except ValueError:
+                            # Handle the case where batch might be a list of tensors
+                            if isinstance(embeddings, (list, tuple)) and all(isinstance(item, torch.Tensor) for item in embeddings):
+                                # If all items are already tensors, stack them
+                                embeddings = torch.stack(embeddings)
+                            else:
+                                # Complex case: try to handle different tensor shapes
+                                # This happens if we get a batch with mixed types
+                                print(f"Warning: Complex batch at index {batch_idx}. Trying to handle...")
+                                
+                                # Check if this is actually a tensor in a list
+                                if len(embeddings) == 1 and isinstance(embeddings[0], torch.Tensor):
+                                    embeddings = embeddings[0]
+                                else:
+                                    print(f"Skipping batch {batch_idx} due to unprocessable format")
+                                    continue
+                    
+                    all_embeddings.append(embeddings)
             
-            if all_embeddings:
+            # Concatenate all embeddings and labels
+            try:
                 all_embeddings = torch.cat(all_embeddings, dim=0).to(device)
-            else:
-                raise ValueError("No embeddings were extracted from the dataset")
+                print(f"Extracted embeddings tensor shape: {all_embeddings.shape}")
                 
-            if all_labels:
-                # Check if all_labels has elements before concatenating
-                if all_labels:
+                if has_labels and all_labels:
                     all_labels = torch.cat(all_labels, dim=0).to(device)
+                    print(f"Extracted labels tensor shape: {all_labels.shape}")
+                    y_sentiment = all_labels.cpu().numpy()
+                    
+                    # Compute class weights for handling imbalanced classes
+                    sentiment_class_weights = self.compute_class_weights(y_sentiment)
+                    class_weight_tensor = torch.tensor([sentiment_class_weights[i] for i in range(len(self.class_labels))], 
+                                                    dtype=torch.float32).to(device)
+                else:
+                    y_sentiment = None
+                    sentiment_class_weights = None
+                    class_weight_tensor = None
+            except Exception as e:
+                print(f"Error concatenating tensors: {str(e)}")
+                print("Shapes of collected embeddings:")
+                for i, emb in enumerate(all_embeddings):
+                    print(f"  Batch {i}: {emb.shape}")
+                raise
         
         # Create a tensor dataset for batch training
-        if all_labels and len(all_labels) > 0:
+        if has_labels and len(all_labels) > 0:
             x_dataset = TensorDataset(all_embeddings, all_labels)
-            y_sentiment = all_labels.cpu().numpy()
-            
-            # Compute class weights for handling imbalanced classes
-            sentiment_class_weights = self.compute_class_weights(y_sentiment)
-            class_weight_tensor = torch.tensor([sentiment_class_weights[i] for i in range(len(self.class_labels))], 
-                                             dtype=torch.float32).to(device)
         else:
             x_dataset = TensorDataset(all_embeddings)
-            y_sentiment = None
-            sentiment_class_weights = None
-            class_weight_tensor = None
         
         # Create data loader for batch training
         train_loader = DataLoader(x_dataset, batch_size=self.batch_size, shuffle=True)
@@ -514,8 +565,8 @@ class FNNGPU(nn.Module):
         iter_count = 0
         total_loss = cluster_loss = sent_loss = 0
         
-        gamma = 0.1  # Weight for clustering loss
-        eta = 1.0    # Weight for sentiment loss
+        gamma = gamma  # Weight for clustering loss
+        eta = eta    # Weight for sentiment loss
         
         for ite in range(int(maxiter)):
             # Update target distribution periodically
@@ -597,17 +648,17 @@ class FNNGPU(nn.Module):
                     break
                 
                 # Update dataset with new target distribution
-                if all_labels and len(all_labels) > 0:
+                if has_labels and len(all_labels) > 0:
                     train_loader = DataLoader(TensorDataset(all_embeddings, p, all_labels), 
-                                           batch_size=self.batch_size, shuffle=True)
+                                        batch_size=self.batch_size, shuffle=True)
                 else:
                     train_loader = DataLoader(TensorDataset(all_embeddings, p), 
-                                           batch_size=self.batch_size, shuffle=True)
+                                        batch_size=self.batch_size, shuffle=True)
             
             # Train on batch
             self.train()
             for batch in tqdm(train_loader, desc=f"Training iter {ite}", leave=False):
-                if y_sentiment is not None and len(all_labels) > 0:
+                if has_labels and len(all_labels) > 0:
                     if len(batch) == 3:  # With labels
                         x_batch, p_batch, y_batch = batch
                     else:
@@ -657,8 +708,8 @@ class FNNGPU(nn.Module):
         with torch.no_grad():
             q, s_pred = self(all_embeddings)
             y_pred = torch.argmax(q, dim=1).cpu().numpy()
-            if y_sentiment is not None and len(all_labels) > 0:
-                s_pred = s_pred.cpu().numpy()
+            if has_labels and len(all_labels) > 0:
+                s_pred = torch.argmax(s_pred, dim=1).cpu().numpy()
                 return y_pred, s_pred
             else:
                 return y_pred
