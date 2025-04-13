@@ -473,18 +473,22 @@ class FNNGPU(nn.Module):
 
         with torch.no_grad():
             for batch in tqdm(data_loader, desc="Extracting features"):
-                if isinstance(batch, tuple):
+                if len(batch) > 1:  # If the batch contains both embeddings and labels
                     embeddings, labels = batch
                     if not isinstance(embeddings, torch.Tensor):
                         embeddings = torch.tensor(embeddings, dtype=torch.float32)
                     all_embeddings.append(embeddings)
                     all_labels.append(labels)
-                else:
+                else:  # If the batch contains only embeddings
+                    embeddings = batch[0]  # Get the first (and only) item from the tuple
                     try:
-                        batch = torch.tensor(batch, dtype=torch.float32)
-                    except Exception:
-                        batch = torch.stack([torch.tensor(b, dtype=torch.float32) for b in batch])
-                    all_embeddings.append(batch)
+                        if not isinstance(embeddings, torch.Tensor):
+                            embeddings = torch.tensor(embeddings, dtype=torch.float32)
+                    except Exception as e:
+                        print(f"Error converting to tensor: {e}")
+                        # Add error handling as needed
+                        continue
+                    all_embeddings.append(embeddings)
 
             
             if all_embeddings:
