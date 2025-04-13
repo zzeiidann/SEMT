@@ -421,7 +421,7 @@ class FNNGPU(nn.Module):
         return results
     
     def clustering_with_sentiment(self, dataset, tol=1e-3, update_interval=140, batch_size=128, maxiter=2e4, 
-                            save_dir='./results/fnnjst'):
+                        save_dir='./results/fnnjst'):
         """
         Train the model with joint clustering and sentiment tasks
         """
@@ -438,7 +438,7 @@ class FNNGPU(nn.Module):
             item = dataset[i]
             if isinstance(item, tuple) and len(item) == 2:  # If dataset returns (embedding, label)
                 embedding, label = item
-                # Make sure embeddings are on CPU for stacking
+                # Store tensors on CPU initially
                 embeddings.append(embedding.cpu())
                 labels.append(label.cpu())
             else: 
@@ -450,10 +450,12 @@ class FNNGPU(nn.Module):
         if len(set(shapes)) > 1:
             print(f"Warning: Inconsistent embedding shapes detected: {set(shapes)}")
             print("Attempting to handle this case...")
-            # You might need special handling for inconsistent shapes
 
         # Stack embeddings
         embeddings_tensor = torch.stack(embeddings)
+        # Move model to device first to ensure it's on the right device
+        self.to(device)
+        # Move data to the same device as the model
         embeddings_tensor = embeddings_tensor.to(device)
 
         # Create the final dataset
@@ -475,18 +477,23 @@ class FNNGPU(nn.Module):
             for batch in tqdm(data_loader, desc="Extracting features"):
                 if len(batch) > 1:  # If the batch contains both embeddings and labels
                     embeddings, labels = batch
+                    # Ensure embeddings are on the correct device
+                    embeddings = embeddings.to(device)
                     if not isinstance(embeddings, torch.Tensor):
-                        embeddings = torch.tensor(embeddings, dtype=torch.float32)
+                        embeddings = torch.tensor(embeddings, dtype=torch.float32, device=device)
                     all_embeddings.append(embeddings)
+                    # Ensure labels are on the correct device
+                    labels = labels.to(device)
                     all_labels.append(labels)
                 else:  # If the batch contains only embeddings
                     embeddings = batch[0]  # Get the first (and only) item from the tuple
+                    # Ensure embeddings are on the correct device
+                    embeddings = embeddings.to(device)
                     try:
                         if not isinstance(embeddings, torch.Tensor):
-                            embeddings = torch.tensor(embeddings, dtype=torch.float32)
+                            embeddings = torch.tensor(embeddings, dtype=torch.float32, device=device)
                     except Exception as e:
                         print(f"Error converting to tensor: {e}")
-                        # Add error handling as needed
                         continue
                     all_embeddings.append(embeddings)
 
@@ -531,12 +538,14 @@ class FNNGPU(nn.Module):
         
         # Initialize cluster centers using k-means
         print('Initializing cluster centers with k-means.')
+        # Ensure model is in eval mode and using the proper device
+        self.eval()
         features = self.extract_feature(all_embeddings).cpu().numpy()
         kmeans = KMeans(n_clusters=self.n_clusters, n_init=20)
         y_pred = kmeans.fit_predict(features)
         y_pred_last = np.copy(y_pred)
         
-        # Set cluster centers as initial weights
+        # Set cluster centers as initial weights - ensure on correct device
         cluster_centers = torch.tensor(kmeans.cluster_centers_, dtype=torch.float32).to(device)
         self.clustering.clusters.data = cluster_centers
         
@@ -568,8 +577,9 @@ class FNNGPU(nn.Module):
                     
                     for batch in tqdm(DataLoader(all_embeddings, batch_size=self.batch_size), 
                                     desc=f"Updating distribution (iter {ite})"):
+                        # Explicitly ensure batch is on the correct device
                         batch = batch.to(device)
-                        q, s = self(batch)
+                        q, s = self(batch)  # This should now work with all tensors on same device
                         q_batch.append(q)
                         s_pred_batch.append(s)
                     
@@ -637,13 +647,13 @@ class FNNGPU(nn.Module):
                     logfile.close()
                     break
                 
-                # Update dataset with new target distribution
+                # Update dataset with new target distribution - ensure all on same device
                 if all_labels and len(all_labels) > 0:
                     train_loader = DataLoader(TensorDataset(all_embeddings, p, all_labels), 
-                                           batch_size=self.batch_size, shuffle=True)
+                                        batch_size=self.batch_size, shuffle=True)
                 else:
                     train_loader = DataLoader(TensorDataset(all_embeddings, p), 
-                                           batch_size=self.batch_size, shuffle=True)
+                                        batch_size=self.batch_size, shuffle=True)
             
             # Train on batch
             self.train()
@@ -657,6 +667,12 @@ class FNNGPU(nn.Module):
                 else:
                     x_batch, p_batch = batch
                     y_batch = None
+                
+                # Explicitly ensure all batch elements are on the correct device
+                x_batch = x_batch.to(device)
+                p_batch = p_batch.to(device)
+                if y_batch is not None:
+                    y_batch = y_batch.to(device)
                 
                 # Forward pass
                 q_batch, s_batch = self(x_batch)
