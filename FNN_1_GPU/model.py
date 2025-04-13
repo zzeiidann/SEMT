@@ -685,6 +685,9 @@ class FNNGPU(nn.Module):
                 s_loss = torch.tensor(0.0).to(device)
                 
                 if y_batch is not None:
+                    if y_batch.dim() > 1 and y_batch.shape[1] > 1: 
+                        y_batch = torch.argmax(y_batch, dim=1)
+                    y_batch = y_batch.long() 
                     s_loss = sentiment_loss(s_batch, y_batch)
                 
                 # Combined loss
