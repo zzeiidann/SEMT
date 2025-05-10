@@ -420,7 +420,7 @@ class FNNGPU(nn.Module):
         
         return results
     
-    def clustering_with_sentiment(self, dataset, gamma=0.7, eta=1,optimizer = optim.SGD(self.parameters(), lr=0.001, momentum=0.9),
+    def clustering_with_sentiment(self, dataset, gamma=0.7, eta=1, optimizer_type='sgd', learning_rate=0.001, momentum=0.9,
                         tol=1e-3, update_interval=140, batch_size=128, maxiter=2e4, 
                         save_dir='./results/fnnjst'):
         """
@@ -531,7 +531,33 @@ class FNNGPU(nn.Module):
         train_loader = DataLoader(x_dataset, batch_size=batch_size, shuffle=True)
         
         # Set up optimizers
-        
+        if optimizer_type == 'sgd':
+            optimizer = optim.SGD(self.parameters(), lr=learning_rate, momentum=momentum)
+        elif optimizer_type == 'adam':
+            optimizer = optim.Adam(self.parameters(), lr=learning_rate)
+        elif optimizer_type == 'adamw':
+            optimizer = optim.AdamW(self.parameters(), lr=learning_rate)
+        elif optimizer_type == 'rmsprop':
+            optimizer = optim.RMSprop(self.parameters(), lr=learning_rate, alpha=0.99)
+        elif optimizer_type == 'adagrad':
+            optimizer = optim.Adagrad(self.parameters(), lr=learning_rate)
+        elif optimizer_type == 'adamax':
+            optimizer = optim.Adamax(self.parameters(), lr=learning_rate)
+        elif optimizer_type == 'asgd':
+            optimizer = optim.ASGD(self.parameters(), lr=learning_rate)
+        elif optimizer_type == 'lbfgs':
+            optimizer = optim.LBFGS(self.parameters(), lr=learning_rate)
+        elif optimizer_type == 'adadelta':
+            optimizer = optim.Adadelta(self.parameters(), lr=learning_rate)
+        elif optimizer_type == 'nadam':
+            optimizer = optim.NAdam(self.parameters(), lr=learning_rate)
+        elif optimizer_type == 'ftrl':
+            optimizer = optim.FTRL(self.parameters(), lr=learning_rate)
+        elif optimizer_type == 'sparseadam':
+            optimizer = optim.SparseAdam(self.parameters(), lr=learning_rate)
+        else:
+            raise ValueError(f"Unsupported optimizer type: {optimizer_type}", f"Supported types are: 'sgd', 'adam', 'adamw', 'rmsprop', 'adagrad', 'adamax', 'asgd', 'lbfgs', 'adadelta', 'nadam', 'ftrl', 'sparseadam'")
+
         # Loss functions
         kld_loss = nn.KLDivLoss(reduction='batchmean')
         if class_weight_tensor is not None:
