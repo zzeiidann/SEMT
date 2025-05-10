@@ -595,7 +595,7 @@ class FNNGPU(nn.Module):
                     q_batch = []
                     s_pred_batch = []
                     
-                    for batch in tqdm(DataLoader(all_embeddings, batch_size=self.batch_size), 
+                    for batch in tqdm(DataLoader(all_embeddings, batch_size=batch_size, shuffle=False), 
                                     desc=f"Updating distribution (iter {ite})"):
                        
                         batch = batch.to(device)
@@ -665,10 +665,10 @@ class FNNGPU(nn.Module):
                 # Update dataset with new target distribution - ensure all on same device
                 if has_labels and isinstance(all_labels, torch.Tensor) and all_labels.numel() > 0:
                     train_loader = DataLoader(TensorDataset(all_embeddings, p, all_labels), 
-                                        batch_size=self.batch_size, shuffle=True)
+                                        batch_size=batch_size, shuffle=True)
                 else:
                     train_loader = DataLoader(TensorDataset(all_embeddings, p), 
-                                        batch_size=self.batch_size, shuffle=True)
+                                        batch_size=batch_size, shuffle=True)
             
             # Train on batch
             self.train()
