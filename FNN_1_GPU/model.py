@@ -163,7 +163,7 @@ class Autoencoder(nn.Module):
         return h, self.decode(h)
 
 class FNNGPU(nn.Module):
-    def __init__(self, dims, n_clusters=10, alpha=1.0, batch_size=256):
+    def __init__(self, dims, n_clusters=10, alpha=1.0):
         super(FNNGPU, self).__init__()
         
         self.dims = dims
@@ -171,7 +171,6 @@ class FNNGPU(nn.Module):
         self.n_stacks = len(self.dims) - 1
         self.n_clusters = n_clusters
         self.alpha = alpha
-        self.batch_size = batch_size
         
         # Autoencoder component
         self.autoencoder = Autoencoder(dims)
@@ -545,18 +544,12 @@ class FNNGPU(nn.Module):
             optimizer = optim.Adamax(self.parameters(), lr=learning_rate)
         elif optimizer_type == 'asgd':
             optimizer = optim.ASGD(self.parameters(), lr=learning_rate)
-        elif optimizer_type == 'lbfgs':
-            optimizer = optim.LBFGS(self.parameters(), lr=learning_rate)
         elif optimizer_type == 'adadelta':
             optimizer = optim.Adadelta(self.parameters(), lr=learning_rate)
         elif optimizer_type == 'nadam':
             optimizer = optim.NAdam(self.parameters(), lr=learning_rate)
-        elif optimizer_type == 'ftrl':
-            optimizer = optim.FTRL(self.parameters(), lr=learning_rate)
-        elif optimizer_type == 'sparseadam':
-            optimizer = optim.SparseAdam(self.parameters(), lr=learning_rate)
         else:
-            raise ValueError(f"Unsupported optimizer type: {optimizer_type}", f"Supported types are: 'sgd', 'adam', 'adamw', 'rmsprop', 'adagrad', 'adamax', 'asgd', 'lbfgs', 'adadelta', 'nadam', 'ftrl', 'sparseadam'")
+            raise ValueError(f"Unsupported optimizer type: {optimizer_type}", f"Supported types are: 'sgd', 'adam', 'adamw', 'rmsprop', 'adagrad', 'adamax', 'asgd', 'adadelta', 'nadam'")
 
         # Loss functions
         kld_loss = nn.KLDivLoss(reduction='batchmean')
@@ -596,34 +589,29 @@ class FNNGPU(nn.Module):
         eta = eta    # Weight for sentiment loss
         
         for ite in range(int(maxiter)):
-            # Update target distribution periodically
             if ite % update_interval == 0:
                 self.eval()
                 with torch.no_grad():
-                    # Get current predictions
                     q_batch = []
                     s_pred_batch = []
                     
                     for batch in tqdm(DataLoader(all_embeddings, batch_size=self.batch_size), 
                                     desc=f"Updating distribution (iter {ite})"):
-                        # Explicitly ensure batch is on the correct device
+                       
                         batch = batch.to(device)
-                        q, s = self(batch)  # This should now work with all tensors on same device
+                        q, s = self(batch)  
                         q_batch.append(q)
                         s_pred_batch.append(s)
                     
                     q = torch.cat(q_batch, dim=0)
                     s_pred = torch.cat(s_pred_batch, dim=0)
                     
-                    # Update auxiliary target distribution
                     p = self.target_distribution(q)
                     
-                    # Evaluate clustering performance
                     y_pred = torch.argmax(q, dim=1).cpu().numpy()
                     delta_label = np.sum(y_pred != y_pred_last).astype(np.float32) / y_pred.shape[0]
                     y_pred_last = np.copy(y_pred)
                     
-                    # Compute sentiment prediction accuracy if labels available
                     if y_sentiment is not None:
                         s_pred_label = torch.argmax(s_pred, dim=1).cpu().numpy()
                         
@@ -634,7 +622,7 @@ class FNNGPU(nn.Module):
                             
                         acc_sentiment = np.sum(s_pred_label == sentiment_true_label).astype(np.float32) / s_pred_label.shape[0]
                         
-                        # Compute per-class accuracy to monitor imbalance effects
+                        
                         if len(np.unique(sentiment_true_label)) > 1:
                             for cls in np.unique(sentiment_true_label):
                                 cls_mask = sentiment_true_label == cls
@@ -643,12 +631,10 @@ class FNNGPU(nn.Module):
                     else:
                         acc_sentiment = 0
                     
-                    # For now, we don't have ground truth cluster labels
                     acc_cluster = 0
                     nmi = 0
                     ari = 0
                 
-                # Log results
                 avg_loss = total_loss / update_interval if iter_count > 0 else 0
                 avg_cluster_loss = cluster_loss / update_interval if iter_count > 0 else 0
                 avg_sent_loss = sent_loss / update_interval if iter_count > 0 else 0
