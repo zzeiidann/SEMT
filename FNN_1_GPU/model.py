@@ -420,7 +420,7 @@ class FNNGPU(nn.Module):
         
         return results
     
-    def clustering_with_sentiment(self, dataset, gamma=0.7, eta=1,
+    def clustering_with_sentiment(self, dataset, gamma=0.7, eta=1,optimizer = optim.SGD(self.parameters(), lr=0.001, momentum=0.9),
                         tol=1e-3, update_interval=140, batch_size=128, maxiter=2e4, 
                         save_dir='./results/fnnjst'):
         """
@@ -528,10 +528,9 @@ class FNNGPU(nn.Module):
             class_weight_tensor = None
         
         # Create data loader for batch training
-        train_loader = DataLoader(x_dataset, batch_size=self.batch_size, shuffle=True)
+        train_loader = DataLoader(x_dataset, batch_size=batch_size, shuffle=True)
         
         # Set up optimizers
-        optimizer = optim.SGD(self.parameters(), lr=0.001, momentum=0.9)
         
         # Loss functions
         kld_loss = nn.KLDivLoss(reduction='batchmean')
@@ -746,7 +745,7 @@ class FNNGPU(nn.Module):
         Set custom stopwords for cluster text analysis
         """
         if isinstance(stop_words, list):
-            self.stop_words = set(stop_words)
+            self.stop_words = set(stop_words)   
         elif isinstance(stop_words, set):
             self.stop_words = stop_words
         else:
