@@ -367,57 +367,6 @@ class FNNGPU(nn.Module):
             _, sentiment_output = self(x)
             return torch.argmax(sentiment_output, dim=1).cpu().numpy()
     
-    # def predict(self, inputs, bert_model=None):
-    #     """
-    #     Predict clusters and sentiment for text inputs or embeddings
-    #     """
-    #     self.eval()
-    #     if isinstance(inputs, str):
-    #         inputs = [inputs]
-
-    #     if isinstance(inputs, list) and isinstance(inputs[0], str):
-    #         tokenizer = AutoTokenizer.from_pretrained(bert_model if isinstance(bert_model, str) else "indolem/indobert-base-uncased")
-    #         tokens = tokenizer(
-    #             inputs,
-    #             padding=True,
-    #             truncation=True,
-    #             return_tensors="pt",
-    #             max_length=512
-    #         ).to(device)
-
-    #         with torch.no_grad():
-    #             if not callable(bert_model):
-    #                 bert_model = AutoModel.from_pretrained(bert_model if isinstance(bert_model, str) else "indolem/indobert-base-uncased")
-    #                 bert_model.to(device)
-                
-    #             outputs = bert_model(**tokens)
-            
-    #         embeddings = outputs.last_hidden_state[:, 0, :]
-
-    #     elif isinstance(inputs, torch.Tensor):
-    #         embeddings = inputs
-    #     else:
-    #         embeddings = torch.tensor(inputs, dtype=torch.float32).to(device)
-        
-    #     # Get predictions
-    #     with torch.no_grad():
-    #         cluster_output, sentiment_output = self(embeddings)
-        
-    #     # Get the predicted clusters and sentiments
-    #     cluster_preds = torch.argmax(cluster_output, dim=1).cpu().numpy()
-    #     sentiment_preds = torch.argmax(sentiment_output, dim=1).cpu().numpy()
-        
-    #     # Prepare results
-    #     results = []
-    #     for i in range(len(sentiment_preds)):
-    #         sentiment_label = self.class_labels[sentiment_preds[i]]
-    #         result = {
-    #             'sentiment': sentiment_label,
-    #             'cluster': int(cluster_preds[i])
-    #         }
-    #         results.append(result)
-        
-    #     return results
     
     def predict(self, inputs, bert_model=None):
         """
@@ -472,7 +421,7 @@ class FNNGPU(nn.Module):
             
             result = {
                 'sentiment': sentiment_label,
-                'cluster': cluster_or_topic
+                'topic': cluster_or_topic
             }
             results.append(result)
         
