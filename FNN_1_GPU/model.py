@@ -177,6 +177,7 @@ class FNNGPU(nn.Module):
         
         # Clustering layer
         self.clustering = ClusteringLayer(n_clusters, dims[-1], alpha)
+        self.topic_mapping = {}
         
         # Sentiment classifier
         sentiment_layers = []
@@ -366,16 +367,69 @@ class FNNGPU(nn.Module):
             _, sentiment_output = self(x)
             return torch.argmax(sentiment_output, dim=1).cpu().numpy()
     
+    # def predict(self, inputs, bert_model=None):
+    #     """
+    #     Predict clusters and sentiment for text inputs or embeddings
+    #     """
+    #     self.eval()
+    #     if isinstance(inputs, str):
+    #         inputs = [inputs]
+
+    #     if isinstance(inputs, list) and isinstance(inputs[0], str):
+    #         tokenizer = AutoTokenizer.from_pretrained(bert_model if isinstance(bert_model, str) else "indolem/indobert-base-uncased")
+    #         tokens = tokenizer(
+    #             inputs,
+    #             padding=True,
+    #             truncation=True,
+    #             return_tensors="pt",
+    #             max_length=512
+    #         ).to(device)
+
+    #         with torch.no_grad():
+    #             if not callable(bert_model):
+    #                 bert_model = AutoModel.from_pretrained(bert_model if isinstance(bert_model, str) else "indolem/indobert-base-uncased")
+    #                 bert_model.to(device)
+                
+    #             outputs = bert_model(**tokens)
+            
+    #         embeddings = outputs.last_hidden_state[:, 0, :]
+
+    #     elif isinstance(inputs, torch.Tensor):
+    #         embeddings = inputs
+    #     else:
+    #         embeddings = torch.tensor(inputs, dtype=torch.float32).to(device)
+        
+    #     # Get predictions
+    #     with torch.no_grad():
+    #         cluster_output, sentiment_output = self(embeddings)
+        
+    #     # Get the predicted clusters and sentiments
+    #     cluster_preds = torch.argmax(cluster_output, dim=1).cpu().numpy()
+    #     sentiment_preds = torch.argmax(sentiment_output, dim=1).cpu().numpy()
+        
+    #     # Prepare results
+    #     results = []
+    #     for i in range(len(sentiment_preds)):
+    #         sentiment_label = self.class_labels[sentiment_preds[i]]
+    #         result = {
+    #             'sentiment': sentiment_label,
+    #             'cluster': int(cluster_preds[i])
+    #         }
+    #         results.append(result)
+        
+    #     return results
+    
     def predict(self, inputs, bert_model=None):
         """
         Predict clusters and sentiment for text inputs or embeddings
+        
+        Returns the assigned topic name if available for the predicted cluster
         """
         self.eval()
         if isinstance(inputs, str):
             inputs = [inputs]
 
         if isinstance(inputs, list) and isinstance(inputs[0], str):
-            # Process text inputs using BERT
             tokenizer = AutoTokenizer.from_pretrained(bert_model if isinstance(bert_model, str) else "indolem/indobert-base-uncased")
             tokens = tokenizer(
                 inputs,
@@ -411,14 +465,18 @@ class FNNGPU(nn.Module):
         results = []
         for i in range(len(sentiment_preds)):
             sentiment_label = self.class_labels[sentiment_preds[i]]
+            cluster_id = int(cluster_preds[i])
+            
+            # Use the topic name if assigned, otherwise use the cluster ID
+            cluster_or_topic = self.topic_mapping.get(cluster_id, cluster_id)
+            
             result = {
                 'sentiment': sentiment_label,
-                'cluster': int(cluster_preds[i])
+                'cluster': cluster_or_topic
             }
             results.append(result)
         
         return results
-    
     def clustering_with_sentiment(self, dataset, gamma=0.7, eta=1, optimizer_type='sgd', learning_rate=0.001, momentum=0.9,
                         tol=1e-3, update_interval=140, batch_size=128, maxiter=2e4, 
                         save_dir='./results/fnnjst'):
@@ -810,9 +868,54 @@ class FNNGPU(nn.Module):
             for cluster, words in cluster_words.items()
         ]).sort_values(by=['Cluster']).reset_index(drop=True)
         
-        print("\n============== CLUSTER ANALYSIS ==============")
-        print(df_clusters)
-        
         return df_clusters
     
-   
+    def set_topic(self, cluster_id, topic_name):
+        """
+        Assign a topic name to a specific cluster
+        
+        Parameters:
+        -----------
+        cluster_id : int
+            The ID of the cluster to assign a topic name to
+        topic_name : str
+            The name of the topic to assign to the cluster
+        
+        Returns:
+        --------
+        self : FNNGPU
+            The instance of the class for method chaining
+        """
+        if not isinstance(cluster_id, int) or cluster_id < 0 or cluster_id >= self.n_clusters:
+            raise ValueError(f"cluster_id must be an integer between 0 and {self.n_clusters-1}")
+        
+        if not isinstance(topic_name, str):
+            raise ValueError("topic_name must be a string")
+        
+        self.topic_mapping[cluster_id] = topic_name
+        print(f"Assigned topic '{topic_name}' to cluster {cluster_id}")
+        return self
+
+    def reset_topics(self):
+        """
+        Reset all topic assignments
+        
+        Returns:
+        --------
+        self : FNNGPU
+            The instance of the class for method chaining
+        """
+        self.topic_mapping = {}
+        print("All topic assignments have been reset")
+        return self
+
+    def get_topic_assignments(self):
+        """
+        Get the current topic assignments
+        
+        Returns:
+        --------
+        dict
+            A dictionary mapping cluster IDs to topic names
+        """
+        return self.topic_mapping
