@@ -872,7 +872,7 @@ class FNNGPU(nn.Module):
         return self.topic_mapping
     
     def plot_sentiment_by_topic(self, data, x, figsize=(15, 6), 
-                          palette="Set2", negative_color=None, positive_color=None):
+                          palette="Set1", negative_color=None, positive_color=None):
         """
         Plot sentiment distribution by cluster topics assigned in the model
         with enhanced Seaborn color aesthetics.
