@@ -14,6 +14,8 @@ import pandas as pd
 import torch.nn.functional as F
 from scipy.optimize import linear_sum_assignment as linear_assignment
 
+import seaborn as sns
+import matplotlib.pyplot as plt
 # Set device for computation
 device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
 
@@ -868,3 +870,137 @@ class FNNGPU(nn.Module):
             A dictionary mapping cluster IDs to topic names
         """
         return self.topic_mapping
+    
+    def plot_sentiment_by_topic(data, model, x, figsize=(15, 6), 
+                            palette="Set1", negative_color=None, positive_color=None):
+        """
+        Plot sentiment distribution by cluster topics already assigned in the model
+        with enhanced Seaborn color aesthetics.
+        
+        Parameters:
+        -----------
+        data : pandas DataFrame
+            The DataFrame containing sentiment data
+        model : FNNGPU model
+            The model with already assigned topics in model.topic_mapping
+        x : tensor or numpy array
+            The feature vectors to use for cluster assignment
+        figsize : tuple, optional
+            Figure size (width, height) in inches
+        palette : str or seaborn palette, optional
+            Color palette to use if specific colors are not provided
+        negative_color : str, optional
+            Specific color for negative sentiment (overrides palette)
+        positive_color : str, optional
+            Specific color for positive sentiment (overrides palette)
+        
+        Returns:
+        --------
+        matplotlib.figure.Figure
+            The matplotlib figure object
+        """
+        import pandas as pd
+        import seaborn as sns
+        import matplotlib.pyplot as plt
+        
+        # Set Seaborn style
+        sns.set_style("whitegrid")
+        
+        # Get cluster assignments
+        cluster = model.get_cluster_assignments(x)
+        
+        # Add cluster column to the data
+        new_data = data.copy()
+        new_data['cluster'] = cluster
+        
+        # Group by cluster and sentiment
+        sentiment_count = new_data.groupby(['cluster', 'sentiment']).size().unstack(fill_value=0)
+        total_reviews = sentiment_count.values.sum()
+        sentiment_percent = (sentiment_count / total_reviews) * 100
+        
+        # Create a mapping from cluster ID to topic name using existing topic_mapping
+        cluster_topics = {}
+        for cluster_id in sentiment_percent.index:
+            # Use the assigned topic if available, otherwise use "Cluster X"
+            cluster_topics[cluster_id] = model.topic_mapping.get(cluster_id, f"Cluster {cluster_id}")
+        
+        # Add topic names to the DataFrame
+        sentiment_percent['topic'] = sentiment_percent.index.map(cluster_topics)
+        
+        # Melt the DataFrame for easier plotting
+        df_melted = sentiment_percent.reset_index().melt(
+            id_vars=['cluster', 'topic'],
+            value_vars=[0, 1],  # Assuming 0=negative, 1=positive
+            var_name='sentiment',
+            value_name='percentage'
+        )
+        
+        # Create the plot
+        plt.figure(figsize=figsize)
+        
+        # Get colors from seaborn palette
+        if negative_color is None or positive_color is None:
+            colors = sns.color_palette(palette, 2)
+            neg_color = negative_color if negative_color else colors[0]
+            pos_color = positive_color if positive_color else colors[1]
+        else:
+            neg_color = negative_color
+            pos_color = positive_color
+        
+        # Sort data by cluster ID for consistent ordering
+        df_melted = df_melted.sort_values('cluster')
+        
+        # Get unique topics in cluster order
+        topics = df_melted['topic'].drop_duplicates().tolist()
+        
+        # Initialize bottoms for stacked bars
+        bottoms = {topic: 0 for topic in topics}
+        
+        # Plot each sentiment category
+        for sentiment_val, color, label in zip([0, 1], [neg_color, pos_color], ['Negative', 'Positive']):
+            data = df_melted[df_melted['sentiment'] == sentiment_val]
+            
+            # Prepare data for plotting
+            y_vals = data['topic'].tolist()
+            x_vals = data['percentage'].tolist()
+            left_vals = [bottoms[topic] for topic in y_vals]
+            
+            bar = plt.barh(
+                y=y_vals,
+                width=x_vals,
+                left=left_vals,
+                label=label,
+                color=color,
+                edgecolor='white',
+                linewidth=0.5
+            )
+            
+            # Add percentage labels on bars
+            for y, x, left in zip(y_vals, x_vals, left_vals):
+                if x > 3:  # Only show label if percentage is significant enough
+                    plt.text(left + x/2, y, f"{x:.1f}%", va='center', ha='center', 
+                            color='white', fontsize=9, fontweight='bold')
+            
+            # Update bottoms for next stack
+            for topic, x in zip(y_vals, x_vals):
+                bottoms[topic] += x
+        
+        # Enhance the plot with Seaborn styling
+        plt.xlabel("Percentage of All Reviews", fontsize=11)
+        plt.ylabel("Cluster Topic", fontsize=11)
+        plt.title("Sentiment Distribution by Cluster Topic", fontsize=14, fontweight='bold')
+        
+        # Add a legend with enhanced style
+        legend = plt.legend(title="Sentiment", title_fontsize=11, 
+                frameon=True, fancybox=True, framealpha=0.9, 
+                shadow=True, fontsize=10)
+        
+        # Add subtle grid lines only on x-axis
+        plt.grid(axis='x', linestyle='--', alpha=0.7)
+        
+        # Remove top and right spines
+        sns.despine()
+        
+        plt.tight_layout()
+        
+        return plt.gcf()  # Return the figure
