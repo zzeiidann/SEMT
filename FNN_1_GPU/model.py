@@ -871,18 +871,16 @@ class FNNGPU(nn.Module):
         """
         return self.topic_mapping
     
-    def plot_sentiment_by_topic(data, model, x, figsize=(15, 6), 
-                            palette="Set1", negative_color=None, positive_color=None):
+    def plot_sentiment_by_topic(self, data, x, figsize=(15, 6), 
+                          palette="Set2", negative_color=None, positive_color=None):
         """
-        Plot sentiment distribution by cluster topics already assigned in the model
+        Plot sentiment distribution by cluster topics assigned in the model
         with enhanced Seaborn color aesthetics.
         
         Parameters:
         -----------
         data : pandas DataFrame
-            The DataFrame containing sentiment data
-        model : FNNGPU model
-            The model with already assigned topics in model.topic_mapping
+            The DataFrame containing sentiment data with a 'sentiment' column
         x : tensor or numpy array
             The feature vectors to use for cluster assignment
         figsize : tuple, optional
@@ -907,7 +905,7 @@ class FNNGPU(nn.Module):
         sns.set_style("whitegrid")
         
         # Get cluster assignments
-        cluster = model.get_cluster_assignments(x)
+        cluster = self.get_cluster_assignments(x)
         
         # Add cluster column to the data
         new_data = data.copy()
@@ -922,7 +920,7 @@ class FNNGPU(nn.Module):
         cluster_topics = {}
         for cluster_id in sentiment_percent.index:
             # Use the assigned topic if available, otherwise use "Cluster X"
-            cluster_topics[cluster_id] = model.topic_mapping.get(cluster_id, f"Cluster {cluster_id}")
+            cluster_topics[cluster_id] = self.topic_mapping.get(cluster_id, f"Cluster {cluster_id}")
         
         # Add topic names to the DataFrame
         sentiment_percent['topic'] = sentiment_percent.index.map(cluster_topics)
@@ -947,6 +945,12 @@ class FNNGPU(nn.Module):
             neg_color = negative_color
             pos_color = positive_color
         
+        # Map sentiment values to class labels if available
+        sentiment_labels = {
+            0: self.class_labels.get(0, 'Negative'),
+            1: self.class_labels.get(1, 'Positive')
+        }
+        
         # Sort data by cluster ID for consistent ordering
         df_melted = df_melted.sort_values('cluster')
         
@@ -957,7 +961,8 @@ class FNNGPU(nn.Module):
         bottoms = {topic: 0 for topic in topics}
         
         # Plot each sentiment category
-        for sentiment_val, color, label in zip([0, 1], [neg_color, pos_color], ['Negative', 'Positive']):
+        for sentiment_val, color, label in zip([0, 1], [neg_color, pos_color], 
+                                            [sentiment_labels[0], sentiment_labels[1]]):
             data = df_melted[df_melted['sentiment'] == sentiment_val]
             
             # Prepare data for plotting
