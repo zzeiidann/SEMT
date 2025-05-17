@@ -620,29 +620,6 @@ class FNNGPU(nn.Module):
                     y_pred = torch.argmax(q, dim=1).cpu().numpy()
                     delta_label = np.sum(y_pred != y_pred_last).astype(np.float32) / y_pred.shape[0]
                     y_pred_last = np.copy(y_pred)
-
-                    pred_docker = []
-                    q_docker = []
-                    p_docker = []
-                    epochs_docker = []
-
-                    if ite % update_interval == 0:
-                        for i in range(self.n_clusters):
-                            pred_docker.append(y_pred[y_pred == i])
-                            q_docker.append(q[y_pred == i])
-                            p_docker.append(p[y_pred == i])
-                            epochs_docker.append(ite)
-
-                    
-                    #make df to plot 
-                    plot_cluster_df = pd.DataFrame({
-                        'pred': y_pred_last,
-                        'q': q.cpu().numpy(),
-                        'p': p.cpu().numpy(),
-                        'epoch': ite
-                    })
-                    
-                    print(plot_cluster_df)
                     
                     if y_sentiment is not None:
                         s_pred_label = torch.argmax(s_pred, dim=1).cpu().numpy()
