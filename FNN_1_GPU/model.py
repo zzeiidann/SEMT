@@ -1009,3 +1009,138 @@ class FNNGPU(nn.Module):
         plt.tight_layout()
         
         return plt.gcf()  # Return the figure
+    
+    def plot_cluster_evolution(self, X, epochs=[0, 5, 10, 15, 20, 30], 
+                         rows=2, cols=3, figsize=(18, 12), 
+                         projection_method='pca', 
+                         subplot_titles=None,
+                         point_size=25, alpha=0.7,
+                         axis_off=False,
+                         cmap='tab10',
+                         save_path=None):
+        """
+        Plot the evolution of clusters over different training epochs.
+        
+        Parameters:
+        -----------
+        X : torch.Tensor or numpy.ndarray
+            The input data to be clustered and visualized
+        epochs : list, optional
+            List of epoch numbers to visualize
+        rows : int, optional
+            Number of rows in the subplot grid
+        cols : int, optional
+            Number of columns in the subplot grid
+        figsize : tuple, optional
+            Figure size (width, height) in inches
+        projection_method : str, optional
+            Method for dimensionality reduction: 'pca', 'tsne', or 'umap'
+        subplot_titles : list, optional
+            Custom titles for each subplot. If None, "Epoch {n}" will be used
+        point_size : int, optional
+            Size of the scatter points
+        alpha : float, optional
+            Transparency of the scatter points
+        axis_off : bool, optional
+            Whether to turn off axis lines and labels
+        cmap : str or matplotlib colormap, optional
+            Colormap for clusters
+        save_path : str, optional
+            If provided, save the figure to this path
+            
+        Returns:
+        --------
+        matplotlib.figure.Figure
+            The matplotlib figure object
+        """
+        import matplotlib.pyplot as plt
+        import numpy as np
+        import torch
+        
+        # Convert input to numpy if it's a torch tensor
+        if isinstance(X, torch.Tensor):
+            X = X.detach().cpu().numpy()
+        
+        # Ensure the model is in evaluation mode
+        self.eval()
+        
+        # Validate input dimensions
+        if rows * cols < len(epochs):
+            raise ValueError(f"Grid size ({rows}x{cols}) is too small for {len(epochs)} epochs")
+        
+        # Set up dimensionality reduction
+        if projection_method.lower() == 'pca':
+            from sklearn.decomposition import PCA
+            reducer = PCA(n_components=2)
+            X_2d = reducer.fit_transform(X)
+        elif projection_method.lower() == 'tsne':
+            from sklearn.manifold import TSNE
+            reducer = TSNE(n_components=2, random_state=42)
+            X_2d = reducer.fit_transform(X)
+        elif projection_method.lower() == 'umap':
+            try:
+                import umap
+                reducer = umap.UMAP(n_components=2, random_state=42)
+                X_2d = reducer.fit_transform(X)
+            except ImportError:
+                print("UMAP not installed. Using PCA instead.")
+                from sklearn.decomposition import PCA
+                reducer = PCA(n_components=2)
+                X_2d = reducer.fit_transform(X)
+        else:
+            raise ValueError(f"Unknown projection method: {projection_method}")
+        
+        # Create figure and subplots
+        fig, axes = plt.subplots(rows, cols, figsize=figsize)
+        axes = axes.flatten() if isinstance(axes, np.ndarray) else [axes]
+        
+        # If subplot titles aren't provided, use default "Epoch n"
+        if subplot_titles is None:
+            subplot_titles = [f"Epoch {epoch}" for epoch in epochs]
+        
+        # Ensure the number of titles matches the number of epochs
+        if len(subplot_titles) != len(epochs):
+            subplot_titles = [f"Epoch {epoch}" for epoch in epochs]
+        
+        # Get x and y data for scatter plot
+        x = X_2d[:, 0]
+        y = X_2d[:, 1]
+        
+        # Process each epoch
+        with torch.no_grad():
+            # Convert to tensor and move to device if needed
+            X_tensor = torch.tensor(X, dtype=torch.float32).to(device)
+            
+            for i, epoch in enumerate(epochs):
+                if i >= len(axes):
+                    break
+                    
+                # Clear previous cluster assignments if any exist
+                for j in range(self.n_clusters):
+                    if f"cluster_{j}" in globals():
+                        del globals()[f"cluster_{j}"]
+                
+                # Predict clusters
+                q, _ = self(X_tensor)
+                cluster_assignments = torch.argmax(q, dim=1).cpu().numpy()
+                
+                # Plot each cluster with different color
+                scatter = axes[i].scatter(x, y, c=cluster_assignments, cmap=cmap, 
+                                        s=point_size, alpha=alpha, marker='x')
+                
+                axes[i].set_title(subplot_titles[i], fontsize=14)
+                
+                if axis_off:
+                    axes[i].axis('off')
+                
+        # Hide any unused subplots
+        for i in range(len(epochs), len(axes)):
+            axes[i].axis('off')
+        
+        plt.tight_layout()
+        
+        # Save the figure if a path is provided
+        if save_path:
+            plt.savefig(save_path, bbox_inches='tight', dpi=300)
+        
+        return fig
