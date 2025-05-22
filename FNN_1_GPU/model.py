@@ -182,6 +182,7 @@ class FNNGPU(nn.Module):
         self.topic_mapping = {}
         
         # Sentiment classifier
+        
         sentiment_layers = []
         # First layer
         sentiment_layers.append(nn.Linear(dims[-1], 256))
