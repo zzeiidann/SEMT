@@ -1105,8 +1105,8 @@ class FNNGPU(nn.Module):
                 )
                 
                 # Create evolution grid
-                print("Creating cluster evolution grid...")
-                self.create_evolution_grid(save_dir=plot_dir)
+                # print("Creating cluster evolution grid...")
+                # self.create_evolution_grid(save_dir=plot_dir)
                 
             except Exception as e:
                 print(f"Warning: Could not save final cluster plots: {e}")
