@@ -428,16 +428,350 @@ class FNNGPU(nn.Module):
             results.append(result)
         
         return results
+    # def clustering_with_sentiment(self, dataset, gamma=0.7, eta=1, optimizer_type='sgd', learning_rate=0.001, momentum=0.9,
+    #                     tol=1e-3, update_interval=140, batch_size=128, maxiter=2e4, 
+    #                     save_dir='./results/fnnjst'):
+    #     """
+    #     Train the model with joint clustering and sentiment tasks
+    #     """
+    #     print('Update interval', update_interval)
+
+    #     # Create directories for saving
+    #     os.makedirs(save_dir, exist_ok=True)
+    #     # Collect all embeddings and labels
+    #     embeddings = []
+    #     labels = []
+
+    #     # Iterate through the dataset and collect data
+    #     for i in range(len(dataset)):
+    #         item = dataset[i]
+    #         if isinstance(item, tuple) and len(item) == 2:  # If dataset returns (embedding, label)
+    #             embedding, label = item
+    #             # Store tensors on CPU initially
+    #             embeddings.append(embedding.cpu())
+    #             labels.append(label.cpu())
+    #         else: 
+    #             # If only embeddings are returned
+    #             embeddings.append(item.cpu() if isinstance(item, torch.Tensor) else torch.tensor(item, dtype=torch.float32))
+
+    #     # Check if embeddings have consistent shapes
+    #     shapes = [emb.shape for emb in embeddings]
+    #     if len(set(shapes)) > 1:
+    #         print(f"Warning: Inconsistent embedding shapes detected: {set(shapes)}")
+    #         print("Attempting to handle this case...")
+
+    #     # Stack embeddings
+    #     embeddings_tensor = torch.stack(embeddings)
+    #     # Move model to device first to ensure it's on the right device
+    #     self.to(device)
+    #     # Move data to the same device as the model
+    #     embeddings_tensor = embeddings_tensor.to(device)
+
+    #     # Create the final dataset
+    #     if labels:
+    #         # Convert labels to tensor if they exist
+    #         labels_tensor = torch.stack(labels).to(device)
+    #         combined_dataset = TensorDataset(embeddings_tensor, labels_tensor)
+    #         print(f"Created dataset with {len(combined_dataset)} samples, embedding shape: {embeddings_tensor.shape}, label shape: {labels_tensor.shape}")
+    #     else:
+    #         combined_dataset = TensorDataset(embeddings_tensor)
+    #         print(f"Created dataset with {len(combined_dataset)} samples, embedding shape: {embeddings_tensor.shape}")
+
+    #     data_loader = DataLoader(combined_dataset, batch_size=batch_size, shuffle=False)
+
+    #     all_embeddings = []
+    #     all_labels = []
+
+    #     with torch.no_grad():
+    #         for batch in tqdm(data_loader, desc="Extracting features"):
+    #             if len(batch) > 1:  # If the batch contains both embeddings and labels
+    #                 embeddings, labels = batch
+    #                 # Ensure embeddings are on the correct device
+    #                 embeddings = embeddings.to(device)
+    #                 if not isinstance(embeddings, torch.Tensor):
+    #                     embeddings = torch.tensor(embeddings, dtype=torch.float32, device=device)
+    #                 all_embeddings.append(embeddings)
+    #                 # Ensure labels are on the correct device
+    #                 labels = labels.to(device)
+    #                 all_labels.append(labels)
+    #             else:  # If the batch contains only embeddings
+    #                 embeddings = batch[0]  # Get the first (and only) item from the tuple
+    #                 # Ensure embeddings are on the correct device
+    #                 embeddings = embeddings.to(device)
+    #                 try:
+    #                     if not isinstance(embeddings, torch.Tensor):
+    #                         embeddings = torch.tensor(embeddings, dtype=torch.float32, device=device)
+    #                 except Exception as e:
+    #                     print(f"Error converting to tensor: {e}")
+    #                     continue
+    #                 all_embeddings.append(embeddings)
+
+            
+    #         if all_embeddings:
+    #             all_embeddings = torch.cat(all_embeddings, dim=0).to(device)
+    #         else:
+    #             raise ValueError("No embeddings were extracted from the dataset")
+                
+    #         if all_labels:
+    #             # Create a tensor from all_labels if there are items in the list
+    #             all_labels = torch.cat(all_labels, dim=0).to(device)
+    #             has_labels = True
+    #         else:
+    #             all_labels = None
+    #             has_labels = False
+        
+    #     # Create a tensor dataset for batch training
+    #     if has_labels and isinstance(all_labels, torch.Tensor) and all_labels.numel() > 0:
+    #         x_dataset = TensorDataset(all_embeddings, all_labels)
+    #         y_sentiment = all_labels.cpu().numpy()
+            
+    #         # Compute class weights for handling imbalanced classes
+    #         sentiment_class_weights = self.compute_class_weights(y_sentiment)
+    #         class_weight_tensor = torch.tensor([sentiment_class_weights[i] for i in range(len(self.class_labels))], 
+    #                                         dtype=torch.float32).to(device)
+    #     else:
+    #         x_dataset = TensorDataset(all_embeddings)
+    #         y_sentiment = None
+    #         sentiment_class_weights = None
+    #         class_weight_tensor = None
+        
+    #     # Create data loader for batch training
+    #     train_loader = DataLoader(x_dataset, batch_size=batch_size, shuffle=True)
+        
+    #     # Set up optimizers
+    #     if optimizer_type == 'sgd':
+    #         optimizer = optim.SGD(self.parameters(), lr=learning_rate, momentum=momentum)
+    #     elif optimizer_type == 'adam':
+    #         optimizer = optim.Adam(self.parameters(), lr=learning_rate)
+    #     elif optimizer_type == 'adamw':
+    #         optimizer = optim.AdamW(self.parameters(), lr=learning_rate)
+    #     elif optimizer_type == 'rmsprop':
+    #         optimizer = optim.RMSprop(self.parameters(), lr=learning_rate, alpha=0.99)
+    #     elif optimizer_type == 'adagrad':
+    #         optimizer = optim.Adagrad(self.parameters(), lr=learning_rate)
+    #     elif optimizer_type == 'adamax':
+    #         optimizer = optim.Adamax(self.parameters(), lr=learning_rate)
+    #     elif optimizer_type == 'asgd':
+    #         optimizer = optim.ASGD(self.parameters(), lr=learning_rate)
+    #     elif optimizer_type == 'adadelta':
+    #         optimizer = optim.Adadelta(self.parameters(), lr=learning_rate)
+    #     elif optimizer_type == 'nadam':
+    #         optimizer = optim.NAdam(self.parameters(), lr=learning_rate)
+    #     else:
+    #         raise ValueError(f"Unsupported optimizer type: {optimizer_type}", f"Supported types are: 'sgd', 'adam', 'adamw', 'rmsprop', 'adagrad', 'adamax', 'asgd', 'adadelta', 'nadam'")
+
+    #     # Loss functions
+    #     kld_loss = nn.KLDivLoss(reduction='batchmean')
+    #     if class_weight_tensor is not None:
+    #         sentiment_loss = nn.CrossEntropyLoss(weight=class_weight_tensor)
+    #     else:
+    #         sentiment_loss = nn.CrossEntropyLoss()
+        
+    #     # Initialize cluster centers using k-means
+    #     print('Initializing cluster centers with k-means.')
+    #     # Ensure model is in eval mode and using the proper device
+    #     self.eval()
+    #     features = self.extract_feature(all_embeddings).cpu().numpy()
+    #     kmeans = KMeans(n_clusters=self.n_clusters, n_init=20)
+    #     y_pred = kmeans.fit_predict(features)
+    #     y_pred_last = np.copy(y_pred)
+        
+    #     # Set cluster centers as initial weights - ensure on correct device
+    #     cluster_centers = torch.tensor(kmeans.cluster_centers_, dtype=torch.float32).to(device)
+    #     self.clustering.clusters.data = cluster_centers
+        
+    #     # Logging file
+    #     logfile = open(os.path.join(save_dir, 'idec_sentiment_log.csv'), 'w', newline='')
+    #     fieldnames = ['iter', 'acc_cluster', 'nmi', 'ari', 'acc_sentiment', 'L', 'Lc', 'Ls']
+    #     logwriter = csv.DictWriter(logfile, fieldnames=fieldnames)
+    #     logwriter.writeheader()
+        
+    #     save_interval = len(train_loader) * 5  # 5 epochs
+    #     print('Save interval', save_interval)
+        
+    #     # Training loop
+    #     self.train()
+    #     iter_count = 0
+    #     total_loss = cluster_loss = sent_loss = 0
+        
+    #     gamma = gamma  # Weight for clustering loss
+    #     eta = eta    # Weight for sentiment loss
+        
+    #     for ite in range(int(maxiter)):
+    #         if ite % update_interval == 0:
+    #             self.eval()
+    #             with torch.no_grad():
+    #                 q_batch = []
+    #                 s_pred_batch = []
+                    
+    #                 for batch in tqdm(DataLoader(all_embeddings, batch_size=batch_size, shuffle=False), 
+    #                                 desc=f"Updating distribution (iter {ite})"):
+                       
+    #                     batch = batch.to(device)
+    #                     q, s = self(batch)  
+    #                     q_batch.append(q)
+    #                     s_pred_batch.append(s)
+                    
+    #                 q = torch.cat(q_batch, dim=0)
+    #                 s_pred = torch.cat(s_pred_batch, dim=0)
+                    
+    #                 p = self.target_distribution(q)
+                    
+    #                 y_pred = torch.argmax(q, dim=1).cpu().numpy()
+    #                 delta_label = np.sum(y_pred != y_pred_last).astype(np.float32) / y_pred.shape[0]
+    #                 y_pred_last = np.copy(y_pred)
+                    
+    #                 if y_sentiment is not None:
+    #                     s_pred_label = torch.argmax(s_pred, dim=1).cpu().numpy()
+                        
+    #                     if len(y_sentiment.shape) > 1:
+    #                         sentiment_true_label = np.argmax(y_sentiment, axis=1)
+    #                     else:
+    #                         sentiment_true_label = y_sentiment
+                            
+    #                     acc_sentiment = np.sum(s_pred_label == sentiment_true_label).astype(np.float32) / s_pred_label.shape[0]
+                        
+                        
+    #                     if len(np.unique(sentiment_true_label)) > 1:
+    #                         for cls in np.unique(sentiment_true_label):
+    #                             cls_mask = sentiment_true_label == cls
+    #                             cls_acc = np.sum((s_pred_label == sentiment_true_label) & cls_mask).astype(np.float32) / np.sum(cls_mask)
+    #                             print(f"Class {self.class_labels[cls]} accuracy: {np.round(cls_acc, 5)}")
+    #                 else:
+    #                     acc_sentiment = 0
+                    
+    #                 acc_cluster = 0
+    #                 nmi = 0
+    #                 ari = 0
+                
+    #             avg_loss = total_loss / update_interval if iter_count > 0 else 0
+    #             avg_cluster_loss = cluster_loss / update_interval if iter_count > 0 else 0
+    #             avg_sent_loss = sent_loss / update_interval if iter_count > 0 else 0
+                
+    #             logdict = {
+    #                 'iter': ite, 
+    #                 'acc_cluster': acc_cluster, 
+    #                 'nmi': nmi, 
+    #                 'ari': ari, 
+    #                 'acc_sentiment': np.round(acc_sentiment, 5),
+    #                 'L': np.round(avg_loss, 5), 
+    #                 'Lc': np.round(avg_cluster_loss, 5), 
+    #                 'Ls': np.round(avg_sent_loss, 5)
+    #             }
+    #             logwriter.writerow(logdict)
+    #             print(f'Iter {ite}: Cluster Loss {avg_cluster_loss:.5f}, Sentiment Loss {avg_sent_loss:.5f}, Acc_sentiment {acc_sentiment:.5f}; loss={avg_loss:.5f}')
+                
+    #             # Reset counters
+    #             total_loss = cluster_loss = sent_loss = 0
+                
+    #             # Check stop criterion based on cluster stability
+    #             if ite > 0 and delta_label < tol:
+    #                 print(f'delta_label {delta_label} < tol {tol}')
+    #                 print('Reached tolerance threshold. Stopping training.')
+    #                 logfile.close()
+    #                 break
+                
+    #             # Update dataset with new target distribution - ensure all on same device
+    #             if has_labels and isinstance(all_labels, torch.Tensor) and all_labels.numel() > 0:
+    #                 train_loader = DataLoader(TensorDataset(all_embeddings, p, all_labels), 
+    #                                     batch_size=batch_size, shuffle=True)
+    #             else:
+    #                 train_loader = DataLoader(TensorDataset(all_embeddings, p), 
+    #                                     batch_size=batch_size, shuffle=True)
+            
+    #         # Train on batch
+    #         self.train()
+    #         for batch in tqdm(train_loader, desc=f"Training iter {ite}", leave=False):
+    #             if y_sentiment is not None:
+    #                 if len(batch) == 3:  # With labels
+    #                     x_batch, p_batch, y_batch = batch
+    #                 else:
+    #                     x_batch, p_batch = batch
+    #                     y_batch = None
+    #             else:
+    #                 x_batch, p_batch = batch
+    #                 y_batch = None
+                
+    #             # Explicitly ensure all batch elements are on the correct device
+    #             x_batch = x_batch.to(device)
+    #             p_batch = p_batch.to(device)
+    #             if y_batch is not None:
+    #                 y_batch = y_batch.to(device)
+                
+    #             # Forward pass
+    #             q_batch, s_batch = self(x_batch)
+                
+    #             # Compute loss
+    #             c_loss = kld_loss(torch.log(q_batch), p_batch)
+    #             s_loss = torch.tensor(0.0).to(device)
+                
+    #             if y_batch is not None:
+    #                 if y_batch.dim() > 1 and y_batch.shape[1] > 1: 
+    #                     y_batch = torch.argmax(y_batch, dim=1)
+    #                 y_batch = y_batch.long() 
+    #                 s_loss = sentiment_loss(s_batch, y_batch)
+                
+    #             # Combined loss
+    #             loss = gamma * c_loss + eta * s_loss
+                
+    #             # Backward and optimize
+    #             optimizer.zero_grad()
+    #             loss.backward()
+    #             optimizer.step()
+                
+    #             # Update statistics
+    #             total_loss += loss.item()
+    #             cluster_loss += c_loss.item()
+    #             sent_loss += s_loss.item() if y_batch is not None else 0
+                
+    #             iter_count += 1
+            
+    #         # Save intermediate model
+    #         if ite % save_interval == 0 and ite > 0:
+    #             model_path = os.path.join(save_dir, f'FNN_model_{ite}.weights.pth')
+    #             self.save_weights(model_path)
+        
+    #     # Save the trained model
+    #     logfile.close()
+    #     model_path = os.path.join(save_dir, 'FNN_model_final.weights.pth')
+    #     self.save_weights(model_path)
+        
+    #     # Return final predictions
+    #     self.eval()
+    #     with torch.no_grad():
+    #         q, s_pred = self(all_embeddings)
+    #         y_pred = torch.argmax(q, dim=1).cpu().numpy()
+    #         if y_sentiment is not None and has_labels:
+    #             s_pred = s_pred.cpu().numpy()
+    #             return y_pred, s_pred
+    #         else:
+    #             return y_pred
+
     def clustering_with_sentiment(self, dataset, gamma=0.7, eta=1, optimizer_type='sgd', learning_rate=0.001, momentum=0.9,
-                        tol=1e-3, update_interval=140, batch_size=128, maxiter=2e4, 
-                        save_dir='./results/fnnjst'):
+                    tol=1e-3, update_interval=140, batch_size=128, maxiter=2e4, 
+                    save_dir='./results/fnnjst', plot_evolution=True, plot_interval=None):
         """
         Train the model with joint clustering and sentiment tasks
+        
+        Parameters:
+        -----------
+        plot_evolution : bool
+            Whether to save cluster evolution plots during training
+        plot_interval : int, optional
+            Interval for saving evolution plots (if None, uses update_interval)
         """
         print('Update interval', update_interval)
-
+        
+        # Set plot interval
+        if plot_interval is None:
+            plot_interval = update_interval
+        
         # Create directories for saving
         os.makedirs(save_dir, exist_ok=True)
+        if plot_evolution:
+            plot_dir = os.path.join(save_dir, 'evolution_plots')
+            os.makedirs(plot_dir, exist_ok=True)
+        
         # Collect all embeddings and labels
         embeddings = []
         labels = []
@@ -506,7 +840,6 @@ class FNNGPU(nn.Module):
                         continue
                     all_embeddings.append(embeddings)
 
-            
             if all_embeddings:
                 all_embeddings = torch.cat(all_embeddings, dim=0).to(device)
             else:
@@ -580,6 +913,19 @@ class FNNGPU(nn.Module):
         cluster_centers = torch.tensor(kmeans.cluster_centers_, dtype=torch.float32).to(device)
         self.clustering.clusters.data = cluster_centers
         
+        # Save initial cluster plot
+        if plot_evolution:
+            try:
+                self.plot_cluster_evolution(
+                    embeddings=features,
+                    cluster_assignments=y_pred,
+                    epoch=0,
+                    save_dir=plot_dir,
+                    show_plot=False
+                )
+            except Exception as e:
+                print(f"Warning: Could not save initial cluster plot: {e}")
+        
         # Logging file
         logfile = open(os.path.join(save_dir, 'idec_sentiment_log.csv'), 'w', newline='')
         fieldnames = ['iter', 'acc_cluster', 'nmi', 'ari', 'acc_sentiment', 'L', 'Lc', 'Ls']
@@ -606,7 +952,7 @@ class FNNGPU(nn.Module):
                     
                     for batch in tqdm(DataLoader(all_embeddings, batch_size=batch_size, shuffle=False), 
                                     desc=f"Updating distribution (iter {ite})"):
-                       
+                    
                         batch = batch.to(device)
                         q, s = self(batch)  
                         q_batch.append(q)
@@ -621,6 +967,21 @@ class FNNGPU(nn.Module):
                     delta_label = np.sum(y_pred != y_pred_last).astype(np.float32) / y_pred.shape[0]
                     y_pred_last = np.copy(y_pred)
                     
+                    # Save cluster evolution plot at specified intervals
+                    if plot_evolution and ite % plot_interval == 0 and ite > 0:
+                        try:
+                            # Get current encoded features for visualization
+                            current_features = self.extract_feature(all_embeddings).cpu().numpy()
+                            self.plot_cluster_evolution(
+                                embeddings=current_features,
+                                cluster_assignments=y_pred,
+                                epoch=ite,
+                                save_dir=plot_dir,
+                                show_plot=False
+                            )
+                        except Exception as e:
+                            print(f"Warning: Could not save cluster plot at iteration {ite}: {e}")
+                    
                     if y_sentiment is not None:
                         s_pred_label = torch.argmax(s_pred, dim=1).cpu().numpy()
                         
@@ -630,7 +991,6 @@ class FNNGPU(nn.Module):
                             sentiment_true_label = y_sentiment
                             
                         acc_sentiment = np.sum(s_pred_label == sentiment_true_label).astype(np.float32) / s_pred_label.shape[0]
-                        
                         
                         if len(np.unique(sentiment_true_label)) > 1:
                             for cls in np.unique(sentiment_true_label):
@@ -731,6 +1091,26 @@ class FNNGPU(nn.Module):
                 model_path = os.path.join(save_dir, f'FNN_model_{ite}.weights.pth')
                 self.save_weights(model_path)
         
+        # Save final cluster plot
+        if plot_evolution:
+            try:
+                final_features = self.extract_feature(all_embeddings).cpu().numpy()
+                final_clusters = self.get_cluster_assignments(all_embeddings)
+                self.plot_cluster_evolution(
+                    embeddings=final_features,
+                    cluster_assignments=final_clusters,
+                    epoch=ite,
+                    save_dir=plot_dir,
+                    show_plot=False
+                )
+                
+                # Create evolution grid
+                print("Creating cluster evolution grid...")
+                self.create_evolution_grid(save_dir=plot_dir)
+                
+            except Exception as e:
+                print(f"Warning: Could not save final cluster plots: {e}")
+        
         # Save the trained model
         logfile.close()
         model_path = os.path.join(save_dir, 'FNN_model_final.weights.pth')
@@ -746,7 +1126,7 @@ class FNNGPU(nn.Module):
                 return y_pred, s_pred
             else:
                 return y_pred
-
+        
     def get_cluster_assignments(self, x):
         """
         Get cluster assignments for a batch of inputs
@@ -1011,3 +1391,212 @@ class FNNGPU(nn.Module):
         return plt.gcf()  # Return the figure
     
     
+    def plot_cluster_evolution(self, embeddings, cluster_assignments, epoch, save_dir='./results/fnnjst', 
+                           method='tsne', figsize=(6, 6), point_size=20, alpha=0.7, 
+                           save_plot=True, show_plot=False):
+        """
+        Plot cluster evolution during training using t-SNE or UMAP visualization
+        
+        Parameters:
+        -----------
+        embeddings : torch.Tensor or numpy.array
+            The feature embeddings to visualize
+        cluster_assignments : numpy.array
+            Cluster assignments for each point
+        epoch : int
+            Current epoch number
+        save_dir : str
+            Directory to save plots
+        method : str
+            Dimensionality reduction method ('tsne' or 'umap')
+        figsize : tuple
+            Figure size (width, height)
+        point_size : int
+            Size of scatter plot points
+        alpha : float
+            Transparency of points
+        save_plot : bool
+            Whether to save the plot
+        show_plot : bool
+            Whether to display the plot
+        
+        Returns:
+        --------
+        matplotlib.figure.Figure
+            The matplotlib figure object
+        """
+        import matplotlib.pyplot as plt
+        import numpy as np
+        from sklearn.manifold import TSNE
+        
+        # Convert embeddings to numpy if tensor
+        if isinstance(embeddings, torch.Tensor):
+            embeddings_np = embeddings.cpu().detach().numpy()
+        else:
+            embeddings_np = embeddings
+        
+        # Apply dimensionality reduction
+        if method.lower() == 'tsne':
+            from sklearn.manifold import TSNE
+            reducer = TSNE(n_components=2, perplexity=30, random_state=42, 
+                        init='pca', learning_rate='auto')
+            embeddings_2d = reducer.fit_transform(embeddings_np)
+        elif method.lower() == 'umap':
+            try:
+                import umap
+                reducer = umap.UMAP(n_components=2, random_state=42, 
+                                n_neighbors=15, min_dist=0.1)
+                embeddings_2d = reducer.fit_transform(embeddings_np)
+            except ImportError:
+                print("UMAP not installed, falling back to t-SNE")
+                from sklearn.manifold import TSNE
+                reducer = TSNE(n_components=2, perplexity=30, random_state=42, 
+                            init='pca', learning_rate='auto')
+                embeddings_2d = reducer.fit_transform(embeddings_np)
+        else:
+            raise ValueError("Method must be 'tsne' or 'umap'")
+        
+        # Create the plot
+        fig, ax = plt.subplots(figsize=figsize)
+        
+        # Get unique clusters and assign colors
+        unique_clusters = np.unique(cluster_assignments)
+        n_clusters = len(unique_clusters)
+        
+        # Use a colormap with enough distinct colors
+        if n_clusters <= 10:
+            colors = plt.cm.tab10(np.linspace(0, 1, 10))
+        elif n_clusters <= 20:
+            colors = plt.cm.tab20(np.linspace(0, 1, 20))
+        else:
+            colors = plt.cm.hsv(np.linspace(0, 1, n_clusters))
+        
+        # Plot each cluster with different colors
+        for i, cluster_id in enumerate(unique_clusters):
+            mask = cluster_assignments == cluster_id
+            cluster_points = embeddings_2d[mask]
+            
+            # Use 'x' markers like in your reference image
+            ax.scatter(cluster_points[:, 0], cluster_points[:, 1], 
+                    c=[colors[i]], marker='x', s=point_size, alpha=alpha,
+                    label=f'Cluster {cluster_id}')
+        
+        # Style the plot
+        ax.set_title(f'Epoch {epoch}', fontsize=14, fontweight='bold')
+        ax.set_xlabel('')
+        ax.set_ylabel('')
+        ax.set_xticks([])
+        ax.set_yticks([])
+        
+        # Remove spines for cleaner look
+        for spine in ax.spines.values():
+            spine.set_visible(False)
+        
+        # Add subtle grid
+        ax.grid(True, alpha=0.3, linestyle='-', linewidth=0.5)
+        ax.set_facecolor('white')
+        
+        plt.tight_layout()
+        
+        # Save the plot
+        if save_plot:
+            os.makedirs(save_dir, exist_ok=True)
+            plot_path = os.path.join(save_dir, f'cluster_evolution_epoch_{epoch}.png')
+            plt.savefig(plot_path, dpi=150, bbox_inches='tight', 
+                    facecolor='white', edgecolor='none')
+            print(f"Saved cluster plot for epoch {epoch} to {plot_path}")
+        
+        # Show plot if requested
+        if show_plot:
+            plt.show()
+        else:
+            plt.close()
+        
+        return fig
+
+    def create_evolution_grid(self, save_dir='./results/fnnjst', epochs_to_show=None, 
+                            grid_cols=3, figsize=(15, 10)):
+        """
+        Create a grid of cluster evolution plots from saved individual plots
+        
+        Parameters:
+        -----------
+        save_dir : str
+            Directory where individual plots are saved
+        epochs_to_show : list
+            List of epoch numbers to include in grid (if None, auto-detect)
+        grid_cols : int
+            Number of columns in the grid
+        figsize : tuple
+            Figure size for the entire grid
+            
+        Returns:
+        --------
+        matplotlib.figure.Figure
+            The matplotlib figure object containing the grid
+        """
+        import matplotlib.pyplot as plt
+        import matplotlib.image as mpimg
+        import glob
+        import re
+        
+        # Find all saved plot files
+        plot_files = glob.glob(os.path.join(save_dir, 'cluster_evolution_epoch_*.png'))
+        
+        if not plot_files:
+            print("No cluster evolution plots found in the directory")
+            return None
+        
+        # Extract epoch numbers and sort
+        epoch_files = []
+        for file in plot_files:
+            match = re.search(r'epoch_(\d+)\.png', file)
+            if match:
+                epoch_num = int(match.group(1))
+                epoch_files.append((epoch_num, file))
+        
+        epoch_files.sort(key=lambda x: x[0])  # Sort by epoch number
+        
+        # Filter epochs if specified
+        if epochs_to_show is not None:
+            epoch_files = [(epoch, file) for epoch, file in epoch_files 
+                        if epoch in epochs_to_show]
+        
+        if not epoch_files:
+            print("No matching epoch plots found")
+            return None
+        
+        # Calculate grid dimensions
+        n_plots = len(epoch_files)
+        grid_rows = (n_plots + grid_cols - 1) // grid_cols
+        
+        # Create the grid plot
+        fig, axes = plt.subplots(grid_rows, grid_cols, figsize=figsize)
+        
+        # Handle single row case
+        if grid_rows == 1:
+            axes = [axes] if n_plots == 1 else axes
+        else:
+            axes = axes.flatten()
+        
+        # Plot each epoch
+        for i, (epoch, file_path) in enumerate(epoch_files):
+            if i < len(axes):
+                img = mpimg.imread(file_path)
+                axes[i].imshow(img)
+                axes[i].set_title(f'Epoch {epoch}', fontsize=12, fontweight='bold')
+                axes[i].axis('off')
+        
+        # Hide unused subplots
+        for i in range(len(epoch_files), len(axes)):
+            axes[i].axis('off')
+        
+        plt.tight_layout()
+        
+        # Save the grid
+        grid_path = os.path.join(save_dir, 'cluster_evolution_grid.png')
+        plt.savefig(grid_path, dpi=150, bbox_inches='tight', 
+                facecolor='white', edgecolor='none')
+        print(f"Saved evolution grid to {grid_path}")
+        
+        return fig
