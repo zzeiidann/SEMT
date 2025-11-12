@@ -1,5 +1,5 @@
 """
-FNN-GPU: Feedforward Neural Network with GPU support for 
+SEMT-GPU: Feedforward Neural Network with GPU support for 
 Joint Sentiment Analysis and Topic Clustering
 
 This module implements a deep learning model that combines:
@@ -192,9 +192,9 @@ class Autoencoder(nn.Module):
 # Main Model
  
 
-class FNNGPU(nn.Module):
+class SEMTGPU(nn.Module):
     """
-    FNN-GPU: Joint Sentiment Analysis and Topic Clustering Model
+    SEMT-GPU: Joint Sentiment Analysis and Topic Clustering Model
     
     Combines:
     - Autoencoder for feature extraction
@@ -209,7 +209,7 @@ class FNNGPU(nn.Module):
             n_clusters: Number of topic clusters
             alpha: Degrees of freedom for clustering layer
         """
-        super(FNNGPU, self).__init__()
+        super(SEMTGPU, self).__init__()
         
         self.dims = dims
         self.input_dim = dims[0]
@@ -1264,7 +1264,7 @@ class FNNGPU(nn.Module):
     def __repr__(self):
         """String representation of the model."""
         return (
-            f"FNNGPU(\n"
+            f"SEMTGPU(\n"
             f"  dims={self.dims},\n"
             f"  n_clusters={self.n_clusters},\n"
             f"  alpha={self.alpha},\n"
