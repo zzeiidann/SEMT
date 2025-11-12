@@ -216,7 +216,6 @@ class SEMTGPU(nn.Module):
     def save_weights(self, path: str) -> None:
         os.makedirs(os.path.dirname(path), exist_ok=True)
         torch.save({"model_state_dict": self.state_dict()}, path)
-        print(f"✓ Saved weights to {path}")
 
     # -------------------------
     # Autoencoder pretrain
@@ -831,7 +830,6 @@ class SEMTGPU(nn.Module):
             os.makedirs(save_dir, exist_ok=True)
             out = os.path.join(save_dir, f"cluster_evolution_epoch_{epoch}.png")
             plt.savefig(out, dpi=150, bbox_inches="tight", facecolor="white", edgecolor="none")
-            print(f"✓ Saved cluster plot: {out}")
         if show_plot:
             plt.show()
         else:
@@ -877,5 +875,4 @@ class SEMTGPU(nn.Module):
         plt.tight_layout()
         out = os.path.join(save_dir, "cluster_evolution_grid.png")
         plt.savefig(out, dpi=150, bbox_inches="tight", facecolor="white", edgecolor="none")
-        print(f"✓ Saved evolution grid to {out}")
         return fig
