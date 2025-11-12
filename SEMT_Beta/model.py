@@ -1,5 +1,5 @@
 """
-FNN: Feedforward Neural Network with Joint Sentiment Analysis and Clustering
+SEMT: Feedforward Neural Network with Joint Sentiment Analysis and Clustering
 ============================================================================
 A deep learning model combining autoencoder-based clustering with sentiment classification.
 """
@@ -43,7 +43,7 @@ device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
 logger.info(f"Using device: {device}")
 
 
-class FNN:
+class SEMT:
     """
     Feedforward Neural Network for joint sentiment analysis and clustering.
     
@@ -68,7 +68,7 @@ class FNN:
             n_clusters: Number of clusters for unsupervised learning
             batch_size: Batch size for training
         """
-        super(FNN, self).__init__()
+        super(SEMT, self).__init__()
         
         self.dims = dims
         self.input_dim = dims[0]
@@ -85,7 +85,7 @@ class FNN:
         self.gamma: Optional[float] = None
         self.eta: Optional[float] = None
         
-        logger.info(f"FNN initialized with architecture: {dims}")
+        logger.info(f"SEMT initialized with architecture: {dims}")
         logger.info(f"Clusters: {n_clusters}, Batch size: {batch_size}")
 
     def initialize_model(
@@ -252,7 +252,7 @@ class FNN:
         cluster_output, _ = self.model.predict(x, verbose=0)
         return cluster_output.argmax(1)
 
-    def set_stop_words(self, stop_words: Union[List[str], Set[str]]) -> 'FNN':
+    def set_stop_words(self, stop_words: Union[List[str], Set[str]]) -> 'SEMT':
         """
         Set stop words for cluster analysis.
         
