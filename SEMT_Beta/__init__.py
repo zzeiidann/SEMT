@@ -1,4 +1,4 @@
-from .model import FNN
+from .model import SEMT
 from .dataset import CachedBERTDataset
 
-__all__ = ['FNN', 'CachedBERTDataset']
+__all__ = ['SEMT', 'CachedBERTDataset']
