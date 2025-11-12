@@ -17,6 +17,7 @@ import glob
 import re
 from collections import Counter
 from typing import Iterable, List, Dict, Tuple, Optional, Union
+from pathlib import Path
 
 import numpy as np
 import pandas as pd
@@ -220,45 +221,60 @@ class SEMTGPU(nn.Module):
     # -------------------------
     # Autoencoder pretrain
     # -------------------------
+
     def pretrain_autoencoder(
         self,
         dataset: Iterable,
         batch_size: int = 256,
         epochs: int = 200,
         lr: float = 1e-3,
-    ) -> None:
+        save_dir: str = "./results/ae",
+        weights_name: str = "pretrained_ae.weights.pth",
+    ) -> str:
         """
-        Pretrain autoencoder with MSE reconstruction.
-        Dataset items can be: embedding tensor OR (embedding, label)
+        Pretrain autoencoder (MSE reconstruction) dan simpan bobot AE saja.
+        Aman kalau save_dir kosong/None (fallback ke './results/ae').
+        Returns: path file bobot yang tersimpan (str).
         """
         print("=" * 60)
         print("Pretraining Autoencoder")
         print("=" * 60)
 
-        # Collect embeddings
+        # --- siapkan folder simpan ---
+        save_path = Path(save_dir or "./results/ae")
+        save_path.mkdir(parents=True, exist_ok=True)
+        weights_path = save_path / weights_name
+
+        # --- kumpulkan embeddings ---
         embs: List[torch.Tensor] = []
         for i in range(len(dataset)):
             item = dataset[i]
-            if isinstance(item, tuple) and len(item) >= 1:
-                embs.append(item[0].detach().cpu())
+            emb = item[0] if (isinstance(item, tuple) and len(item) >= 1) else item
+            if not isinstance(emb, torch.Tensor):
+                emb = torch.tensor(emb, dtype=torch.float32)
             else:
-                t = item.detach() if isinstance(item, torch.Tensor) else torch.tensor(item, dtype=torch.float32)
-                embs.append(t.cpu())
+                emb = emb.detach()
+            embs.append(emb.cpu())
 
-        X = torch.stack(embs)
+        X = torch.stack(embs)             # (N, d)
         n, d = X.shape
+
+        # --- sanity check dimensi ---
         if d != self.dims[0]:
             raise ValueError(
-                f"Input dimension mismatch: embeddings dim = {d}, but dims[0] = {self.dims[0]}. "
-                f"Set dims[0] to {d}."
+                f"Input dim mismatch: embeddings dim={d}, tapi dims[0]={self.dims[0]}. "
+                f"Bangun model dengan dims=[{d}, ...] terlebih dulu."
             )
 
-        X = X.to(next(self.parameters()).device)
+        # --- data loader ---
+        dev = next(self.parameters()).device
+        X = X.to(dev)
         loader = DataLoader(TensorDataset(X), batch_size=batch_size, shuffle=True)
 
+        # --- training ---
+        self.autoencoder.to(dev).train()
         opt = optim.Adam(self.autoencoder.parameters(), lr=lr)
         crit = nn.MSELoss()
-        self.autoencoder.train()
 
         for ep in range(epochs):
             total = 0.0
@@ -272,8 +288,14 @@ class SEMTGPU(nn.Module):
                     total += float(loss.item())
                     pbar.set_postfix({"mse": total / (pbar.n + 1)})
 
-        self.save_weights("pretrained_ae.weights.pth")
-        print("✓ Autoencoder pretraining complete")
+        # --- simpan hanya bobot AE (bukan seluruh model) ---
+        torch.save(
+            {"autoencoder_state_dict": self.autoencoder.state_dict(), "dims": self.dims},
+            str(weights_path),
+        )
+        print(f"✓ Autoencoder pretraining complete. Saved to: {weights_path}")
+        return str(weights_path)
+
 
     # -------------------------
     # DEC target distribution
