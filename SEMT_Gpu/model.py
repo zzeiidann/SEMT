@@ -90,50 +90,51 @@ class ClusteringLayer(nn.Module):
 
 class Autoencoder(nn.Module):
     """
-    Symmetric fully-connected autoencoder: dims = [in, h1, ..., z]
+    Symmetric fully-connected autoencoder: dims = [input_dim, h1, ..., z]
+    - Encoder: activations di semua layer kecuali bottleneck
+    - Decoder: mirror; activations di semua layer kecuali layer output
     """
-
-    def __init__(self, dims: List[int], act: str = "relu") -> None:
+    def __init__(self, dims, act='relu'):
         super().__init__()
-        self.dims = dims
-        self.n_stacks = len(dims) - 1
+        assert len(dims) >= 2, "dims minimal [input_dim, latent]"
+        self.dims = list(dims)
 
-        act_map = {"relu": nn.ReLU(), "sigmoid": nn.Sigmoid(), "tanh": nn.Tanh()}
+        act_map = {'relu': nn.ReLU(), 'sigmoid': nn.Sigmoid(), 'tanh': nn.Tanh()}
         self.activation = act_map.get(act, nn.ReLU())
 
-        # Encoder
-        enc_layers: List[nn.Module] = []
-        for i in range(self.n_stacks - 1):
-            enc_layers += [nn.Linear(dims[i], dims[i + 1]), self.activation]
-        enc_layers += [nn.Linear(dims[-2], dims[-1])]  # bottleneck (no activation)
-        self.encoder = nn.Sequential(*enc_layers)
+        # ---- Encoder ----
+        enc = []
+        for i in range(len(dims)-2):                 # semua hidden dgn aktivasi
+            enc += [nn.Linear(dims[i], dims[i+1]), self.activation]
+        enc += [nn.Linear(dims[-2], dims[-1])]       # bottleneck (tanpa aktivasi)
+        self.encoder = nn.Sequential(*enc)
 
-        # Decoder (symmetric)
-        dec_layers: List[nn.Module] = []
-        for i in range(self.n_stacks - 1, 0, -1):
-            dec_layers += [nn.Linear(dims[i], dims[i - 1]), self.activation]
-        dec_layers += [nn.Linear(dims[1], dims[0])]  # output layer (no activation)
-        self.decoder = nn.Sequential(*dec_layers)
+        # ---- Decoder (benar-benar simetris, tanpa duplikasi) ----
+        dec = []
+        for j in range(len(dims)-1, 0, -1):          # z->h_{L-1}->...->in
+            dec += [nn.Linear(dims[j], dims[j-1])]
+            if j != 1:                                # semua kecuali layer output
+                dec += [self.activation]
+        self.decoder = nn.Sequential(*dec)
 
         self._init_weights()
 
-    def _init_weights(self) -> None:
+    def _init_weights(self):
         for m in self.modules():
             if isinstance(m, nn.Linear):
                 nn.init.xavier_uniform_(m.weight)
                 if m.bias is not None:
                     nn.init.zeros_(m.bias)
 
-    def encode(self, x: torch.Tensor) -> torch.Tensor:
+    def encode(self, x):
         return self.encoder(x)
 
-    def decode(self, h: torch.Tensor) -> torch.Tensor:
+    def decode(self, h):
         return self.decoder(h)
 
-    def forward(self, x: torch.Tensor) -> Tuple[torch.Tensor, torch.Tensor]:
+    def forward(self, x):
         h = self.encode(x)
-        x_rec = self.decode(h)
-        return h, x_rec
+        return h, self.decode(h)
 
 
 # --------------------------------------------------------------------------------------
