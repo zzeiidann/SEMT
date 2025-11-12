@@ -147,18 +147,22 @@ class Autoencoder(nn.Module):
             ))
         encoder_layers.append(nn.Linear(dims[-2], dims[-1]))
         
-        # Build decoder (symmetric)
+        # Build decoder (symmetric & correct)
         decoder_layers = []
-        for i in range(self.n_stacks - 1, 0, -1):
-            decoder_layers.append(nn.Sequential(
-                nn.Linear(dims[i], dims[i-1]),
-                self.activation
-            ))
-        decoder_layers.append(nn.Linear(dims[1], dims[0]))
-        
+        for i in range(len(dims) - 1, 0, -1):   # i: last .. 1
+            in_dim, out_dim = dims[i], dims[i-1]
+            if i > 1:
+                decoder_layers.append(nn.Sequential(
+                    nn.Linear(in_dim, out_dim),
+                    self.activation
+                ))
+            else:
+                # final reconstruction layer: no activation
+                decoder_layers.append(nn.Linear(in_dim, out_dim))
+
         self.encoder_layers = nn.ModuleList(encoder_layers)
         self.decoder_layers = nn.ModuleList(decoder_layers)
-        
+
         self._init_weights()
         
     def _init_weights(self):
