@@ -93,27 +93,6 @@ def cluster_acc(y_true: np.ndarray, y_pred: np.ndarray) -> float:
     row_ind, col_ind = linear_assignment(w.max() - w)
     return float(sum(w[i, j] for i, j in zip(row_ind, col_ind)) / y_pred.size)
 
-
-def cluster_purity(y_true: np.ndarray, y_pred: np.ndarray) -> float:
-    """
-    Clustering purity score with proper handling of different cluster counts.
-    
-    Args:
-        y_true: ground truth labels
-        y_pred: predicted cluster labels
-    
-    Returns:
-        Purity score (0-1), higher is better
-    """
-    n_true_clusters = len(np.unique(y_true))
-    n_pred_clusters = len(np.unique(y_pred))
-    # Create contingency matrix with proper dimensions
-    contingency_matrix = np.zeros((n_true_clusters, n_pred_clusters))
-    for i in range(len(y_true)):
-        contingency_matrix[int(y_true[i]), int(y_pred[i])] += 1
-    return np.sum(np.max(contingency_matrix, axis=0)) / len(y_true)
-
-
 # --------------------------------------------------------------------------------------
 # Model Components
 # --------------------------------------------------------------------------------------
@@ -521,15 +500,16 @@ class SEMTGPU(nn.Module):
         - NMI: Strehl & Ghosh (2002). "Cluster ensembles"
         - ARI: Hubert & Arabie (1985). "Comparing partitions"
         - V-measure: Rosenberg & Hirschberg (2007). "V-Measure: A conditional entropy-based external cluster evaluation measure"
-        - Purity: Zhao & Karypis (2001). "Criterion functions for document clustering"
+        - Topic Coverage: Entropy-based cluster balance metric
         
         Returns:
-            Dict with metrics: ACC, NMI, ARI, Purity, Homogeneity, Completeness, V-measure
+            Dict with metrics: ACC, NMI, ARI, Homogeneity, Completeness, V-measure, Topic_Coverage
         """
         if len(np.unique(y_true)) < 2 or len(np.unique(y_pred)) < 2:
             return {
-                'ACC': 0.0, 'NMI': 0.0, 'ARI': 0.0, 'Purity': 0.0,
+                'ACC': 0.0, 'NMI': 0.0, 'ARI': 0.0,
                 'Homogeneity': 0.0, 'Completeness': 0.0, 'V-measure': 0.0,
+                'Topic_Coverage': 0.0,
             }
         
         # Calculate topic coverage (cluster entropy balance)
@@ -806,7 +786,7 @@ class SEMTGPU(nn.Module):
         Compute all interpretability metrics in one go.
         
         Returns comprehensive metrics dict with:
-        - Clustering metrics (if true_labels provided): ACC, NMI, ARI, Purity, etc.
+        - Clustering metrics (if true_labels provided): ACC, NMI, ARI, Topic_Coverage, etc.
         - Visualization method selection
         - Silhouette score
         - Topic coherence (per cluster + mean)
@@ -838,7 +818,7 @@ class SEMTGPU(nn.Module):
         tfidf_keywords = self.extract_tfidf_keywords(texts, cluster_assignments, top_n=top_n_words)
         
         metrics = {
-            'clustering_supervised': clustering_metrics,  # ACC, NMI, ARI, Purity, etc.
+            'clustering_supervised': clustering_metrics,  # ACC, NMI, ARI, Topic_Coverage, etc.
             'visualization': {
                 'best_method': best_method,
                 **viz_metrics,
@@ -862,8 +842,8 @@ class SEMTGPU(nn.Module):
             print(f"   ACC:           {clustering_metrics['ACC']:.4f}")
             print(f"   NMI:           {clustering_metrics['NMI']:.4f}")
             print(f"   ARI:           {clustering_metrics['ARI']:.4f}")
-            print(f"   Purity:        {clustering_metrics['Purity']:.4f}")
             print(f"   V-measure:     {clustering_metrics['V-measure']:.4f}")
+            print(f"   Topic_Coverage:{clustering_metrics['Topic_Coverage']:.4f}")
         
         print(f"\n Clustering Quality (Unsupervised):")
         print(f"   Silhouette:    {silhouette:.4f}")
@@ -1038,7 +1018,7 @@ class SEMTGPU(nn.Module):
         log_fieldnames = [
             "iter", "acc_sentiment", "L", "Lr", "Lc", "Ls",
             # Clustering metrics (supervised - if ground truth available)
-            "ACC", "NMI", "ARI", "Purity", "Homogeneity", "Completeness", "V-measure",
+            "ACC", "NMI", "ARI", "Homogeneity", "Completeness", "V-measure",
             # Clustering metrics (unsupervised)
             "Silhouette",
             # Topic interpretability metrics
@@ -1141,7 +1121,6 @@ class SEMTGPU(nn.Module):
                         "ACC": round(clustering_sup.get('ACC', 0.0), 5),
                         "NMI": round(clustering_sup.get('NMI', 0.0), 5),
                         "ARI": round(clustering_sup.get('ARI', 0.0), 5),
-                        "Purity": round(clustering_sup.get('Purity', 0.0), 5),
                         "Homogeneity": round(clustering_sup.get('Homogeneity', 0.0), 5),
                         "Completeness": round(clustering_sup.get('Completeness', 0.0), 5),
                         "V-measure": round(clustering_sup.get('V-measure', 0.0), 5),
