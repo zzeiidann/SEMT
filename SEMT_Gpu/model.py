@@ -144,19 +144,24 @@ class Autoencoder(nn.Module):
 class SEMTGPU(nn.Module):
     """
     Joint Sentiment + Topic Clustering (DEC-style) with Autoencoder features.
+    
+    Loss weights:
+        alpha: reconstruction loss weight
+        gamma: clustering loss weight  
+        eta: sentiment loss weight
     """
 
-    def __init__(self, dims: List[int], n_clusters: int = 10, alpha: float = 1.0) -> None:
+    def __init__(self, dims: List[int], n_clusters: int = 10, alpha_clustering: float = 1.0) -> None:
         super().__init__()
 
         assert len(dims) >= 2, "dims must be [input_dim, ..., latent_dim]"
         self.dims = dims
         self.n_clusters = int(n_clusters)
-        self.alpha = float(alpha)
+        self.alpha_clustering = float(alpha_clustering)  # parameter untuk clustering layer (student-t)
 
         # Core
         self.autoencoder = Autoencoder(dims)
-        self.clustering = ClusteringLayer(n_clusters=n_clusters, input_dim=dims[-1], alpha=alpha)
+        self.clustering = ClusteringLayer(n_clusters=n_clusters, input_dim=dims[-1], alpha=alpha_clustering)
 
         # Sentiment head (binary)
         self.sentiment = nn.Sequential(
@@ -383,8 +388,9 @@ class SEMTGPU(nn.Module):
     def fit(
         self,
         dataset: Iterable,
-        gamma: float = 0.7,
-        eta: float = 1.0,
+        alpha: float = 0.3,          # 🆕 reconstruction loss weight
+        gamma: float = 0.7,          # clustering loss weight
+        eta: float = 1.0,            # sentiment loss weight
         optimizer_type: str = "sgd",
         learning_rate: float = 1e-3,
         momentum: float = 0.9,
@@ -397,9 +403,21 @@ class SEMTGPU(nn.Module):
         plot_interval: Optional[int] = None,
     ) -> Union[np.ndarray, Tuple[np.ndarray, np.ndarray]]:
         """
-        Joint training (DEC + Sentiment). Uses target distribution refresh every update_interval iters.
+        Joint training (DEC + Sentiment + Reconstruction). 
+        
+        Loss = alpha * L_reconstruction + gamma * L_clustering + eta * L_sentiment
+        
+        Args:
+            alpha: weight for reconstruction loss (MSE)
+            gamma: weight for clustering loss (KL divergence)
+            eta: weight for sentiment loss (Cross Entropy)
         """
-        print("Update interval", update_interval)
+        print("=" * 60)
+        print("Joint Training: Clustering + Sentiment + Reconstruction")
+        print(f"Loss weights - Alpha (recon): {alpha}, Gamma (cluster): {gamma}, Eta (sentiment): {eta}")
+        print(f"Update interval: {update_interval}")
+        print("=" * 60)
+        
         dev = next(self.parameters()).device
         maxiter = int(maxiter)
         plot_interval = int(plot_interval) if plot_interval is not None else update_interval
@@ -461,8 +479,10 @@ class SEMTGPU(nn.Module):
             raise ValueError(f"Unsupported optimizer: {optimizer_type}")
         optimizer = opt_map[optimizer_type.lower()]()
 
+        # Loss functions
         kld_loss = nn.KLDivLoss(reduction="batchmean")
         ce_loss = nn.CrossEntropyLoss(weight=class_w_t) if class_w_t is not None else nn.CrossEntropyLoss()
+        mse_loss = nn.MSELoss()  # 🆕 reconstruction loss
 
         # Initialize clusters
         print("Initializing cluster centers with k-means.")
@@ -480,7 +500,7 @@ class SEMTGPU(nn.Module):
         log_path = os.path.join(save_dir, "idec_sentiment_log.csv")
         with open(log_path, "w", newline="") as logfile:
             writer = csv.DictWriter(
-                logfile, fieldnames=["iter", "acc_cluster", "nmi", "ari", "acc_sentiment", "L", "Lc", "Ls"]
+                logfile, fieldnames=["iter", "acc_cluster", "nmi", "ari", "acc_sentiment", "L", "Lr", "Lc", "Ls"]
             )
             writer.writeheader()
 
@@ -488,7 +508,7 @@ class SEMTGPU(nn.Module):
             train_loader: Optional[DataLoader] = None
             self.train()
             iter_count = 0
-            tot_L = Lc = Ls = 0.0
+            tot_L = Lr = Lc = Ls = 0.0  # 🆕 added Lr for reconstruction
 
             for ite in range(maxiter):
                 # refresh target distribution
@@ -528,6 +548,7 @@ class SEMTGPU(nn.Module):
 
                     # log averages
                     avg_L = tot_L / update_interval if iter_count > 0 else 0.0
+                    avg_Lr = Lr / update_interval if iter_count > 0 else 0.0  # 🆕
                     avg_Lc = Lc / update_interval if iter_count > 0 else 0.0
                     avg_Ls = Ls / update_interval if iter_count > 0 else 0.0
                     writer.writerow(
@@ -538,14 +559,15 @@ class SEMTGPU(nn.Module):
                             "ari": 0,
                             "acc_sentiment": round(acc_s, 5),
                             "L": round(avg_L, 5),
+                            "Lr": round(avg_Lr, 5),  # 🆕
                             "Lc": round(avg_Lc, 5),
                             "Ls": round(avg_Ls, 5),
                         }
                     )
-                    print(f"Iter {ite}: Lc={avg_Lc:.5f}, Ls={avg_Ls:.5f}, Acc={acc_s:.5f}; L={avg_L:.5f}")
+                    print(f"Iter {ite}: Lr={avg_Lr:.5f}, Lc={avg_Lc:.5f}, Ls={avg_Ls:.5f}, Acc={acc_s:.5f}; L={avg_L:.5f}")
 
                     # reset counters
-                    tot_L = Lc = Ls = 0.0
+                    tot_L = Lr = Lc = Ls = 0.0  # 🆕
                     iter_count = 0
 
                     # early stop by cluster stability
@@ -576,18 +598,30 @@ class SEMTGPU(nn.Module):
                     xb = xb.to(dev)
                     pb = pb.to(dev)
 
-                    q, s = self(xb)
+                    # 🆕 Forward pass with reconstruction
+                    z = self.autoencoder.encode(xb)
+                    x_recon = self.autoencoder.decode(z)
+                    
+                    q = self.clustering(z)
+                    s = torch.softmax(self.sentiment(z), dim=1)
+
+                    # 🆕 Compute all losses
+                    recon_loss = mse_loss(x_recon, xb)
                     c_loss = kld_loss((q + 1e-8).log(), pb)
                     s_loss = torch.tensor(0.0, device=dev)
                     if yb is not None:
                         s_loss = ce_loss(s, yb)
 
-                    loss = gamma * c_loss + eta * s_loss
+                    # 🆕 Combined loss with reconstruction
+                    loss = alpha * recon_loss + gamma * c_loss + eta * s_loss
+                    
                     optimizer.zero_grad()
                     loss.backward()
                     optimizer.step()
 
+                    # 🆕 Track all losses
                     tot_L += float(loss.item())
+                    Lr += float(recon_loss.item())
                     Lc += float(c_loss.item())
                     Ls += float(s_loss.item())
                     iter_count += 1

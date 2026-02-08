@@ -1,0 +1,14 @@
+numpy
+pandas
+torch
+tqdm
+scikit-learn
+scipy
+transformers
+huggingface-hub
+sentencepiece
+matplotlib
+seaborn
+ipykernel
+ipywidgets 
+jupyter
