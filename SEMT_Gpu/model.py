@@ -843,10 +843,10 @@ class SEMTGPU(nn.Module):
             print(f"   NMI:           {clustering_metrics['NMI']:.4f}")
             print(f"   ARI:           {clustering_metrics['ARI']:.4f}")
             print(f"   V-measure:     {clustering_metrics['V-measure']:.4f}")
-            print(f"   Topic_Coverage:{clustering_metrics['Topic_Coverage']:.4f}")
         
         print(f"\n Clustering Quality (Unsupervised):")
         print(f"   Silhouette:    {silhouette:.4f}")
+        print(f"   Topic_Coverage:{clustering_metrics['Topic_Coverage']:.4f}")
         
         print(f"\n Topic Quality:")
         print(f"   Mean Coherence: {metrics['topic_coherence_mean']:.4f}")
