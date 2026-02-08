@@ -28,6 +28,7 @@ from torch.utils.data import DataLoader, TensorDataset
 
 from tqdm import tqdm
 from sklearn.cluster import KMeans
+from sklearn.metrics import precision_score, recall_score, f1_score  # 🆕
 from scipy.optimize import linear_sum_assignment as linear_assignment
 from transformers import AutoTokenizer, AutoModel
 
@@ -388,11 +389,11 @@ class SEMTGPU(nn.Module):
     def fit(
         self,
         dataset: Iterable,
-        alpha: float = 0.3,          # reconstruction loss weight
-        gamma: float = 0.7,          # clustering loss weight
-        eta: float = 1.0,            # sentiment loss weight
-        optimizer_type: str = "sgd",
-        learning_rate: float = 1e-3,
+        alpha: float = 0.1,          # 🆕 reconstruction loss weight (REDUCED)
+        gamma: float = 1.0,          # clustering loss weight (INCREASED)
+        eta: float = 0.1,            # sentiment loss weight (REDUCED)
+        optimizer_type: str = "adam",  # 🆕 changed to adam
+        learning_rate: float = 1e-3,   # 🆕 INCREASED from 1e-5
         momentum: float = 0.9,
         tol: float = 1e-3,
         update_interval: int = 140,
@@ -401,16 +402,20 @@ class SEMTGPU(nn.Module):
         save_dir: str = "./results/fnnjst",
         plot_evolution: bool = True,
         plot_interval: Optional[int] = None,
-    ) -> Union[np.ndarray, Tuple[np.ndarray, np.ndarray]]:
+    ) -> Union[np.ndarray, Tuple[np.ndarray, np.ndarray, Dict[str, float]]]:  # 🆕 added metrics return
         """
         Joint training (DEC + Sentiment + Reconstruction). 
         
         Loss = alpha * L_reconstruction + gamma * L_clustering + eta * L_sentiment
         
         Args:
-            alpha: weight for reconstruction loss (MSE)
-            gamma: weight for clustering loss (KL divergence)
-            eta: weight for sentiment loss (Cross Entropy)
+            alpha: weight for reconstruction loss (MSE) - default 0.1
+            gamma: weight for clustering loss (KL divergence) - default 1.0
+            eta: weight for sentiment loss (Cross Entropy) - default 0.1
+            
+        Returns:
+            If has_labels: (cluster_pred, sentiment_probs, metrics_dict)
+            Else: cluster_pred
         """
         print("=" * 60)
         print("Joint Training: Clustering + Sentiment + Reconstruction")
@@ -482,7 +487,7 @@ class SEMTGPU(nn.Module):
         # Loss functions
         kld_loss = nn.KLDivLoss(reduction="batchmean")
         ce_loss = nn.CrossEntropyLoss(weight=class_w_t) if class_w_t is not None else nn.CrossEntropyLoss()
-        mse_loss = nn.MSELoss()  #  reconstruction loss
+        mse_loss = nn.MSELoss()
 
         # Initialize clusters
         print("Initializing cluster centers with k-means.")
@@ -508,7 +513,7 @@ class SEMTGPU(nn.Module):
             train_loader: Optional[DataLoader] = None
             self.train()
             iter_count = 0
-            tot_L = Lr = Lc = Ls = 0.0  #  added Lr for reconstruction
+            tot_L = Lr = Lc = Ls = 0.0
 
             for ite in range(maxiter):
                 # refresh target distribution
@@ -537,7 +542,7 @@ class SEMTGPU(nn.Module):
                             except Exception as e:
                                 print(f"Warning: plot at iter {ite} failed: {e}")
 
-                        # sentiment accuracy
+                        # sentiment accuracy (only during training for monitoring)
                         acc_s = 0.0
                         if has_labels:
                             s_lab = s_all.argmax(dim=1).cpu().numpy()
@@ -548,7 +553,7 @@ class SEMTGPU(nn.Module):
 
                     # log averages
                     avg_L = tot_L / update_interval if iter_count > 0 else 0.0
-                    avg_Lr = Lr / update_interval if iter_count > 0 else 0.0  # 🆕
+                    avg_Lr = Lr / update_interval if iter_count > 0 else 0.0
                     avg_Lc = Lc / update_interval if iter_count > 0 else 0.0
                     avg_Ls = Ls / update_interval if iter_count > 0 else 0.0
                     writer.writerow(
@@ -559,7 +564,7 @@ class SEMTGPU(nn.Module):
                             "ari": 0,
                             "acc_sentiment": round(acc_s, 5),
                             "L": round(avg_L, 5),
-                            "Lr": round(avg_Lr, 5),  # 
+                            "Lr": round(avg_Lr, 5),
                             "Lc": round(avg_Lc, 5),
                             "Ls": round(avg_Ls, 5),
                         }
@@ -567,7 +572,7 @@ class SEMTGPU(nn.Module):
                     print(f"Iter {ite}: Lr={avg_Lr:.5f}, Lc={avg_Lc:.5f}, Ls={avg_Ls:.5f}, Acc={acc_s:.5f}; L={avg_L:.5f}")
 
                     # reset counters
-                    tot_L = Lr = Lc = Ls = 0.0  # 
+                    tot_L = Lr = Lc = Ls = 0.0
                     iter_count = 0
 
                     # early stop by cluster stability
@@ -640,14 +645,38 @@ class SEMTGPU(nn.Module):
 
         self.save_weights(os.path.join(save_dir, "SEMTGPU_final.weights.pth"))
 
-        # return predictions
+        # 🆕 Final evaluation with precision, recall, F1
         self.eval()
         with torch.no_grad():
             q_all, s_all = self(X)
-            y_pred = q_all.argmax(dim=1).cpu().numpy()
+            y_pred_cluster = q_all.argmax(dim=1).cpu().numpy()
+            y_pred_sentiment = s_all.argmax(dim=1).cpu().numpy()
+            
+            metrics = {}
             if has_labels:
-                return y_pred, s_all.cpu().numpy()
-            return y_pred
+                y_true = Y.detach().cpu().numpy()
+                if y_true.ndim == 2 and y_true.shape[1] > 1:
+                    y_true = y_true.argmax(axis=1)
+                
+                # Compute metrics
+                metrics['accuracy'] = float((y_pred_sentiment == y_true).mean())
+                metrics['precision'] = float(precision_score(y_true, y_pred_sentiment, average='binary', zero_division=0))
+                metrics['recall'] = float(recall_score(y_true, y_pred_sentiment, average='binary', zero_division=0))
+                metrics['f1_score'] = float(f1_score(y_true, y_pred_sentiment, average='binary', zero_division=0))
+                
+                # Print final metrics
+                print("\n" + "=" * 60)
+                print("FINAL SENTIMENT CLASSIFICATION METRICS")
+                print("=" * 60)
+                print(f"Accuracy:  {metrics['accuracy']:.4f}")
+                print(f"Precision: {metrics['precision']:.4f}")
+                print(f"Recall:    {metrics['recall']:.4f}")
+                print(f"F1 Score:  {metrics['f1_score']:.4f}")
+                print("=" * 60)
+                
+                return y_pred_cluster, s_all.cpu().numpy(), metrics
+            
+            return y_pred_cluster
 
     # -------------------------
     # Helpers
