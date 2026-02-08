@@ -388,7 +388,7 @@ class SEMTGPU(nn.Module):
     def fit(
         self,
         dataset: Iterable,
-        alpha: float = 0.3,          # 🆕 reconstruction loss weight
+        alpha: float = 0.3,          # reconstruction loss weight
         gamma: float = 0.7,          # clustering loss weight
         eta: float = 1.0,            # sentiment loss weight
         optimizer_type: str = "sgd",
@@ -482,7 +482,7 @@ class SEMTGPU(nn.Module):
         # Loss functions
         kld_loss = nn.KLDivLoss(reduction="batchmean")
         ce_loss = nn.CrossEntropyLoss(weight=class_w_t) if class_w_t is not None else nn.CrossEntropyLoss()
-        mse_loss = nn.MSELoss()  # 🆕 reconstruction loss
+        mse_loss = nn.MSELoss()  #  reconstruction loss
 
         # Initialize clusters
         print("Initializing cluster centers with k-means.")
@@ -508,7 +508,7 @@ class SEMTGPU(nn.Module):
             train_loader: Optional[DataLoader] = None
             self.train()
             iter_count = 0
-            tot_L = Lr = Lc = Ls = 0.0  # 🆕 added Lr for reconstruction
+            tot_L = Lr = Lc = Ls = 0.0  #  added Lr for reconstruction
 
             for ite in range(maxiter):
                 # refresh target distribution
@@ -559,7 +559,7 @@ class SEMTGPU(nn.Module):
                             "ari": 0,
                             "acc_sentiment": round(acc_s, 5),
                             "L": round(avg_L, 5),
-                            "Lr": round(avg_Lr, 5),  # 🆕
+                            "Lr": round(avg_Lr, 5),  # 
                             "Lc": round(avg_Lc, 5),
                             "Ls": round(avg_Ls, 5),
                         }
@@ -567,7 +567,7 @@ class SEMTGPU(nn.Module):
                     print(f"Iter {ite}: Lr={avg_Lr:.5f}, Lc={avg_Lc:.5f}, Ls={avg_Ls:.5f}, Acc={acc_s:.5f}; L={avg_L:.5f}")
 
                     # reset counters
-                    tot_L = Lr = Lc = Ls = 0.0  # 🆕
+                    tot_L = Lr = Lc = Ls = 0.0  # 
                     iter_count = 0
 
                     # early stop by cluster stability
@@ -598,28 +598,28 @@ class SEMTGPU(nn.Module):
                     xb = xb.to(dev)
                     pb = pb.to(dev)
 
-                    # 🆕 Forward pass with reconstruction
+                    # Forward pass with reconstruction
                     z = self.autoencoder.encode(xb)
                     x_recon = self.autoencoder.decode(z)
                     
                     q = self.clustering(z)
                     s = torch.softmax(self.sentiment(z), dim=1)
 
-                    # 🆕 Compute all losses
+                    # Compute all losses
                     recon_loss = mse_loss(x_recon, xb)
                     c_loss = kld_loss((q + 1e-8).log(), pb)
                     s_loss = torch.tensor(0.0, device=dev)
                     if yb is not None:
                         s_loss = ce_loss(s, yb)
 
-                    # 🆕 Combined loss with reconstruction
+                    # Combined loss with reconstruction
                     loss = alpha * recon_loss + gamma * c_loss + eta * s_loss
                     
                     optimizer.zero_grad()
                     loss.backward()
                     optimizer.step()
 
-                    # 🆕 Track all losses
+                    # Track all losses
                     tot_L += float(loss.item())
                     Lr += float(recon_loss.item())
                     Lc += float(c_loss.item())
