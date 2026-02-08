@@ -89,8 +89,9 @@ def cluster_acc(y_true: np.ndarray, y_pred: np.ndarray) -> float:
     w = np.zeros((D, D), dtype=np.int64)
     for i in range(y_pred.size):
         w[y_pred[i], y_true[i]] += 1
-    ind = linear_assignment(w.max() - w)
-    return float(sum(w[i, j] for i, j in ind) / y_pred.size)
+    # linear_assignment returns (row_ind, col_ind) tuple
+    row_ind, col_ind = linear_assignment(w.max() - w)
+    return float(sum(w[i, j] for i, j in zip(row_ind, col_ind)) / y_pred.size)
 
 
 def cluster_purity(y_true: np.ndarray, y_pred: np.ndarray) -> float:
