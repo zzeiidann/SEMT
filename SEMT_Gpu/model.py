@@ -96,7 +96,7 @@ def cluster_acc(y_true: np.ndarray, y_pred: np.ndarray) -> float:
 
 def cluster_purity(y_true: np.ndarray, y_pred: np.ndarray) -> float:
     """
-    Clustering purity score.
+    Clustering purity score with proper handling of different cluster counts.
     
     Args:
         y_true: ground truth labels
@@ -105,9 +105,12 @@ def cluster_purity(y_true: np.ndarray, y_pred: np.ndarray) -> float:
     Returns:
         Purity score (0-1), higher is better
     """
-    contingency_matrix = np.zeros((len(np.unique(y_true)), len(np.unique(y_pred))))
+    n_true_clusters = len(np.unique(y_true))
+    n_pred_clusters = len(np.unique(y_pred))
+    # Create contingency matrix with proper dimensions
+    contingency_matrix = np.zeros((n_true_clusters, n_pred_clusters))
     for i in range(len(y_true)):
-        contingency_matrix[y_true[i], y_pred[i]] += 1
+        contingency_matrix[int(y_true[i]), int(y_pred[i])] += 1
     return np.sum(np.max(contingency_matrix, axis=0)) / len(y_true)
 
 
@@ -529,14 +532,21 @@ class SEMTGPU(nn.Module):
                 'Homogeneity': 0.0, 'Completeness': 0.0, 'V-measure': 0.0,
             }
         
+        # Calculate topic coverage (cluster entropy balance)
+        unique_clusters, cluster_counts = np.unique(y_pred, return_counts=True)
+        cluster_probs = cluster_counts / len(y_pred)
+        # Use negative entropy to get coverage score (0-1)
+        from scipy.stats import entropy
+        topic_coverage = 1.0 - (entropy(cluster_probs) / np.log(len(unique_clusters))) if len(unique_clusters) > 1 else 0.0
+        
         return {
             'ACC': cluster_acc(y_true, y_pred),
             'NMI': float(normalized_mutual_info_score(y_true, y_pred)),
             'ARI': float(adjusted_rand_score(y_true, y_pred)),
-            'Purity': cluster_purity(y_true, y_pred),
             'Homogeneity': float(homogeneity_score(y_true, y_pred)),
             'Completeness': float(completeness_score(y_true, y_pred)),
             'V-measure': float(v_measure_score(y_true, y_pred)),
+            'Topic_Coverage': float(topic_coverage),
         }
     
     def compute_variance_explained(
@@ -844,27 +854,27 @@ class SEMTGPU(nn.Module):
         }
         
         # Print summary
-        print(f"\n📊 Visualization Method: {best_method.upper()}")
+        print(f"\n Visualization Method: {best_method.upper()}")
         print(f"   PCA Variance (2D): {viz_metrics['pca_variance_2d']:.2%}")
         
         if clustering_metrics:
-            print(f"\n🎯 Clustering Quality (Supervised):")
+            print(f"\n Clustering Quality (Supervised):")
             print(f"   ACC:           {clustering_metrics['ACC']:.4f}")
             print(f"   NMI:           {clustering_metrics['NMI']:.4f}")
             print(f"   ARI:           {clustering_metrics['ARI']:.4f}")
             print(f"   Purity:        {clustering_metrics['Purity']:.4f}")
             print(f"   V-measure:     {clustering_metrics['V-measure']:.4f}")
         
-        print(f"\n🎯 Clustering Quality (Unsupervised):")
+        print(f"\n Clustering Quality (Unsupervised):")
         print(f"   Silhouette:    {silhouette:.4f}")
         
-        print(f"\n📝 Topic Quality:")
+        print(f"\n Topic Quality:")
         print(f"   Mean Coherence: {metrics['topic_coherence_mean']:.4f}")
         print(f"   Topic Diversity: {diversity:.4f}")
         print(f"   Cluster Balance: {coverage['cluster_balance']:.4f}")
         print(f"   Min/Max Cluster: {coverage['min_cluster_size']:.1%} / {coverage['max_cluster_size']:.1%}")
         
-        print(f"\n🔑 Top TF-IDF Keywords per Cluster:")
+        print(f"\n Top TF-IDF Keywords per Cluster:")
         for cid, keywords in tfidf_keywords.items():
             top_5 = ", ".join([f"{w}({s:.3f})" for w, s in keywords[:5]])
             print(f"   Cluster {cid}: {top_5}")
@@ -892,6 +902,7 @@ class SEMTGPU(nn.Module):
         save_dir: str = "./results/fnnjst",
         plot_evolution: bool = True,
         plot_interval: Optional[int] = None,
+        plot_method: str = "tsne",  # 🆕 choose visualization method: 'tsne', 'pca', 'umap'
         compute_metrics: bool = True,  # 🆕 compute comprehensive metrics
     ) -> Union[np.ndarray, Tuple[np.ndarray, np.ndarray, Dict[str, float]]]:
         """
@@ -903,6 +914,7 @@ class SEMTGPU(nn.Module):
             alpha: weight for reconstruction loss (MSE) - default 0.1
             gamma: weight for clustering loss (KL divergence) - default 1.0
             eta: weight for sentiment loss (Cross Entropy) - default 0.1
+            plot_method: visualization method for plots - 'tsne' (default), 'pca', or 'umap'
             compute_metrics: whether to compute comprehensive interpretability metrics
             
         Returns:
@@ -993,9 +1005,14 @@ class SEMTGPU(nn.Module):
         print("Initializing cluster centers with k-means.")
         y_pred_last = self._init_clusters_with_kmeans(X)
         
-        # 🆕 Select best visualization method ONCE at start
-        best_viz_method = 'tsne'  # default
-        if compute_metrics and has_texts:
+        # Select visualization method based on parameter or auto-select
+        valid_methods = ['tsne', 'pca', 'umap']
+        if plot_method not in valid_methods:
+            print(f"Warning: plot_method '{plot_method}' not in {valid_methods}. Using 'tsne'.")
+            plot_method = 'tsne'
+        best_viz_method = plot_method
+        # Only auto-select if user chose 'tsne' (default) and has texts
+        if plot_method == 'tsne' and compute_metrics and has_texts:
             feats_initial = self.extract_feature(X).cpu().numpy()
             best_viz_method, _ = self.select_best_visualization_method(feats_initial)
 
