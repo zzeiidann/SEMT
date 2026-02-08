@@ -6,7 +6,11 @@ Joint Sentiment Analysis and Topic Clustering
 - Student-t Clustering layer (DEC-style) for soft assignments
 - Sentiment head (binary) with class-weighted CE
 - Robust training loop (fit) dengan target distribution
-- Visualizations: t-SNE / UMAP (auto-perplexity / auto-n_neighbors)
+- Comprehensive interpretability metrics:
+  * Variance analysis for t-SNE/UMAP/PCA selection
+  * Topic Coherence, Diversity, Coverage
+  * Silhouette Score for cluster quality
+  * Automatic best visualization method selection
 """
 
 from __future__ import annotations
@@ -28,7 +32,8 @@ from torch.utils.data import DataLoader, TensorDataset
 
 from tqdm import tqdm
 from sklearn.cluster import KMeans
-from sklearn.metrics import precision_score, recall_score, f1_score  # 🆕
+from sklearn.metrics import precision_score, recall_score, f1_score, silhouette_score
+from sklearn.decomposition import PCA
 from scipy.optimize import linear_sum_assignment as linear_assignment
 from transformers import AutoTokenizer, AutoModel
 
@@ -384,16 +389,303 @@ class SEMTGPU(nn.Module):
         return results
 
     # -------------------------
+    # 🆕 INTERPRETABILITY METRICS
+    # -------------------------
+    
+    def compute_variance_explained(
+        self, 
+        embeddings: Union[np.ndarray, torch.Tensor],
+        n_components: int = 2,
+    ) -> Dict[str, float]:
+        """
+        Compute variance explained by PCA for dimensionality reduction methods.
+        Returns cumulative variance explained by top n_components.
+        """
+        if isinstance(embeddings, torch.Tensor):
+            emb = embeddings.detach().cpu().numpy()
+        else:
+            emb = embeddings
+        
+        pca = PCA(n_components=min(n_components, emb.shape[0], emb.shape[1]))
+        pca.fit(emb)
+        
+        return {
+            'variance_explained': float(pca.explained_variance_ratio_[:n_components].sum()),
+            'component_variances': pca.explained_variance_ratio_[:n_components].tolist(),
+        }
+    
+    def select_best_visualization_method(
+        self,
+        embeddings: Union[np.ndarray, torch.Tensor],
+        methods: List[str] = ['pca', 'tsne', 'umap'],
+        variance_threshold: float = 0.7,
+    ) -> Tuple[str, Dict[str, float]]:
+        """
+        Automatically select best visualization method based on variance analysis.
+        
+        Args:
+            embeddings: High-dimensional embeddings
+            methods: List of methods to consider ['pca', 'tsne', 'umap']
+            variance_threshold: If PCA explains >= this variance, use PCA (faster)
+        
+        Returns:
+            (best_method, metrics_dict)
+        """
+        if isinstance(embeddings, torch.Tensor):
+            emb = embeddings.detach().cpu().numpy()
+        else:
+            emb = embeddings
+        
+        n = emb.shape[0]
+        
+        # Check PCA variance first
+        variance_info = self.compute_variance_explained(emb, n_components=2)
+        var_explained = variance_info['variance_explained']
+        
+        metrics = {
+            'pca_variance_2d': var_explained,
+            'n_samples': n,
+        }
+        
+        # If PCA explains enough variance, use it (faster & interpretable)
+        if var_explained >= variance_threshold:
+            print(f"✓ PCA explains {var_explained:.2%} variance → using PCA for visualization")
+            return 'pca', metrics
+        
+        # Otherwise prefer t-SNE for medium datasets, UMAP for large
+        if 'umap' in methods and n > 1000:
+            print(f"✓ Large dataset (n={n}) with PCA variance {var_explained:.2%} → using UMAP")
+            return 'umap', metrics
+        elif 'tsne' in methods:
+            print(f"✓ Medium dataset (n={n}) with PCA variance {var_explained:.2%} → using t-SNE")
+            return 'tsne', metrics
+        else:
+            print(f"✓ Fallback to PCA (variance: {var_explained:.2%})")
+            return 'pca', metrics
+    
+    def compute_silhouette_score(
+        self,
+        embeddings: Union[np.ndarray, torch.Tensor],
+        cluster_assignments: np.ndarray,
+    ) -> float:
+        """
+        Compute silhouette score for cluster quality assessment.
+        Score ranges from -1 to 1, higher is better.
+        """
+        if isinstance(embeddings, torch.Tensor):
+            emb = embeddings.detach().cpu().numpy()
+        else:
+            emb = embeddings
+        
+        if len(np.unique(cluster_assignments)) < 2:
+            return 0.0
+        
+        try:
+            score = silhouette_score(emb, cluster_assignments)
+            return float(score)
+        except Exception as e:
+            print(f"Warning: silhouette score computation failed: {e}")
+            return 0.0
+    
+    def compute_topic_coherence(
+        self,
+        texts: List[str],
+        cluster_assignments: np.ndarray,
+        top_n: int = 10,
+    ) -> Dict[int, float]:
+        """
+        Compute topic coherence for each cluster using PMI-based coherence.
+        Higher values indicate more coherent topics.
+        
+        Returns:
+            Dict mapping cluster_id to coherence score
+        """
+        from itertools import combinations
+        
+        # Group texts by cluster
+        clusters: Dict[int, List[str]] = {}
+        for i, cid in enumerate(cluster_assignments):
+            clusters.setdefault(int(cid), []).append(texts[i])
+        
+        coherence_scores = {}
+        
+        for cid, cluster_texts in clusters.items():
+            # Get top words for this cluster
+            words = " ".join(cluster_texts).lower().split()
+            words = [w for w in words if w not in self.stop_words and len(w) > 2]
+            word_counts = Counter(words)
+            top_words = [w for w, _ in word_counts.most_common(top_n)]
+            
+            if len(top_words) < 2:
+                coherence_scores[cid] = 0.0
+                continue
+            
+            # Compute PMI-based coherence
+            doc_freq = {}
+            for word in top_words:
+                doc_freq[word] = sum(1 for text in cluster_texts if word in text.lower())
+            
+            pmi_scores = []
+            for w1, w2 in combinations(top_words, 2):
+                # Co-occurrence
+                co_occur = sum(1 for text in cluster_texts if w1 in text.lower() and w2 in text.lower())
+                
+                if co_occur > 0:
+                    p_w1_w2 = co_occur / len(cluster_texts)
+                    p_w1 = doc_freq[w1] / len(cluster_texts)
+                    p_w2 = doc_freq[w2] / len(cluster_texts)
+                    
+                    pmi = np.log((p_w1_w2 + 1e-10) / (p_w1 * p_w2 + 1e-10))
+                    pmi_scores.append(pmi)
+            
+            coherence_scores[cid] = float(np.mean(pmi_scores)) if pmi_scores else 0.0
+        
+        return coherence_scores
+    
+    def compute_topic_diversity(
+        self,
+        texts: List[str],
+        cluster_assignments: np.ndarray,
+        top_n: int = 10,
+    ) -> float:
+        """
+        Compute topic diversity across all clusters.
+        Measures how distinct topics are from each other.
+        
+        Returns:
+            Diversity score (0-1), higher means more diverse topics
+        """
+        # Group texts by cluster
+        clusters: Dict[int, List[str]] = {}
+        for i, cid in enumerate(cluster_assignments):
+            clusters.setdefault(int(cid), []).append(texts[i])
+        
+        # Get top words for each cluster
+        all_top_words = []
+        for cid, cluster_texts in clusters.items():
+            words = " ".join(cluster_texts).lower().split()
+            words = [w for w in words if w not in self.stop_words and len(w) > 2]
+            word_counts = Counter(words)
+            top_words = set([w for w, _ in word_counts.most_common(top_n)])
+            all_top_words.append(top_words)
+        
+        if len(all_top_words) < 2:
+            return 0.0
+        
+        # Compute pairwise uniqueness
+        unique_words = set()
+        total_words = 0
+        for word_set in all_top_words:
+            unique_words.update(word_set)
+            total_words += len(word_set)
+        
+        # Diversity = unique words / total words (accounting for overlap)
+        diversity = len(unique_words) / total_words if total_words > 0 else 0.0
+        return float(diversity)
+    
+    def compute_topic_coverage(
+        self,
+        texts: List[str],
+        cluster_assignments: np.ndarray,
+    ) -> Dict[str, float]:
+        """
+        Compute how well topics cover the dataset.
+        
+        Returns:
+            Dict with coverage metrics:
+            - cluster_balance: How evenly distributed samples are across clusters (0-1)
+            - min_cluster_size: Smallest cluster size (%)
+            - max_cluster_size: Largest cluster size (%)
+        """
+        cluster_counts = Counter(cluster_assignments)
+        total = len(cluster_assignments)
+        
+        sizes = [count / total for count in cluster_counts.values()]
+        
+        # Entropy-based balance (higher = more balanced)
+        entropy = -sum(p * np.log(p + 1e-10) for p in sizes)
+        max_entropy = np.log(len(cluster_counts))
+        balance = entropy / max_entropy if max_entropy > 0 else 0.0
+        
+        return {
+            'cluster_balance': float(balance),
+            'min_cluster_size': float(min(sizes)),
+            'max_cluster_size': float(max(sizes)),
+            'n_clusters': len(cluster_counts),
+        }
+    
+    def compute_comprehensive_metrics(
+        self,
+        embeddings: Union[np.ndarray, torch.Tensor],
+        texts: List[str],
+        cluster_assignments: np.ndarray,
+        top_n_words: int = 10,
+    ) -> Dict[str, any]:
+        """
+        Compute all interpretability metrics in one go.
+        
+        Returns comprehensive metrics dict with:
+        - Visualization method selection
+        - Silhouette score
+        - Topic coherence (per cluster)
+        - Topic diversity
+        - Topic coverage
+        - Variance explained
+        """
+        print("\n" + "=" * 60)
+        print("Computing Comprehensive Interpretability Metrics")
+        print("=" * 60)
+        
+        # Select best visualization method
+        best_method, viz_metrics = self.select_best_visualization_method(embeddings)
+        
+        # Clustering quality
+        silhouette = self.compute_silhouette_score(embeddings, cluster_assignments)
+        
+        # Topic metrics
+        coherence = self.compute_topic_coherence(texts, cluster_assignments, top_n=top_n_words)
+        diversity = self.compute_topic_diversity(texts, cluster_assignments, top_n=top_n_words)
+        coverage = self.compute_topic_coverage(texts, cluster_assignments)
+        
+        metrics = {
+            'visualization': {
+                'best_method': best_method,
+                **viz_metrics,
+            },
+            'clustering_quality': {
+                'silhouette_score': silhouette,
+            },
+            'topic_coherence': coherence,
+            'topic_coherence_mean': float(np.mean(list(coherence.values()))) if coherence else 0.0,
+            'topic_diversity': diversity,
+            'topic_coverage': coverage,
+        }
+        
+        # Print summary
+        print(f"\n📊 Visualization Method: {best_method.upper()}")
+        print(f"   PCA Variance (2D): {viz_metrics['pca_variance_2d']:.2%}")
+        print(f"\n🎯 Clustering Quality:")
+        print(f"   Silhouette Score: {silhouette:.4f}")
+        print(f"\n📝 Topic Quality:")
+        print(f"   Mean Coherence: {metrics['topic_coherence_mean']:.4f}")
+        print(f"   Topic Diversity: {diversity:.4f}")
+        print(f"   Cluster Balance: {coverage['cluster_balance']:.4f}")
+        print(f"   Min/Max Cluster Size: {coverage['min_cluster_size']:.1%} / {coverage['max_cluster_size']:.1%}")
+        print("=" * 60 + "\n")
+        
+        return metrics
+
+    # -------------------------
     # Training (fit)
     # -------------------------
     def fit(
         self,
         dataset: Iterable,
-        alpha: float = 0.1,          # 🆕 reconstruction loss weight (REDUCED)
-        gamma: float = 1.0,          # clustering loss weight (INCREASED)
-        eta: float = 0.1,            # sentiment loss weight (REDUCED)
-        optimizer_type: str = "adam",  # 🆕 changed to adam
-        learning_rate: float = 1e-3,   # 🆕 INCREASED from 1e-5
+        alpha: float = 0.1,
+        gamma: float = 1.0,
+        eta: float = 0.1,
+        optimizer_type: str = "adam",
+        learning_rate: float = 1e-3,
         momentum: float = 0.9,
         tol: float = 1e-3,
         update_interval: int = 140,
@@ -402,7 +694,8 @@ class SEMTGPU(nn.Module):
         save_dir: str = "./results/fnnjst",
         plot_evolution: bool = True,
         plot_interval: Optional[int] = None,
-    ) -> Union[np.ndarray, Tuple[np.ndarray, np.ndarray, Dict[str, float]]]:  # 🆕 added metrics return
+        compute_metrics: bool = True,  # 🆕 compute comprehensive metrics
+    ) -> Union[np.ndarray, Tuple[np.ndarray, np.ndarray, Dict[str, float]]]:
         """
         Joint training (DEC + Sentiment + Reconstruction). 
         
@@ -412,6 +705,7 @@ class SEMTGPU(nn.Module):
             alpha: weight for reconstruction loss (MSE) - default 0.1
             gamma: weight for clustering loss (KL divergence) - default 1.0
             eta: weight for sentiment loss (Cross Entropy) - default 0.1
+            compute_metrics: whether to compute comprehensive interpretability metrics
             
         Returns:
             If has_labels: (cluster_pred, sentiment_probs, metrics_dict)
@@ -433,14 +727,21 @@ class SEMTGPU(nn.Module):
             plot_dir = os.path.join(save_dir, "evolution_plots")
             os.makedirs(plot_dir, exist_ok=True)
 
-        # Collect embeddings (+ optional labels)
+        # Collect embeddings (+ optional labels) + texts for metrics
         embs: List[torch.Tensor] = []
         lbls: List[torch.Tensor] = []
+        texts_list: List[str] = []  # 🆕 for interpretability metrics
+        
         for i in range(len(dataset)):
             item = dataset[i]
-            if isinstance(item, tuple) and len(item) == 2:
-                embs.append(item[0].detach().cpu())
-                lbls.append(item[1].detach().cpu())
+            if isinstance(item, tuple):
+                if len(item) == 2:
+                    embs.append(item[0].detach().cpu())
+                    lbls.append(item[1].detach().cpu())
+                elif len(item) == 3:  # (embedding, label, text)
+                    embs.append(item[0].detach().cpu())
+                    lbls.append(item[1].detach().cpu())
+                    texts_list.append(item[2])
             else:
                 t = item.detach() if isinstance(item, torch.Tensor) else torch.tensor(item, dtype=torch.float32)
                 embs.append(t.cpu())
@@ -458,6 +759,7 @@ class SEMTGPU(nn.Module):
 
         has_labels = len(lbls) > 0
         Y = torch.stack(lbls).to(dev) if has_labels else None
+        has_texts = len(texts_list) > 0
 
         # class weights (if labels exist; accept one-hot)
         class_w_t: Optional[torch.Tensor] = None
@@ -492,12 +794,23 @@ class SEMTGPU(nn.Module):
         # Initialize clusters
         print("Initializing cluster centers with k-means.")
         y_pred_last = self._init_clusters_with_kmeans(X)
+        
+        # 🆕 Select best visualization method ONCE at start
+        best_viz_method = 'tsne'  # default
+        if compute_metrics and has_texts:
+            feats_initial = self.extract_feature(X).cpu().numpy()
+            best_viz_method, _ = self.select_best_visualization_method(feats_initial)
 
-        # Initial plot (robust)
+        # Initial plot with best method
         if plot_evolution and plot_dir:
             try:
                 feats0 = self.extract_feature(X).cpu().numpy()
-                self.plot_cluster_evolution(feats0, y_pred_last, 0, save_dir=plot_dir, show_plot=False)
+                self.plot_cluster_evolution(
+                    feats0, y_pred_last, 0, 
+                    save_dir=plot_dir, 
+                    method=best_viz_method,
+                    show_plot=False
+                )
             except Exception as e:
                 print(f"Warning: initial plot failed: {e}")
 
@@ -534,11 +847,16 @@ class SEMTGPU(nn.Module):
                         delta = float((y_pred != y_pred_last).sum() / len(y_pred))
                         y_pred_last = y_pred.copy()
 
-                        # evolution plot
+                        # evolution plot with best method
                         if plot_evolution and plot_dir and ite > 0 and (ite % plot_interval == 0):
                             try:
                                 feats = self.extract_feature(X).cpu().numpy()
-                                self.plot_cluster_evolution(feats, y_pred, ite, save_dir=plot_dir, show_plot=False)
+                                self.plot_cluster_evolution(
+                                    feats, y_pred, ite, 
+                                    save_dir=plot_dir,
+                                    method=best_viz_method,
+                                    show_plot=False
+                                )
                             except Exception as e:
                                 print(f"Warning: plot at iter {ite} failed: {e}")
 
@@ -634,18 +952,23 @@ class SEMTGPU(nn.Module):
                 if ite % save_interval == 0 and ite > 0:
                     self.save_weights(os.path.join(save_dir, f"SEMTGPU_{ite}.weights.pth"))
 
-        # final plot & save
+        # final plot & save with best method
         if plot_evolution and plot_dir:
             try:
                 feats_f = self.extract_feature(X).cpu().numpy()
                 y_final = self.get_cluster_assignments(X)
-                self.plot_cluster_evolution(feats_f, y_final, ite, save_dir=plot_dir, show_plot=False)
+                self.plot_cluster_evolution(
+                    feats_f, y_final, ite, 
+                    save_dir=plot_dir,
+                    method=best_viz_method,
+                    show_plot=False
+                )
             except Exception as e:
                 print(f"Warning: final plot failed: {e}")
 
         self.save_weights(os.path.join(save_dir, "SEMTGPU_final.weights.pth"))
 
-        # 🆕 Final evaluation with precision, recall, F1
+        # 🆕 Final evaluation with comprehensive metrics
         self.eval()
         with torch.no_grad():
             q_all, s_all = self(X)
@@ -653,27 +976,48 @@ class SEMTGPU(nn.Module):
             y_pred_sentiment = s_all.argmax(dim=1).cpu().numpy()
             
             metrics = {}
+            
+            # Sentiment metrics (if labels available)
             if has_labels:
                 y_true = Y.detach().cpu().numpy()
                 if y_true.ndim == 2 and y_true.shape[1] > 1:
                     y_true = y_true.argmax(axis=1)
                 
-                # Compute metrics
-                metrics['accuracy'] = float((y_pred_sentiment == y_true).mean())
-                metrics['precision'] = float(precision_score(y_true, y_pred_sentiment, average='binary', zero_division=0))
-                metrics['recall'] = float(recall_score(y_true, y_pred_sentiment, average='binary', zero_division=0))
-                metrics['f1_score'] = float(f1_score(y_true, y_pred_sentiment, average='binary', zero_division=0))
+                metrics['sentiment'] = {
+                    'accuracy': float((y_pred_sentiment == y_true).mean()),
+                    'precision': float(precision_score(y_true, y_pred_sentiment, average='binary', zero_division=0)),
+                    'recall': float(recall_score(y_true, y_pred_sentiment, average='binary', zero_division=0)),
+                    'f1_score': float(f1_score(y_true, y_pred_sentiment, average='binary', zero_division=0)),
+                }
                 
-                # Print final metrics
                 print("\n" + "=" * 60)
                 print("FINAL SENTIMENT CLASSIFICATION METRICS")
                 print("=" * 60)
-                print(f"Accuracy:  {metrics['accuracy']:.4f}")
-                print(f"Precision: {metrics['precision']:.4f}")
-                print(f"Recall:    {metrics['recall']:.4f}")
-                print(f"F1 Score:  {metrics['f1_score']:.4f}")
+                print(f"Accuracy:  {metrics['sentiment']['accuracy']:.4f}")
+                print(f"Precision: {metrics['sentiment']['precision']:.4f}")
+                print(f"Recall:    {metrics['sentiment']['recall']:.4f}")
+                print(f"F1 Score:  {metrics['sentiment']['f1_score']:.4f}")
                 print("=" * 60)
+            
+            # 🆕 Comprehensive interpretability metrics
+            if compute_metrics and has_texts:
+                feats_final = self.extract_feature(X).cpu().numpy()
+                interp_metrics = self.compute_comprehensive_metrics(
+                    feats_final,
+                    texts_list,
+                    y_pred_cluster,
+                    top_n_words=10,
+                )
+                metrics['interpretability'] = interp_metrics
                 
+                # Save metrics to file
+                metrics_path = os.path.join(save_dir, "interpretability_metrics.json")
+                import json
+                with open(metrics_path, 'w') as f:
+                    json.dump(interp_metrics, f, indent=2)
+                print(f"✓ Interpretability metrics saved to: {metrics_path}")
+            
+            if has_labels:
                 return y_pred_cluster, s_all.cpu().numpy(), metrics
             
             return y_pred_cluster
@@ -827,13 +1171,17 @@ class SEMTGPU(nn.Module):
         cluster_assignments: np.ndarray,
         epoch: int,
         save_dir: str = "./results/fnnjst",
-        method: str = "tsne",
+        method: str = "tsne",  # 🆕 can be auto-selected
         figsize: Tuple[int, int] = (6, 6),
         point_size: int = 20,
         alpha: float = 0.7,
         save_plot: bool = True,
         show_plot: bool = False,
     ):
+        """
+        Plot cluster evolution with automatic or manual method selection.
+        Method can be 'pca', 'tsne', or 'umap'.
+        """
         if isinstance(embeddings, torch.Tensor):
             emb = embeddings.detach().cpu().numpy()
         else:
@@ -844,28 +1192,37 @@ class SEMTGPU(nn.Module):
             print(f"Skip plot at epoch {epoch}: n_samples={n} < 3")
             return None
 
-        if method.lower() == "tsne":
+        # Dimensionality reduction
+        if method.lower() == 'pca':
+            from sklearn.decomposition import PCA
+            reducer = PCA(n_components=2, random_state=42)
+            emb_2d = reducer.fit_transform(emb)
+            method_label = f"PCA ({reducer.explained_variance_ratio_.sum():.1%} var)"
+            
+        elif method.lower() == "tsne":
             from sklearn.manifold import TSNE
-
             perplexity = max(2, min(30, n - 1))
             reducer = TSNE(n_components=2, perplexity=perplexity, random_state=42, init="pca", learning_rate="auto")
             emb_2d = reducer.fit_transform(emb)
+            method_label = "t-SNE"
+            
         elif method.lower() == "umap":
             try:
                 import umap
-
                 n_neighbors = max(2, min(15, n - 1))
                 reducer = umap.UMAP(n_components=2, random_state=42, n_neighbors=n_neighbors, min_dist=0.1)
                 emb_2d = reducer.fit_transform(emb)
+                method_label = "UMAP"
             except Exception:
                 from sklearn.manifold import TSNE
-
                 perplexity = max(2, min(30, n - 1))
                 reducer = TSNE(n_components=2, perplexity=perplexity, random_state=42, init="pca", learning_rate="auto")
                 emb_2d = reducer.fit_transform(emb)
+                method_label = "t-SNE (fallback)"
         else:
-            raise ValueError("method must be 'tsne' or 'umap'")
+            raise ValueError("method must be 'pca', 'tsne' or 'umap'")
 
+        # Plot
         fig, ax = plt.subplots(figsize=figsize)
         uniq = np.unique(cluster_assignments)
         k = len(uniq)
@@ -881,7 +1238,7 @@ class SEMTGPU(nn.Module):
             pts = emb_2d[mask]
             ax.scatter(pts[:, 0], pts[:, 1], c=[colors[i]], marker="x", s=point_size, alpha=alpha, label=f"Cluster {cid}")
 
-        ax.set_title(f"Epoch {epoch}", fontsize=14, fontweight="bold")
+        ax.set_title(f"Epoch {epoch} ({method_label})", fontsize=14, fontweight="bold")
         ax.set_xticks([]), ax.set_yticks([])
         for sp in ax.spines.values():
             sp.set_visible(False)
