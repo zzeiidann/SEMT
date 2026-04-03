@@ -1068,33 +1068,6 @@ class SEMTGPU(nn.Module):
                             except Exception as e:
                                 print(f"Warning: plot at iter {ite} failed: {e}")
 
-                        # 🆕 Integrated Gradients plot (same interval)
-                        ig_top_dim_idx = -1
-                        ig_top_dim_score = 0.0
-                        ig_mean_attr = 0.0
-
-                        if plot_integrated_gradients and plot_dir and ite > 0 and (ite % plot_interval == 0):
-                            try:
-                                idx_ig = np.random.choice(N, min(ig_max_samples, N), replace=False)
-                                ig_attrs = self.compute_integrated_gradients(
-                                    X[idx_ig],
-                                    target_class=ig_target_class,
-                                    n_steps=ig_n_steps,
-                                )
-                                self.plot_integrated_gradients(
-                                    ig_attrs, y_pred[idx_ig], epoch=ite,
-                                    save_dir=plot_dir, top_dims=ig_top_dims,
-                                    show_plot=False,
-                                )
-                                # Log summary stats
-                                abs_ig = np.abs(ig_attrs)
-                                global_imp = abs_ig.mean(axis=0)
-                                ig_top_dim_idx = int(global_imp.argmax())
-                                ig_top_dim_score = float(global_imp.max())
-                                ig_mean_attr = float(global_imp.mean())
-                            except Exception as e:
-                                print(f"Warning: IG plot at iter {ite} failed: {e}")
-
                         acc_s = 0.0
                         if has_labels:
                             s_lab = s_all.argmax(dim=1).cpu().numpy()
@@ -1126,6 +1099,32 @@ class SEMTGPU(nn.Module):
                     avg_Lr = Lr / update_interval if iter_count > 0 else 0.0
                     avg_Lc = Lc / update_interval if iter_count > 0 else 0.0
                     avg_Ls = Ls / update_interval if iter_count > 0 else 0.0
+
+                    # ── IG plot — HARUS di luar torch.no_grad() agar grad bisa ngalir ──
+                    ig_top_dim_idx = -1
+                    ig_top_dim_score = 0.0
+                    ig_mean_attr = 0.0
+
+                    if plot_integrated_gradients and plot_dir and ite > 0 and (ite % plot_interval == 0):
+                        try:
+                            idx_ig = np.random.choice(N, min(ig_max_samples, N), replace=False)
+                            ig_attrs = self.compute_integrated_gradients(
+                                X[idx_ig],
+                                target_class=ig_target_class,
+                                n_steps=ig_n_steps,
+                            )
+                            self.plot_integrated_gradients(
+                                ig_attrs, y_pred[idx_ig], epoch=ite,
+                                save_dir=plot_dir, top_dims=ig_top_dims,
+                                show_plot=False,
+                            )
+                            abs_ig = np.abs(ig_attrs)
+                            global_imp = abs_ig.mean(axis=0)
+                            ig_top_dim_idx = int(global_imp.argmax())
+                            ig_top_dim_score = float(global_imp.max())
+                            ig_mean_attr = float(global_imp.mean())
+                        except Exception as e:
+                            print(f"Warning: IG plot at iter {ite} failed: {e}")
 
                     log_row = {
                         "iter": ite,
