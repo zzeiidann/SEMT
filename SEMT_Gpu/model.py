@@ -1753,15 +1753,18 @@ class SEMTGPU(nn.Module):
         tokenizer: "AutoTokenizer",
         max_length: int = 128,
     ) -> Tuple[torch.Tensor, tuple, dict]:
-        """Internal: tokenize → BERT → return (cls_emb, attentions, enc)."""
+        """Internal: tokenize → BERT → return (cls_emb, None, enc).
+        output_attentions dihapus karena tidak kompatibel dengan sdpa attention.
+        Occlusion method tidak butuh attention weights.
+        """
         dev = next(self.parameters()).device
         enc = tokenizer(
             text, return_tensors="pt",
             padding=True, truncation=True, max_length=max_length
         ).to(dev)
         with torch.no_grad():
-            out = bert(**enc, output_attentions=True)
-        return out.last_hidden_state[:, 0, :], out.attentions, enc
+            out = bert(**enc)
+        return out.last_hidden_state[:, 0, :], None, enc
 
     def _occlusion_scores(
         self,
@@ -1839,7 +1842,10 @@ class SEMTGPU(nn.Module):
         dev = next(self.parameters()).device
         print(f"  Loading BERT tokenizer & model: {bert_model_name}")
         tokenizer = AutoTokenizer.from_pretrained(bert_model_name)
-        bert = AutoModel.from_pretrained(bert_model_name).to(dev).eval()
+        bert = AutoModel.from_pretrained(
+            bert_model_name,
+            attn_implementation="eager",
+        ).to(dev).eval()
 
         # Group indices by cluster
         cluster_indices: Dict[int, List[int]] = defaultdict(list)
@@ -2157,7 +2163,10 @@ class SEMTGPU(nn.Module):
         """
         dev = next(self.parameters()).device
         tokenizer = AutoTokenizer.from_pretrained(bert_model_name)
-        bert = AutoModel.from_pretrained(bert_model_name).to(dev).eval()
+        bert = AutoModel.from_pretrained(
+            bert_model_name,
+            attn_implementation="eager",
+        ).to(dev).eval()
 
         tokens, scores, base_prob = self._occlusion_scores(
             text, bert, tokenizer, sentiment_class, max_length
