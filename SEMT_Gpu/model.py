@@ -4,7 +4,8 @@ import os
 import csv
 import glob
 import re
-from collections import Counter
+import warnings
+from collections import Counter, defaultdict
 from typing import Iterable, List, Dict, Tuple, Optional, Union
 from pathlib import Path
 
@@ -14,6 +15,9 @@ import torch
 import torch.nn as nn
 import torch.optim as optim
 from torch.utils.data import DataLoader, TensorDataset
+import matplotlib.gridspec as gridspec
+import matplotlib.patches as mpatches
+from matplotlib.colors import LinearSegmentedColormap
 
 from tqdm import tqdm
 from sklearn.cluster import KMeans
@@ -38,6 +42,13 @@ import seaborn as sns
 device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
 
 
+
+
+# ── Custom colormaps for token attribution ──────────────────────────────────
+_RWG = LinearSegmentedColormap.from_list(
+    "rwg", ["#d62728", "#f7f7f7", "#2ca02c"], N=256
+)
+warnings.filterwarnings("ignore", category=UserWarning)
 # --------------------------------------------------------------------------------------
 # Utils
 # --------------------------------------------------------------------------------------
@@ -878,12 +889,19 @@ class SEMTGPU(nn.Module):
         plot_interval: Optional[int] = None,
         plot_method: str = "tsne",
         compute_metrics: bool = True,
-        # ── 🆕 Integrated Gradients options ──────────────────────────
+        # ── Integrated Gradients options ──────────────────────────
         plot_integrated_gradients: bool = True,
         ig_target_class: int = 1,
         ig_n_steps: int = 50,
         ig_top_dims: int = 20,
         ig_max_samples: int = 512,
+        # ── 🆕 Token Attribution per Cluster ─────────────────────
+        plot_token_attribution: bool = False,
+        token_attr_bert_name: str = "indolem/indobert-base-uncased",
+        token_attr_sentiment_class: int = 1,
+        token_attr_top_k: int = 10,
+        token_attr_max_samples: int = 30,
+        token_attr_max_length: int = 128,
     ) -> Union[np.ndarray, Tuple[np.ndarray, np.ndarray, Dict[str, float]]]:
         """
         Joint training (DEC + Sentiment + Reconstruction).
@@ -1126,6 +1144,40 @@ class SEMTGPU(nn.Module):
                         except Exception as e:
                             print(f"Warning: IG plot at iter {ite} failed: {e}")
 
+                    # ── Token attribution per cluster (outside no_grad, needs BERT) ──
+                    if (plot_token_attribution and has_texts and ite > 0
+                            and (ite % plot_interval == 0)):
+                        try:
+                            print(f"  Computing token attribution per cluster (iter {ite})...")
+                            ta_scores = self.compute_token_attribution_per_cluster(
+                                texts=texts_list,
+                                cluster_assignments=y_pred,
+                                bert_model_name=token_attr_bert_name,
+                                sentiment_class=token_attr_sentiment_class,
+                                top_k=token_attr_top_k,
+                                max_length=token_attr_max_length,
+                                max_samples_per_cluster=token_attr_max_samples,
+                            )
+                            # Bar chart grid per cluster
+                            self.plot_token_attribution_per_cluster(
+                                ta_scores,
+                                sentiment_class=token_attr_sentiment_class,
+                                epoch=ite,
+                                save_dir=plot_dir,
+                                top_k=token_attr_top_k,
+                                show_plot=False,
+                            )
+                            # Heatmap (rows=cluster, cols=tokens)
+                            self.plot_token_attribution_heatmap(
+                                ta_scores,
+                                sentiment_class=token_attr_sentiment_class,
+                                epoch=ite,
+                                save_dir=plot_dir,
+                                show_plot=False,
+                            )
+                        except Exception as e:
+                            print(f"  Warning: token attribution at iter {ite} failed: {e}")
+
                     log_row = {
                         "iter": ite,
                         "acc_sentiment": round(acc_s, 5),
@@ -1300,6 +1352,47 @@ class SEMTGPU(nn.Module):
                             json_metrics[k] = v
                     json.dump(json_metrics, f, indent=2)
                 print(f"✓ Interpretability metrics saved to: {metrics_path}")
+
+            # 🆕 Final token attribution per cluster
+            if plot_token_attribution and has_texts:
+                try:
+                    print("\nComputing final token attribution per cluster...")
+                    ta_final = self.compute_token_attribution_per_cluster(
+                        texts=texts_list,
+                        cluster_assignments=y_pred_cluster,
+                        bert_model_name=token_attr_bert_name,
+                        sentiment_class=token_attr_sentiment_class,
+                        top_k=token_attr_top_k,
+                        max_length=token_attr_max_length,
+                        max_samples_per_cluster=token_attr_max_samples,
+                    )
+                    self.plot_token_attribution_per_cluster(
+                        ta_final,
+                        sentiment_class=token_attr_sentiment_class,
+                        epoch=ite,
+                        save_dir=os.path.join(save_dir, "token_attribution"),
+                        top_k=token_attr_top_k,
+                        show_plot=False,
+                    )
+                    self.plot_token_attribution_heatmap(
+                        ta_final,
+                        sentiment_class=token_attr_sentiment_class,
+                        epoch=ite,
+                        save_dir=os.path.join(save_dir, "token_attribution"),
+                        show_plot=False,
+                    )
+                    if 'interpretability' not in metrics:
+                        metrics['interpretability'] = {}
+                    metrics['interpretability']['token_attribution'] = {
+                        str(cid): {
+                            'top_tokens': list(scores.keys()),
+                            'scores': list(scores.values()),
+                        }
+                        for cid, scores in ta_final.items()
+                    }
+                    print("✓ Final token attribution complete.")
+                except Exception as e:
+                    print(f"Warning: final token attribution failed: {e}")
 
             if has_labels:
                 return y_pred_cluster, s_all.cpu().numpy(), metrics
@@ -1646,4 +1739,517 @@ class SEMTGPU(nn.Module):
         out = os.path.join(save_dir, f"cluster_evolution_grid{suffix}.png")
         plt.savefig(out, dpi=150, bbox_inches="tight", facecolor="white", edgecolor="none")
         print(f"✓ Evolution grid saved: {out}")
+        return fig
+
+
+    # =========================================================
+    # TOKEN ATTRIBUTION (per-cluster, paper-quality)
+    # =========================================================
+
+    def _bert_cls_embedding(
+        self,
+        text: str,
+        bert: "AutoModel",
+        tokenizer: "AutoTokenizer",
+        max_length: int = 128,
+    ) -> Tuple[torch.Tensor, tuple, dict]:
+        """Internal: tokenize → BERT → return (cls_emb, attentions, enc)."""
+        dev = next(self.parameters()).device
+        enc = tokenizer(
+            text, return_tensors="pt",
+            padding=True, truncation=True, max_length=max_length
+        ).to(dev)
+        with torch.no_grad():
+            out = bert(**enc, output_attentions=True)
+        return out.last_hidden_state[:, 0, :], out.attentions, enc
+
+    def _occlusion_scores(
+        self,
+        text: str,
+        bert: "AutoModel",
+        tokenizer: "AutoTokenizer",
+        sentiment_class: int = 1,
+        max_length: int = 128,
+    ) -> Tuple[List[str], np.ndarray, np.ndarray]:
+        """
+        Leave-one-out occlusion: mask satu token pakai [MASK],
+        ukur delta P(sentiment_class).
+
+        Returns: tokens, scores (n_tokens,), base_prob (2,)
+        """
+        dev = next(self.parameters()).device
+        cls_emb, _, enc = self._bert_cls_embedding(text, bert, tokenizer, max_length)
+
+        # baseline prob
+        self.eval()
+        with torch.no_grad():
+            _, s = self(cls_emb)
+        base_prob = s.squeeze(0).cpu().numpy()
+
+        tokens = tokenizer.convert_ids_to_tokens(enc["input_ids"][0].cpu().tolist())
+        input_ids = enc["input_ids"][0].cpu().tolist()
+        mask_id = tokenizer.mask_token_id
+        scores = np.zeros(len(input_ids))
+
+        for i, tok in enumerate(tokens):
+            if tok in ("[CLS]", "[SEP]", "<s>", "</s>", "[PAD]"):
+                continue
+            masked_ids = input_ids.copy()
+            masked_ids[i] = mask_id
+            inp = {k: enc[k].clone() for k in enc}
+            inp["input_ids"] = torch.tensor([masked_ids], device=dev)
+            with torch.no_grad():
+                out = bert(**inp)
+                cls_m = out.last_hidden_state[:, 0, :]
+                _, sm = self(cls_m)
+            masked_prob = sm.squeeze(0).cpu().numpy()
+            scores[i] = float(base_prob[sentiment_class] - masked_prob[sentiment_class])
+
+        return tokens, scores, base_prob
+
+    def compute_token_attribution_per_cluster(
+        self,
+        texts: List[str],
+        cluster_assignments: np.ndarray,
+        bert_model_name: str = "indolem/indobert-base-uncased",
+        sentiment_class: int = 1,
+        top_k: int = 10,
+        max_length: int = 128,
+        max_samples_per_cluster: int = 50,
+    ) -> Dict[int, Dict[str, float]]:
+        """
+        Hitung mean occlusion attribution per token, dikelompokkan per cluster.
+
+        Ini backbone dari semua visualisasi token attribution.
+        Hasilnya: {cluster_id: {token: mean_attribution_score}}
+
+        Parameters
+        ----------
+        texts                   : raw text, len == len(cluster_assignments)
+        cluster_assignments     : output dari predict_clusters() atau fit()
+        bert_model_name         : HuggingFace model name
+        sentiment_class         : 0=negative, 1=positive
+        top_k                   : simpan top-K token per cluster
+        max_samples_per_cluster : subsample per cluster agar ga lama
+
+        Returns
+        -------
+        Dict[cluster_id, Dict[token, mean_score]]
+        """
+        dev = next(self.parameters()).device
+        print(f"  Loading BERT tokenizer & model: {bert_model_name}")
+        tokenizer = AutoTokenizer.from_pretrained(bert_model_name)
+        bert = AutoModel.from_pretrained(bert_model_name).to(dev).eval()
+
+        # Group indices by cluster
+        cluster_indices: Dict[int, List[int]] = defaultdict(list)
+        for i, cid in enumerate(cluster_assignments):
+            cluster_indices[int(cid)].append(i)
+
+        cluster_token_scores: Dict[int, Dict[str, List[float]]] = defaultdict(
+            lambda: defaultdict(list)
+        )
+
+        self.eval()
+        total_clusters = len(cluster_indices)
+
+        for cid, indices in sorted(cluster_indices.items()):
+            # Subsample if too many
+            if len(indices) > max_samples_per_cluster:
+                indices = list(np.random.choice(indices, max_samples_per_cluster, replace=False))
+
+            print(f"  Cluster {cid} ({len(indices)} samples)...", end=" ", flush=True)
+
+            for idx in indices:
+                try:
+                    tokens, scores, _ = self._occlusion_scores(
+                        texts[idx], bert, tokenizer,
+                        sentiment_class=sentiment_class,
+                        max_length=max_length,
+                    )
+                    for tok, sc in zip(tokens, scores):
+                        if tok in ("[CLS]", "[SEP]", "<s>", "</s>", "[PAD]"):
+                            continue
+                        clean = tok.replace("##", "").replace("▁", "").strip()
+                        if len(clean) < 2:
+                            continue
+                        cluster_token_scores[cid][clean].append(sc)
+                except Exception:
+                    continue
+
+            print("✓")
+
+        # Aggregate: mean per token per cluster, keep top_k
+        result: Dict[int, Dict[str, float]] = {}
+        for cid, tok_dict in cluster_token_scores.items():
+            mean_scores = {
+                tok: float(np.mean(sc_list))
+                for tok, sc_list in tok_dict.items()
+                if len(sc_list) >= 2
+            }
+            # Sort by absolute value, keep top_k
+            top = sorted(mean_scores.items(), key=lambda x: abs(x[1]), reverse=True)[:top_k]
+            result[cid] = dict(top)
+
+        del bert  # free GPU memory
+        return result
+
+    def plot_token_attribution_per_cluster(
+        self,
+        cluster_token_scores: Dict[int, Dict[str, float]],
+        sentiment_class: int = 1,
+        epoch: int = 0,
+        save_dir: str = "./results/fnnjst",
+        figsize: Tuple[int, int] = (16, 10),
+        top_k: int = 10,
+        max_clusters_per_row: int = 4,
+        save_plot: bool = True,
+        show_plot: bool = False,
+    ) -> plt.Figure:
+        """
+        Publication-quality figure: grid of bar charts, satu panel per cluster.
+
+        Setiap panel menampilkan top token beserta attribution score-nya.
+        Warna hijau = mendukung sentiment_class, merah = melawan.
+
+        Parameters
+        ----------
+        cluster_token_scores : output dari compute_token_attribution_per_cluster()
+        epoch                : current training epoch (untuk filename & title)
+        max_clusters_per_row : jumlah kolom dalam grid
+        """
+        sent_label = {0: "Negative", 1: "Positive"}.get(sentiment_class, str(sentiment_class))
+        cluster_ids = sorted(cluster_token_scores.keys())
+        n_clusters = len(cluster_ids)
+
+        if n_clusters == 0:
+            print("No cluster token scores to plot.")
+            return None
+
+        ncols = min(max_clusters_per_row, n_clusters)
+        nrows = (n_clusters + ncols - 1) // ncols
+
+        fig, axes = plt.subplots(
+            nrows, ncols,
+            figsize=(figsize[0], figsize[1] * nrows / max(2, nrows)),
+            facecolor="white"
+        )
+        axes = np.array(axes).reshape(-1)
+
+        # Global vmax for consistent color scale
+        all_vals = [v for d in cluster_token_scores.values() for v in d.values()]
+        vmax = max(abs(v) for v in all_vals) if all_vals else 1.0
+
+        for i, cid in enumerate(cluster_ids):
+            ax = axes[i]
+            tok_dict = cluster_token_scores[cid]
+
+            if not tok_dict:
+                ax.text(0.5, 0.5, "No data", ha="center", va="center",
+                        transform=ax.transAxes, fontsize=9, color="#aaa")
+                ax.axis("off")
+                continue
+
+            # Sort by score value (not abs) for readability
+            items = sorted(tok_dict.items(), key=lambda x: x[1], reverse=True)[:top_k]
+            tokens_ = [t for t, _ in items]
+            scores_ = [s for _, s in items]
+
+            # Color: green if positive attribution, red if negative
+            colors = [
+                "#2ca02c" if s > 0 else "#d62728"
+                for s in scores_
+            ]
+            # Intensity by magnitude
+            colors = [
+                _RWG(0.5 + 0.5 * (s / vmax))
+                for s in scores_
+            ]
+
+            y_pos = np.arange(len(tokens_))
+            ax.barh(y_pos, scores_, color=colors, edgecolor="white",
+                    linewidth=0.3, height=0.7)
+            ax.set_yticks(y_pos)
+            ax.set_yticklabels(tokens_, fontsize=8, fontfamily="monospace")
+            ax.invert_yaxis()
+            ax.axvline(0, color="#888", linewidth=0.7, linestyle="--")
+            ax.spines[["top", "right"]].set_visible(False)
+            ax.spines[["left", "bottom"]].set_color("#ddd")
+            ax.tick_params(colors="#555", labelsize=8)
+            ax.set_xlabel("Attribution", fontsize=7, color="#555")
+
+            topic = self.topic_mapping.get(cid, f"C{cid}")
+            n_txt = sum(1 for v in tok_dict.values())
+            ax.set_title(f"{topic}  (n≈{n_txt})", fontsize=9,
+                         fontweight="bold", color="#222", pad=5)
+
+            # Annotate bar values
+            for bar, val in zip(ax.patches, scores_):
+                ax.text(
+                    val + vmax * 0.01 if val >= 0 else val - vmax * 0.01,
+                    bar.get_y() + bar.get_height() / 2,
+                    f"{val:.3f}", va="center",
+                    ha="left" if val >= 0 else "right",
+                    fontsize=6, color="#444"
+                )
+
+        # Hide unused axes
+        for j in range(i + 1, len(axes)):
+            axes[j].axis("off")
+
+        # Legend
+        pos_p = mpatches.Patch(color="#2ca02c", label=f"Supports {sent_label}")
+        neg_p = mpatches.Patch(color="#d62728", label=f"Opposes {sent_label}")
+        fig.legend(
+            handles=[pos_p, neg_p],
+            loc="upper right", fontsize=9,
+            framealpha=0.9, ncol=2,
+        )
+
+        fig.suptitle(
+            f"Token Attribution per Cluster  —  Epoch {epoch}\n"
+            f"(Method: Occlusion/LOO  |  Target: {sent_label}  |  "
+            f"{n_clusters} clusters)",
+            fontsize=12, fontweight="bold", y=1.01
+        )
+
+        plt.tight_layout()
+
+        if save_plot:
+            os.makedirs(save_dir, exist_ok=True)
+            out = os.path.join(save_dir, f"token_attr_per_cluster_epoch_{epoch}.png")
+            plt.savefig(out, dpi=300, bbox_inches="tight",
+                        facecolor="white", edgecolor="none")
+            print(f"  ✓ Token attr plot saved: {out}")
+
+        if show_plot:
+            plt.show()
+        else:
+            plt.close()
+
+        return fig
+
+    def plot_token_attribution_heatmap(
+        self,
+        cluster_token_scores: Dict[int, Dict[str, float]],
+        sentiment_class: int = 1,
+        epoch: int = 0,
+        save_dir: str = "./results/fnnjst",
+        top_k_global: int = 20,
+        figsize: Tuple[int, int] = (16, 8),
+        save_plot: bool = True,
+        show_plot: bool = False,
+    ) -> plt.Figure:
+        """
+        Heatmap rows=cluster, cols=top tokens (global union).
+        Figure ini sangat cocok untuk paper karena menunjukkan
+        perbedaan karakteristik token antar cluster dalam satu panel.
+
+        Parameters
+        ----------
+        top_k_global : ambil top-K token berdasarkan mean attribution global
+        """
+        sent_label = {0: "Negative", 1: "Positive"}.get(sentiment_class, str(sentiment_class))
+
+        # Global token importance (mean across all clusters)
+        global_scores: Dict[str, List[float]] = defaultdict(list)
+        for cid, tok_dict in cluster_token_scores.items():
+            for tok, sc in tok_dict.items():
+                global_scores[tok].append(sc)
+
+        global_mean = {
+            tok: float(np.mean(scs))
+            for tok, scs in global_scores.items()
+        }
+        top_tokens = [
+            t for t, _ in sorted(
+                global_mean.items(), key=lambda x: abs(x[1]), reverse=True
+            )[:top_k_global]
+        ]
+
+        cluster_ids = sorted(cluster_token_scores.keys())
+        matrix = np.zeros((len(cluster_ids), len(top_tokens)))
+
+        for i, cid in enumerate(cluster_ids):
+            for j, tok in enumerate(top_tokens):
+                matrix[i, j] = cluster_token_scores[cid].get(tok, 0.0)
+
+        vmax = np.abs(matrix).max() if matrix.any() else 1.0
+
+        fig, ax = plt.subplots(figsize=figsize, facecolor="white")
+
+        im = ax.imshow(
+            matrix, cmap=_RWG, vmin=-vmax, vmax=vmax,
+            aspect="auto", interpolation="nearest"
+        )
+
+        ax.set_xticks(range(len(top_tokens)))
+        ax.set_xticklabels(top_tokens, rotation=45, ha="right",
+                           fontsize=9, fontfamily="monospace")
+
+        ylabels = [
+            f"{self.topic_mapping.get(cid, f'C{cid}')}"
+            for cid in cluster_ids
+        ]
+        ax.set_yticks(range(len(cluster_ids)))
+        ax.set_yticklabels(ylabels, fontsize=9)
+
+        # Cell annotations
+        if len(top_tokens) <= 25 and len(cluster_ids) <= 25:
+            for i in range(len(cluster_ids)):
+                for j in range(len(top_tokens)):
+                    val = matrix[i, j]
+                    if val == 0.0:
+                        continue
+                    txt_color = "white" if abs(val) > vmax * 0.5 else "#333"
+                    ax.text(j, i, f"{val:.3f}", ha="center", va="center",
+                            fontsize=7, color=txt_color, fontweight="bold")
+
+        cbar = plt.colorbar(im, ax=ax, fraction=0.025, pad=0.02)
+        cbar.set_label(f"Mean Attribution → {sent_label}", fontsize=10)
+        cbar.ax.tick_params(labelsize=8)
+
+        ax.set_title(
+            f"Per-Cluster Token Attribution Heatmap  —  Epoch {epoch}\n"
+            f"(Green=supports {sent_label}, Red=opposes | "
+            f"top-{top_k_global} global tokens | method=occlusion)",
+            fontsize=11, fontweight="bold", pad=12
+        )
+        ax.set_xlabel("Token / Kata", fontsize=10)
+        ax.set_ylabel("Cluster / Topik", fontsize=10)
+
+        # Grid
+        ax.set_xticks(np.arange(-0.5, len(top_tokens), 1), minor=True)
+        ax.set_yticks(np.arange(-0.5, len(cluster_ids), 1), minor=True)
+        ax.grid(which="minor", color="white", linewidth=1.2)
+        ax.tick_params(which="minor", length=0)
+
+        plt.tight_layout()
+
+        if save_plot:
+            os.makedirs(save_dir, exist_ok=True)
+            out = os.path.join(save_dir, f"token_attr_heatmap_epoch_{epoch}.png")
+            plt.savefig(out, dpi=300, bbox_inches="tight",
+                        facecolor="white", edgecolor="none")
+            print(f"  ✓ Token attr heatmap saved: {out}")
+
+        if show_plot:
+            plt.show()
+        else:
+            plt.close()
+
+        return fig
+
+    def explain_single_text(
+        self,
+        text: str,
+        bert_model_name: str = "indolem/indobert-base-uncased",
+        sentiment_class: int = 1,
+        max_length: int = 128,
+        figsize: Tuple[int, int] = (12, 4),
+        save_path: Optional[str] = None,
+        show: bool = False,
+    ) -> plt.Figure:
+        """
+        Visualisasi token attribution untuk SATU kalimat.
+        Dua panel: bar chart + highlighted text.
+        Cocok untuk lampiran / case study di paper.
+        """
+        dev = next(self.parameters()).device
+        tokenizer = AutoTokenizer.from_pretrained(bert_model_name)
+        bert = AutoModel.from_pretrained(bert_model_name).to(dev).eval()
+
+        tokens, scores, base_prob = self._occlusion_scores(
+            text, bert, tokenizer, sentiment_class, max_length
+        )
+        del bert
+
+        pred_class = int(base_prob.argmax())
+        pred_label = {0: "Negative", 1: "Positive"}.get(pred_class, str(pred_class))
+        pred_conf = float(base_prob.max())
+        sent_label = {0: "Negative", 1: "Positive"}.get(sentiment_class, str(sentiment_class))
+
+        # Filter special tokens
+        disp_toks, disp_scores = [], []
+        for tok, sc in zip(tokens, scores):
+            if tok in ("[CLS]", "[SEP]", "<s>", "</s>", "[PAD]"):
+                continue
+            clean = tok.replace("##", "").replace("▁", "")
+            disp_toks.append(clean)
+            disp_scores.append(sc)
+        disp_toks = np.array(disp_toks)
+        disp_scores = np.array(disp_scores)
+
+        vmax = max(abs(disp_scores).max(), 1e-6)
+
+        fig = plt.figure(figsize=figsize, facecolor="white")
+        gs = gridspec.GridSpec(2, 1, figure=fig, height_ratios=[3, 1], hspace=0.45)
+        ax_bar = fig.add_subplot(gs[0])
+        ax_txt = fig.add_subplot(gs[1])
+
+        # Panel A: bar chart
+        bar_colors = [_RWG(0.5 + 0.5 * (s / vmax)) for s in disp_scores]
+        y_pos = np.arange(len(disp_toks))
+        ax_bar.barh(y_pos, disp_scores, color=bar_colors,
+                    edgecolor="white", linewidth=0.4, height=0.7)
+        ax_bar.set_yticks(y_pos)
+        ax_bar.set_yticklabels(disp_toks, fontsize=9, fontfamily="monospace")
+        ax_bar.axvline(0, color="#555", linewidth=0.8, linestyle="--")
+        ax_bar.invert_yaxis()
+        ax_bar.spines[["top", "right"]].set_visible(False)
+        ax_bar.set_xlabel("Attribution Score (Occlusion)", fontsize=9)
+        ax_bar.set_title(
+            f"Token Attribution → {sent_label}  |  Pred: {pred_label} ({pred_conf:.1%})",
+            fontsize=10, fontweight="bold"
+        )
+        badge_c = "#2ca02c" if pred_class == 1 else "#d62728"
+        ax_bar.text(1.01, 0.5, f"{pred_label}\n{pred_conf:.1%}",
+                    transform=ax_bar.transAxes, fontsize=8,
+                    va="center", ha="left", color="white", fontweight="bold",
+                    bbox=dict(boxstyle="round,pad=0.4", facecolor=badge_c, alpha=0.9))
+
+        # Panel B: highlighted text
+        ax_txt.set_xlim(0, 1)
+        ax_txt.set_ylim(0, 1)
+        ax_txt.axis("off")
+
+        x, y = 0.01, 0.75
+        char_w = 0.013
+        for tok, sc in zip(disp_toks, disp_scores):
+            w = len(tok) * char_w + 0.015
+            if x + w > 0.98:
+                x, y = 0.01, y - 0.45
+            if y < 0.05:
+                break
+            intensity = abs(sc) / vmax
+            if sc > 0:
+                bg = plt.cm.Greens(0.2 + 0.6 * intensity)
+                fg = "#1a5c1a" if intensity > 0.5 else "#333"
+            else:
+                bg = plt.cm.Reds(0.2 + 0.6 * intensity)
+                fg = "#7a0c0c" if intensity > 0.5 else "#333"
+            ax_txt.text(
+                x + w / 2, y, tok, ha="center", va="center",
+                fontsize=8.5, color=fg, fontfamily="monospace",
+                bbox=dict(boxstyle="round,pad=0.25", facecolor=bg,
+                          edgecolor="none", alpha=0.85)
+            )
+            x += w + 0.005
+        ax_txt.set_title("Token Highlight", fontsize=9, color="#555", pad=4)
+
+        fig.suptitle(
+            f'"{text[:90]}{"..." if len(text) > 90 else ""}"',
+            fontsize=8, style="italic", color="#666", y=1.01
+        )
+        plt.tight_layout()
+
+        if save_path:
+            os.makedirs(os.path.dirname(save_path) if os.path.dirname(save_path) else ".", exist_ok=True)
+            fig.savefig(save_path, dpi=300, bbox_inches="tight", facecolor="white")
+            print(f"✓ Saved: {save_path}")
+        if show:
+            plt.show()
+        else:
+            plt.close()
+
         return fig
