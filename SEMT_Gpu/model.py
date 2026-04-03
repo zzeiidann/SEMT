@@ -1,37 +1,3 @@
-"""
-SEMT-GPU: Feedforward Neural Network (PyTorch) for
-Joint Sentiment Analysis and Topic Clustering
-
-- Autoencoder for representation learning
-- Student-t Clustering layer (DEC-style) for soft assignments
-- Sentiment head (binary) with class-weighted CE
-- Robust training loop (fit) dengan target distribution
-- Comprehensive interpretability metrics with paper references:
-
-DIMENSIONALITY REDUCTION & VISUALIZATION:
-  * PCA: Jolliffe (2002). "Principal Component Analysis"
-  * t-SNE: van der Maaten & Hinton (2008). "Visualizing Data using t-SNE"
-  * UMAP: McInnes et al. (2018). "UMAP: Uniform Manifold Approximation and Projection"
-
-CLUSTERING EVALUATION (Supervised):
-  * ACC: Hungarian algorithm for optimal matching
-  * NMI: Strehl & Ghosh (2002). "Cluster ensembles"
-  * ARI: Hubert & Arabie (1985). "Comparing partitions"
-  * Purity: Zhao & Karypis (2001). "Criterion functions for document clustering"
-  * V-measure: Rosenberg & Hirschberg (2007). "V-Measure: A conditional entropy-based external cluster evaluation measure"
-
-CLUSTERING EVALUATION (Unsupervised):
-  * Silhouette: Rousseeuw (1987). "Silhouettes: a graphical aid to the interpretation and validation of cluster analysis"
-
-TOPIC INTERPRETABILITY:
-  * TF-IDF Keywords: Ramos (2003). "Using TF-IDF to determine word relevance in document queries"
-  * Topic Coherence (NPMI): Mimno et al. (2011). "Optimizing Semantic Coherence in Topic Models"
-                           Röder et al. (2015). "Exploring the Space of Topic Coherence Measures"
-  * Topic Diversity: Dieng et al. (2020). "Topic Modeling in Embedding Spaces"
-                    Bianchi et al. (2021). "Cross-lingual Contextualized Topic Models with Zero-shot Learning"
-  * Coverage: Entropy-based cluster balance metric
-"""
-
 from __future__ import annotations
 
 import os
@@ -53,7 +19,7 @@ from tqdm import tqdm
 from sklearn.cluster import KMeans
 from sklearn.metrics import (
     precision_score, recall_score, f1_score, silhouette_score,
-    normalized_mutual_info_score, adjusted_rand_score, 
+    normalized_mutual_info_score, adjusted_rand_score,
     homogeneity_score, completeness_score, v_measure_score
 )
 from sklearn.decomposition import PCA
@@ -76,31 +42,20 @@ device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
 # Utils
 # --------------------------------------------------------------------------------------
 def cluster_acc(y_true: np.ndarray, y_pred: np.ndarray) -> float:
-    """
-    Clustering accuracy via Hungarian algorithm (for evaluation use only).
-
-    Args:
-        y_true: shape (n_samples,)
-        y_pred: shape (n_samples,)
-    """
     y_true = y_true.astype(np.int64)
     assert y_pred.size == y_true.size
     D = max(y_pred.max(), y_true.max()) + 1
     w = np.zeros((D, D), dtype=np.int64)
     for i in range(y_pred.size):
         w[y_pred[i], y_true[i]] += 1
-    # linear_assignment returns (row_ind, col_ind) tuple
     row_ind, col_ind = linear_assignment(w.max() - w)
     return float(sum(w[i, j] for i, j in zip(row_ind, col_ind)) / y_pred.size)
+
 
 # --------------------------------------------------------------------------------------
 # Model Components
 # --------------------------------------------------------------------------------------
 class ClusteringLayer(nn.Module):
-    """
-    Student's t-distribution soft assignment layer (DEC).
-    """
-
     def __init__(self, n_clusters: int, input_dim: int, alpha: float = 1.0) -> None:
         super().__init__()
         self.n_clusters = n_clusters
@@ -112,7 +67,6 @@ class ClusteringLayer(nn.Module):
         nn.init.xavier_uniform_(self.clusters)
 
     def forward(self, x: torch.Tensor) -> torch.Tensor:
-        # q_ij ∝ (1 + ||x - μ_j||^2 / α)^(-(α+1)/2)
         dist = torch.sum((x.unsqueeze(1) - self.clusters.unsqueeze(0)) ** 2, dim=2)
         q = 1.0 / (1.0 + dist / self.alpha)
         q = q ** ((self.alpha + 1.0) / 2.0)
@@ -121,11 +75,6 @@ class ClusteringLayer(nn.Module):
 
 
 class Autoencoder(nn.Module):
-    """
-    Symmetric fully-connected autoencoder: dims = [input_dim, h1, ..., z]
-    - Encoder: activations di semua layer kecuali bottleneck
-    - Decoder: mirror; activations di semua layer kecuali layer output
-    """
     def __init__(self, dims, act='relu'):
         super().__init__()
         assert len(dims) >= 2, "dims minimal [input_dim, latent]"
@@ -134,18 +83,16 @@ class Autoencoder(nn.Module):
         act_map = {'relu': nn.ReLU(), 'sigmoid': nn.Sigmoid(), 'tanh': nn.Tanh()}
         self.activation = act_map.get(act, nn.ReLU())
 
-        # ---- Encoder ----
         enc = []
-        for i in range(len(dims)-2):                 # semua hidden dgn aktivasi
+        for i in range(len(dims)-2):
             enc += [nn.Linear(dims[i], dims[i+1]), self.activation]
-        enc += [nn.Linear(dims[-2], dims[-1])]       # bottleneck (tanpa aktivasi)
+        enc += [nn.Linear(dims[-2], dims[-1])]
         self.encoder = nn.Sequential(*enc)
 
-        # ---- Decoder (benar-benar simetris, tanpa duplikasi) ----
         dec = []
-        for j in range(len(dims)-1, 0, -1):          # z->h_{L-1}->...->in
+        for j in range(len(dims)-1, 0, -1):
             dec += [nn.Linear(dims[j], dims[j-1])]
-            if j != 1:                                # semua kecuali layer output
+            if j != 1:
                 dec += [self.activation]
         self.decoder = nn.Sequential(*dec)
 
@@ -175,10 +122,10 @@ class Autoencoder(nn.Module):
 class SEMTGPU(nn.Module):
     """
     Joint Sentiment + Topic Clustering (DEC-style) with Autoencoder features.
-    
+
     Loss weights:
         alpha: reconstruction loss weight
-        gamma: clustering loss weight  
+        gamma: clustering loss weight
         eta: sentiment loss weight
     """
 
@@ -188,13 +135,11 @@ class SEMTGPU(nn.Module):
         assert len(dims) >= 2, "dims must be [input_dim, ..., latent_dim]"
         self.dims = dims
         self.n_clusters = int(n_clusters)
-        self.alpha_clustering = float(alpha_clustering)  # parameter untuk clustering layer (student-t)
+        self.alpha_clustering = float(alpha_clustering)
 
-        # Core
         self.autoencoder = Autoencoder(dims)
         self.clustering = ClusteringLayer(n_clusters=n_clusters, input_dim=dims[-1], alpha=alpha_clustering)
 
-        # Sentiment head (binary)
         self.sentiment = nn.Sequential(
             nn.Linear(dims[-1], 256),
             nn.BatchNorm1d(256),
@@ -207,16 +152,12 @@ class SEMTGPU(nn.Module):
             nn.Linear(32, 2),
         )
 
-        # Metadata
         self.class_labels: Dict[int, str] = {0: "negative", 1: "positive"}
         self.topic_mapping: Dict[int, str] = {}
         self.stop_words: set[str] = set()
 
         self._init_head()
 
-    # -------------------------
-    # Basics
-    # -------------------------
     def _init_head(self) -> None:
         for m in self.sentiment.modules():
             if isinstance(m, nn.Linear):
@@ -226,8 +167,8 @@ class SEMTGPU(nn.Module):
 
     def forward(self, x: torch.Tensor) -> Tuple[torch.Tensor, torch.Tensor]:
         z = self.autoencoder.encode(x)
-        q = self.clustering(z)                         # soft cluster probs
-        s = torch.softmax(self.sentiment(z), dim=1)    # sentiment probs
+        q = self.clustering(z)
+        s = torch.softmax(self.sentiment(z), dim=1)
         return q, s
 
     def extract_feature(self, x: Union[np.ndarray, torch.Tensor]) -> torch.Tensor:
@@ -237,9 +178,6 @@ class SEMTGPU(nn.Module):
             z = self.autoencoder.encode(xt)
         return z
 
-    # -------------------------
-    # Weights I/O
-    # -------------------------
     def load_weights(self, path: str) -> None:
         loc = {"cuda:0": "cpu"} if not torch.cuda.is_available() else None
         state = torch.load(path, map_location=loc)
@@ -253,10 +191,6 @@ class SEMTGPU(nn.Module):
         os.makedirs(os.path.dirname(path), exist_ok=True)
         torch.save({"model_state_dict": self.state_dict()}, path)
 
-    # -------------------------
-    # Autoencoder pretrain
-    # -------------------------
-
     def pretrain_autoencoder(
         self,
         dataset: Iterable,
@@ -266,21 +200,14 @@ class SEMTGPU(nn.Module):
         save_dir: str = "./results/ae",
         weights_name: str = "pretrained_ae.weights.pth",
     ) -> str:
-        """
-        Pretrain autoencoder (MSE reconstruction) dan simpan bobot AE saja.
-        Aman kalau save_dir kosong/None (fallback ke './results/ae').
-        Returns: path file bobot yang tersimpan (str).
-        """
         print("=" * 60)
         print("Pretraining Autoencoder")
         print("=" * 60)
 
-        # --- siapkan folder simpan ---
         save_path = Path(save_dir or "./results/ae")
         save_path.mkdir(parents=True, exist_ok=True)
         weights_path = save_path / weights_name
 
-        # --- kumpulkan embeddings ---
         embs: List[torch.Tensor] = []
         for i in range(len(dataset)):
             item = dataset[i]
@@ -291,22 +218,18 @@ class SEMTGPU(nn.Module):
                 emb = emb.detach()
             embs.append(emb.cpu())
 
-        X = torch.stack(embs)             # (N, d)
+        X = torch.stack(embs)
         n, d = X.shape
 
-        # --- sanity check dimensi ---
         if d != self.dims[0]:
             raise ValueError(
-                f"Input dim mismatch: embeddings dim={d}, tapi dims[0]={self.dims[0]}. "
-                f"Bangun model dengan dims=[{d}, ...] terlebih dulu."
+                f"Input dim mismatch: embeddings dim={d}, tapi dims[0]={self.dims[0]}."
             )
 
-        # --- data loader ---
         dev = next(self.parameters()).device
         X = X.to(dev)
         loader = DataLoader(TensorDataset(X), batch_size=batch_size, shuffle=True)
 
-        # --- training ---
         self.autoencoder.to(dev).train()
         opt = optim.Adam(self.autoencoder.parameters(), lr=lr)
         crit = nn.MSELoss()
@@ -323,7 +246,6 @@ class SEMTGPU(nn.Module):
                     total += float(loss.item())
                     pbar.set_postfix({"mse": total / (pbar.n + 1)})
 
-        # --- simpan hanya bobot AE (bukan seluruh model) ---
         torch.save(
             {"autoencoder_state_dict": self.autoencoder.state_dict(), "dims": self.dims},
             str(weights_path),
@@ -331,34 +253,23 @@ class SEMTGPU(nn.Module):
         print(f"✓ Autoencoder pretraining complete. Saved to: {weights_path}")
         return str(weights_path)
 
-
-    # -------------------------
-    # DEC target distribution
-    # -------------------------
     @staticmethod
     def target_distribution(q: torch.Tensor) -> torch.Tensor:
         weight = (q ** 2) / torch.clamp(torch.sum(q, dim=0), min=1e-12)
         p = (weight.t() / torch.clamp(torch.sum(weight, dim=1), min=1e-12)).t()
         return p
 
-    # -------------------------
-    # Class weights (for CE)
-    # -------------------------
     def compute_class_weights(self, y: Union[np.ndarray, torch.Tensor]) -> Dict[int, float]:
         if isinstance(y, torch.Tensor):
             y = y.detach().cpu().numpy()
         if y.ndim == 2 and y.shape[1] > 1:
             y = y.argmax(axis=1)
-
         cls, cnt = np.unique(y, return_counts=True)
         total = len(y)
         k = len(cls)
         weights: Dict[int, float] = {int(c): total / (k * int(n)) for c, n in zip(cls, cnt)}
         return weights
 
-    # -------------------------
-    # Predictions
-    # -------------------------
     def predict_clusters(self, x: Union[np.ndarray, torch.Tensor]) -> np.ndarray:
         self.eval()
         with torch.no_grad():
@@ -378,13 +289,9 @@ class SEMTGPU(nn.Module):
         inputs: Union[str, List[str], np.ndarray, torch.Tensor],
         bert_model: Optional[Union[str, AutoModel]] = None,
     ) -> List[Dict[str, Union[str, int]]]:
-        """
-        Predict clusters & sentiment. If inputs are texts, encodes with BERT [CLS].
-        """
         self.eval()
         dev = next(self.parameters()).device
 
-        # Text path
         if isinstance(inputs, str) or (isinstance(inputs, list) and inputs and isinstance(inputs[0], str)):
             texts = [inputs] if isinstance(inputs, str) else inputs
             model_name = bert_model if isinstance(bert_model, str) else "indolem/indobert-base-uncased"
@@ -396,7 +303,7 @@ class SEMTGPU(nn.Module):
                 else:
                     bert = AutoModel.from_pretrained(model_name).to(dev)
                 out = bert(**toks)
-            X = out.last_hidden_state[:, 0, :]  # [CLS]
+            X = out.last_hidden_state[:, 0, :]
         else:
             X = torch.as_tensor(inputs, dtype=torch.float32, device=dev)
 
@@ -414,9 +321,9 @@ class SEMTGPU(nn.Module):
         return results
 
     # -------------------------
-    # 🆕 INTERPRETABILITY METRICS (with Paper References)
+    # INTERPRETABILITY METRICS
     # -------------------------
-    
+
     def extract_tfidf_keywords(
         self,
         texts: List[str],
@@ -424,101 +331,64 @@ class SEMTGPU(nn.Module):
         top_n: int = 10,
         max_features: int = 5000,
     ) -> Dict[int, List[Tuple[str, float]]]:
-        """
-        Extract cluster keywords using TF-IDF.
-        
-        Reference: 
-        - Ramos, J. (2003). "Using TF-IDF to determine word relevance in document queries"
-        - Blei et al. (2003). "Latent Dirichlet Allocation" (comparison baseline)
-        
-        Args:
-            texts: List of documents
-            cluster_assignments: Cluster labels for each document
-            top_n: Number of top keywords per cluster
-            max_features: Max vocabulary size for TF-IDF
-        
-        Returns:
-            Dict mapping cluster_id to list of (keyword, tfidf_score) tuples
-        """
-        # Group texts by cluster
         clusters: Dict[int, List[str]] = {}
         for i, cid in enumerate(cluster_assignments):
             clusters.setdefault(int(cid), []).append(texts[i])
-        
+
         cluster_keywords = {}
-        
+
         for cid, cluster_texts in clusters.items():
             if not cluster_texts:
                 cluster_keywords[cid] = []
                 continue
-            
-            # Combine all texts in cluster into one document
-            cluster_doc = " ".join(cluster_texts)
-            
-            # TF-IDF on cluster vs all other clusters
+
             all_cluster_docs = [" ".join(txts) for txts in clusters.values()]
-            
+
             vectorizer = TfidfVectorizer(
                 max_features=max_features,
                 stop_words=list(self.stop_words) if self.stop_words else None,
                 min_df=1,
-                ngram_range=(1, 2),  # unigrams and bigrams
+                ngram_range=(1, 2),
             )
-            
+
             try:
                 tfidf_matrix = vectorizer.fit_transform(all_cluster_docs)
                 feature_names = vectorizer.get_feature_names_out()
-                
-                # Get TF-IDF scores for this cluster
+
                 cluster_idx = list(clusters.keys()).index(cid)
                 scores = tfidf_matrix[cluster_idx].toarray()[0]
-                
-                # Get top keywords
+
                 top_indices = scores.argsort()[-top_n:][::-1]
                 keywords = [(feature_names[i], float(scores[i])) for i in top_indices]
                 cluster_keywords[cid] = keywords
-                
+
             except Exception as e:
                 print(f"Warning: TF-IDF failed for cluster {cid}: {e}")
-                # Fallback to simple word count
+                cluster_doc = " ".join(cluster_texts)
                 words = cluster_doc.lower().split()
                 words = [w for w in words if w not in self.stop_words and len(w) > 2]
                 word_counts = Counter(words)
                 cluster_keywords[cid] = [(w, float(c)) for w, c in word_counts.most_common(top_n)]
-        
+
         return cluster_keywords
-    
+
     def compute_clustering_metrics(
         self,
         y_true: np.ndarray,
         y_pred: np.ndarray,
     ) -> Dict[str, float]:
-        """
-        Compute comprehensive clustering evaluation metrics.
-        
-        References:
-        - NMI: Strehl & Ghosh (2002). "Cluster ensembles"
-        - ARI: Hubert & Arabie (1985). "Comparing partitions"
-        - V-measure: Rosenberg & Hirschberg (2007). "V-Measure: A conditional entropy-based external cluster evaluation measure"
-        - Topic Coverage: Entropy-based cluster balance metric
-        
-        Returns:
-            Dict with metrics: ACC, NMI, ARI, Homogeneity, Completeness, V-measure, Topic_Coverage
-        """
         if len(np.unique(y_true)) < 2 or len(np.unique(y_pred)) < 2:
             return {
                 'ACC': 0.0, 'NMI': 0.0, 'ARI': 0.0,
                 'Homogeneity': 0.0, 'Completeness': 0.0, 'V-measure': 0.0,
                 'Topic_Coverage': 0.0,
             }
-        
-        # Calculate topic coverage (cluster entropy balance)
+
         unique_clusters, cluster_counts = np.unique(y_pred, return_counts=True)
         cluster_probs = cluster_counts / len(y_pred)
-        # Use negative entropy to get coverage score (0-1)
         from scipy.stats import entropy
         topic_coverage = 1.0 - (entropy(cluster_probs) / np.log(len(unique_clusters))) if len(unique_clusters) > 1 else 0.0
-        
+
         return {
             'ACC': cluster_acc(y_true, y_pred),
             'NMI': float(normalized_mutual_info_score(y_true, y_pred)),
@@ -528,75 +398,45 @@ class SEMTGPU(nn.Module):
             'V-measure': float(v_measure_score(y_true, y_pred)),
             'Topic_Coverage': float(topic_coverage),
         }
-    
+
     def compute_variance_explained(
-        self, 
+        self,
         embeddings: Union[np.ndarray, torch.Tensor],
         n_components: int = 2,
     ) -> Dict[str, float]:
-        """
-        Compute variance explained by PCA for dimensionality reduction methods.
-        Returns cumulative variance explained by top n_components.
-        
-        Reference: Jolliffe & Cadima (2016). "Principal component analysis: a review and recent developments"
-        """
         if isinstance(embeddings, torch.Tensor):
             emb = embeddings.detach().cpu().numpy()
         else:
             emb = embeddings
-        
+
         pca = PCA(n_components=min(n_components, emb.shape[0], emb.shape[1]))
         pca.fit(emb)
-        
+
         return {
             'variance_explained': float(pca.explained_variance_ratio_[:n_components].sum()),
             'component_variances': pca.explained_variance_ratio_[:n_components].tolist(),
         }
-    
+
     def select_best_visualization_method(
         self,
         embeddings: Union[np.ndarray, torch.Tensor],
         methods: List[str] = ['pca', 'tsne', 'umap'],
         variance_threshold: float = 0.7,
     ) -> Tuple[str, Dict[str, float]]:
-        """
-        Automatically select best visualization method based on variance analysis.
-        
-        References:
-        - PCA: Jolliffe (2002). "Principal Component Analysis"
-        - t-SNE: van der Maaten & Hinton (2008). "Visualizing Data using t-SNE"
-        - UMAP: McInnes et al. (2018). "UMAP: Uniform Manifold Approximation and Projection"
-        
-        Args:
-            embeddings: High-dimensional embeddings
-            methods: List of methods to consider ['pca', 'tsne', 'umap']
-            variance_threshold: If PCA explains >= this variance, use PCA (faster)
-        
-        Returns:
-            (best_method, metrics_dict)
-        """
         if isinstance(embeddings, torch.Tensor):
             emb = embeddings.detach().cpu().numpy()
         else:
             emb = embeddings
-        
+
         n = emb.shape[0]
-        
-        # Check PCA variance first
         variance_info = self.compute_variance_explained(emb, n_components=2)
         var_explained = variance_info['variance_explained']
-        
-        metrics = {
-            'pca_variance_2d': var_explained,
-            'n_samples': n,
-        }
-        
-        # If PCA explains enough variance, use it (faster & interpretable)
+        metrics = {'pca_variance_2d': var_explained, 'n_samples': n}
+
         if var_explained >= variance_threshold:
             print(f"✓ PCA explains {var_explained:.2%} variance → using PCA for visualization")
             return 'pca', metrics
-        
-        # Otherwise prefer t-SNE for medium datasets, UMAP for large
+
         if 'umap' in methods and n > 1000:
             print(f"✓ Large dataset (n={n}) with PCA variance {var_explained:.2%} → using UMAP")
             return 'umap', metrics
@@ -606,119 +446,80 @@ class SEMTGPU(nn.Module):
         else:
             print(f"✓ Fallback to PCA (variance: {var_explained:.2%})")
             return 'pca', metrics
-    
+
     def compute_silhouette_score(
         self,
         embeddings: Union[np.ndarray, torch.Tensor],
         cluster_assignments: np.ndarray,
     ) -> float:
-        """
-        Compute silhouette score for cluster quality assessment.
-        
-        Reference: Rousseeuw (1987). "Silhouettes: a graphical aid to the interpretation and validation of cluster analysis"
-        
-        Score ranges from -1 to 1, higher is better.
-        """
         if isinstance(embeddings, torch.Tensor):
             emb = embeddings.detach().cpu().numpy()
         else:
             emb = embeddings
-        
+
         if len(np.unique(cluster_assignments)) < 2:
             return 0.0
-        
+
         try:
             score = silhouette_score(emb, cluster_assignments)
             return float(score)
         except Exception as e:
             print(f"Warning: silhouette score computation failed: {e}")
             return 0.0
-    
+
     def compute_topic_coherence(
         self,
         texts: List[str],
         cluster_assignments: np.ndarray,
         top_n: int = 10,
     ) -> Dict[int, float]:
-        """
-        Compute topic coherence for each cluster using PMI-based coherence.
-        
-        Reference: 
-        - Mimno et al. (2011). "Optimizing Semantic Coherence in Topic Models"
-        - Röder et al. (2015). "Exploring the Space of Topic Coherence Measures"
-        
-        Higher values indicate more coherent topics.
-        
-        Returns:
-            Dict mapping cluster_id to coherence score
-        """
         from itertools import combinations
-        
-        # Group texts by cluster
+
         clusters: Dict[int, List[str]] = {}
         for i, cid in enumerate(cluster_assignments):
             clusters.setdefault(int(cid), []).append(texts[i])
-        
+
         coherence_scores = {}
-        
+
         for cid, cluster_texts in clusters.items():
-            # Get top words for this cluster
             words = " ".join(cluster_texts).lower().split()
             words = [w for w in words if w not in self.stop_words and len(w) > 2]
             word_counts = Counter(words)
             top_words = [w for w, _ in word_counts.most_common(top_n)]
-            
+
             if len(top_words) < 2:
                 coherence_scores[cid] = 0.0
                 continue
-            
-            # Compute PMI-based coherence (NPMI variant)
+
             doc_freq = {}
             for word in top_words:
                 doc_freq[word] = sum(1 for text in cluster_texts if word in text.lower())
-            
+
             npmi_scores = []
             for w1, w2 in combinations(top_words, 2):
-                # Co-occurrence
                 co_occur = sum(1 for text in cluster_texts if w1 in text.lower() and w2 in text.lower())
-                
                 if co_occur > 0 and doc_freq[w1] > 0 and doc_freq[w2] > 0:
                     p_w1_w2 = co_occur / len(cluster_texts)
                     p_w1 = doc_freq[w1] / len(cluster_texts)
                     p_w2 = doc_freq[w2] / len(cluster_texts)
-                    
-                    # NPMI: normalized PMI to [-1, 1] range
                     pmi = np.log((p_w1_w2 + 1e-10) / (p_w1 * p_w2 + 1e-10))
                     npmi = pmi / (-np.log(p_w1_w2 + 1e-10))
                     npmi_scores.append(npmi)
-            
+
             coherence_scores[cid] = float(np.mean(npmi_scores)) if npmi_scores else 0.0
-        
+
         return coherence_scores
-    
+
     def compute_topic_diversity(
         self,
         texts: List[str],
         cluster_assignments: np.ndarray,
         top_n: int = 10,
     ) -> float:
-        """
-        Compute topic diversity across all clusters.
-        Measures how distinct topics are from each other.
-        
-        Reference: 
-        - Dieng et al. (2020). "Topic Modeling in Embedding Spaces"
-        - Bianchi et al. (2021). "Cross-lingual Contextualized Topic Models with Zero-shot Learning"
-        
-        Returns:
-            Diversity score (0-1), higher means more diverse topics
-        """
-        # Group texts by cluster
         clusters: Dict[int, List[str]] = {}
         for i, cid in enumerate(cluster_assignments):
             clusters.setdefault(int(cid), []).append(texts[i])
-        
-        # Get top words for each cluster
+
         all_top_words = []
         for cid, cluster_texts in clusters.items():
             words = " ".join(cluster_texts).lower().split()
@@ -726,54 +527,38 @@ class SEMTGPU(nn.Module):
             word_counts = Counter(words)
             top_words = set([w for w, _ in word_counts.most_common(top_n)])
             all_top_words.append(top_words)
-        
+
         if len(all_top_words) < 2:
             return 0.0
-        
-        # Compute pairwise uniqueness
+
         unique_words = set()
         total_words = 0
         for word_set in all_top_words:
             unique_words.update(word_set)
             total_words += len(word_set)
-        
-        # Diversity = unique words / total words (accounting for overlap)
+
         diversity = len(unique_words) / total_words if total_words > 0 else 0.0
         return float(diversity)
-    
+
     def compute_topic_coverage(
         self,
         texts: List[str],
         cluster_assignments: np.ndarray,
     ) -> Dict[str, float]:
-        """
-        Compute how well topics cover the dataset.
-        
-        Reference: Evaluation metrics from clustering literature
-        
-        Returns:
-            Dict with coverage metrics:
-            - cluster_balance: How evenly distributed samples are across clusters (0-1)
-            - min_cluster_size: Smallest cluster size (%)
-            - max_cluster_size: Largest cluster size (%)
-        """
         cluster_counts = Counter(cluster_assignments)
         total = len(cluster_assignments)
-        
         sizes = [count / total for count in cluster_counts.values()]
-        
-        # Entropy-based balance (higher = more balanced)
         entropy_val = -sum(p * np.log(p + 1e-10) for p in sizes)
         max_entropy = np.log(len(cluster_counts))
         balance = entropy_val / max_entropy if max_entropy > 0 else 0.0
-        
+
         return {
             'cluster_balance': float(balance),
             'min_cluster_size': float(min(sizes)),
             'max_cluster_size': float(max(sizes)),
             'n_clusters': len(cluster_counts),
         }
-    
+
     def compute_comprehensive_metrics(
         self,
         embeddings: Union[np.ndarray, torch.Tensor],
@@ -782,86 +567,295 @@ class SEMTGPU(nn.Module):
         true_labels: Optional[np.ndarray] = None,
         top_n_words: int = 10,
     ) -> Dict[str, any]:
-        """
-        Compute all interpretability metrics in one go.
-        
-        Returns comprehensive metrics dict with:
-        - Clustering metrics (if true_labels provided): ACC, NMI, ARI, Topic_Coverage, etc.
-        - Visualization method selection
-        - Silhouette score
-        - Topic coherence (per cluster + mean)
-        - Topic diversity
-        - Topic coverage
-        - TF-IDF keywords per cluster
-        """
         print("\n" + "=" * 60)
         print("Computing Comprehensive Interpretability Metrics")
         print("=" * 60)
-        
-        # Clustering quality metrics (if ground truth available)
+
         clustering_metrics = {}
         if true_labels is not None:
             clustering_metrics = self.compute_clustering_metrics(true_labels, cluster_assignments)
-        
-        # Select best visualization method
+
         best_method, viz_metrics = self.select_best_visualization_method(embeddings)
-        
-        # Clustering quality (unsupervised)
         silhouette = self.compute_silhouette_score(embeddings, cluster_assignments)
-        
-        # Topic interpretability metrics
         coherence = self.compute_topic_coherence(texts, cluster_assignments, top_n=top_n_words)
         diversity = self.compute_topic_diversity(texts, cluster_assignments, top_n=top_n_words)
         coverage = self.compute_topic_coverage(texts, cluster_assignments)
-        
-        # TF-IDF keywords
         tfidf_keywords = self.extract_tfidf_keywords(texts, cluster_assignments, top_n=top_n_words)
-        
+
         metrics = {
-            'clustering_supervised': clustering_metrics,  # ACC, NMI, ARI, Topic_Coverage, etc.
-            'visualization': {
-                'best_method': best_method,
-                **viz_metrics,
-            },
-            'clustering_unsupervised': {
-                'silhouette_score': silhouette,
-            },
+            'clustering_supervised': clustering_metrics,
+            'visualization': {'best_method': best_method, **viz_metrics},
+            'clustering_unsupervised': {'silhouette_score': silhouette},
             'topic_coherence': coherence,
             'topic_coherence_mean': float(np.mean(list(coherence.values()))) if coherence else 0.0,
             'topic_diversity': diversity,
             'topic_coverage': coverage,
             'tfidf_keywords': tfidf_keywords,
         }
-        
-        # Print summary
+
         print(f"\n Visualization Method: {best_method.upper()}")
         print(f"   PCA Variance (2D): {viz_metrics['pca_variance_2d']:.2%}")
-        
+
         if clustering_metrics:
             print(f"\n Clustering Quality (Supervised):")
             print(f"   ACC:           {clustering_metrics['ACC']:.4f}")
             print(f"   NMI:           {clustering_metrics['NMI']:.4f}")
             print(f"   ARI:           {clustering_metrics['ARI']:.4f}")
             print(f"   V-measure:     {clustering_metrics['V-measure']:.4f}")
-        
+
         print(f"\n Clustering Quality (Unsupervised):")
         print(f"   Silhouette:    {silhouette:.4f}")
-        print(f"   Topic_Coverage:{clustering_metrics['Topic_Coverage']:.4f}")
-        
+        print(f"   Topic_Coverage:{clustering_metrics.get('Topic_Coverage', 0.0):.4f}")
+
         print(f"\n Topic Quality:")
         print(f"   Mean Coherence: {metrics['topic_coherence_mean']:.4f}")
         print(f"   Topic Diversity: {diversity:.4f}")
         print(f"   Cluster Balance: {coverage['cluster_balance']:.4f}")
         print(f"   Min/Max Cluster: {coverage['min_cluster_size']:.1%} / {coverage['max_cluster_size']:.1%}")
-        
+
         print(f"\n Top TF-IDF Keywords per Cluster:")
         for cid, keywords in tfidf_keywords.items():
             top_5 = ", ".join([f"{w}({s:.3f})" for w, s in keywords[:5]])
             print(f"   Cluster {cid}: {top_5}")
-        
+
         print("=" * 60 + "\n")
-        
         return metrics
+
+    # =========================================================
+    # 🆕 INTEGRATED GRADIENTS
+    # =========================================================
+
+    def compute_integrated_gradients(
+        self,
+        x: Union[np.ndarray, torch.Tensor],
+        target_class: int = 1,
+        n_steps: int = 50,
+        batch_size: int = 64,
+    ) -> np.ndarray:
+        """
+        Compute Integrated Gradients for the sentiment head.
+
+        Shows WHICH embedding dimensions most influence the sentiment prediction.
+        Uses the straight-line path from a zero baseline to the actual input.
+
+        Reference:
+            Sundararajan et al. (2017). "Axiomatic Attribution for Deep Networks". ICML.
+            Formula: IG_i(x) = (x_i - x'_i) * ∫₀¹ [∂F/∂x_i (x' + α(x-x')) dα]
+
+        Why zero baseline?
+            The zero vector is the standard baseline for embedding spaces — it represents
+            "no information", analogous to a neutral/absent signal.
+
+        Args:
+            x:            Input embeddings, shape (N, D). Usually BERT [CLS] embeddings.
+            target_class: Sentiment class to explain. 0=negative, 1=positive.
+            n_steps:      Number of integration steps (Riemann approx). Default 50 is
+                          sufficient for most cases; use 100+ for publication-quality.
+            batch_size:   Batch size for gradient computation (reduce if OOM).
+
+        Returns:
+            attributions: np.ndarray, shape (N, D).
+                          Positive values → dimension pushes toward target_class.
+                          Negative values → dimension pushes away from target_class.
+        """
+        dev = next(self.parameters()).device
+        xt = torch.as_tensor(x, dtype=torch.float32, device=dev)
+        N, D = xt.shape
+
+        # Baseline: zero vector (standard for embedding inputs)
+        baseline = torch.zeros_like(xt)
+
+        all_attributions = []
+        # Switch to train mode to allow gradient flow through BatchNorm
+        was_training = self.training
+        self.train()
+
+        for start in range(0, N, batch_size):
+            end = min(start + batch_size, N)
+            x_batch = xt[start:end]          # (b, D)
+            base_batch = baseline[start:end]  # (b, D)
+            b = x_batch.shape[0]
+
+            # Build interpolated inputs: x' + α*(x - x'), for α ∈ [0, 1]
+            # Shape: (n_steps, b, D)
+            alphas = torch.linspace(0, 1, n_steps, device=dev)
+            interp = base_batch.unsqueeze(0) + alphas.view(-1, 1, 1) * (
+                x_batch - base_batch
+            ).unsqueeze(0)
+            interp = interp.view(n_steps * b, D).requires_grad_(True)
+
+            # Forward: input → encoder → sentiment head → target logit
+            z_interp = self.autoencoder.encode(interp)
+            s_interp = self.sentiment(z_interp)       # (n_steps*b, 2)
+            logits = s_interp[:, target_class]         # (n_steps*b,)
+
+            # Backprop only to interp (not model weights)
+            grads = torch.autograd.grad(
+                outputs=logits.sum(),
+                inputs=interp,
+                create_graph=False,
+                retain_graph=False,
+            )[0]  # (n_steps*b, D)
+
+            # Reshape and average with trapezoidal rule: (grads[0]+grads[-1])/2 + inner
+            grads = grads.view(n_steps, b, D)
+            avg_grads = (grads[:-1] + grads[1:]).mean(dim=0) / 2.0  # (b, D)
+
+            # Final IG: (x - baseline) * avg_grads
+            ig = (x_batch - base_batch) * avg_grads.detach()  # (b, D)
+            all_attributions.append(ig.detach().cpu().numpy())
+
+        # Restore original mode
+        if not was_training:
+            self.eval()
+
+        return np.concatenate(all_attributions, axis=0)  # (N, D)
+
+    def plot_integrated_gradients(
+        self,
+        attributions: np.ndarray,
+        cluster_assignments: np.ndarray,
+        epoch: int,
+        save_dir: str = "./results/fnnjst",
+        figsize: Tuple[int, int] = (14, 6),
+        top_dims: int = 20,
+        save_plot: bool = True,
+        show_plot: bool = False,
+    ) -> plt.Figure:
+        """
+        Visualize Integrated Gradients as two panels:
+
+        Panel A — Global bar chart:
+            Mean |IG| per embedding dimension across ALL samples.
+            Tells you "globally, which BERT embedding dimensions drive sentiment?"
+
+        Panel B — Per-cluster heatmap:
+            Mean |IG| for the top dimensions, broken down by cluster.
+            Tells you "does each topic rely on different dimensions for sentiment?"
+
+        Args:
+            attributions:        Output of compute_integrated_gradients(), shape (N, D).
+            cluster_assignments: Cluster labels, shape (N,).
+            epoch:               Current training epoch (for filename & title).
+            save_dir:            Directory to save plot.
+            top_dims:            How many top embedding dimensions to display.
+            save_plot:           Whether to save figure to disk.
+            show_plot:           Whether to call plt.show() (use False in training loops).
+
+        Returns:
+            matplotlib Figure object.
+
+        Output file:
+            <save_dir>/integrated_gradients_epoch_<epoch>.png
+        """
+        N, D = attributions.shape
+        abs_attr = np.abs(attributions)   # (N, D) — unsigned importance
+
+        # --- Global mean |IG| per dimension ---
+        global_importance = abs_attr.mean(axis=0)                        # (D,)
+        top_idx = np.argsort(global_importance)[-top_dims:][::-1]        # descending
+
+        # --- Per-cluster mean |IG| for the top dims ---
+        uniq = np.unique(cluster_assignments)
+        cluster_ig = np.zeros((len(uniq), top_dims))
+        for i, cid in enumerate(uniq):
+            mask = cluster_assignments == cid
+            if mask.sum() > 0:
+                cluster_ig[i] = abs_attr[mask][:, top_idx].mean(axis=0)
+
+        # ---- Figure layout ----
+        fig, (ax1, ax2) = plt.subplots(
+            1, 2, figsize=figsize,
+            gridspec_kw={'width_ratios': [1, 1.6]}
+        )
+        fig.suptitle(
+            f"Integrated Gradients — Epoch {epoch}\n"
+            f"(Sentiment attribution over BERT embedding dimensions)",
+            fontsize=13, fontweight='bold', y=1.02
+        )
+
+        # ── Panel A: Global bar chart ──────────────────────────────────
+        norm_importance = global_importance[top_idx]
+        norm_importance = norm_importance / (norm_importance.max() + 1e-8)
+        colors_bar = plt.cm.RdYlGn(norm_importance)
+
+        bars = ax1.barh(
+            y=[f"dim {idx}" for idx in top_idx],
+            width=global_importance[top_idx],
+            color=colors_bar,
+            edgecolor='white',
+            linewidth=0.5,
+        )
+        ax1.set_xlabel("Mean |IG| Attribution", fontsize=10)
+        ax1.set_title(
+            "Top Embedding Dimensions\n(Global Sentiment Impact)",
+            fontsize=11
+        )
+        ax1.invert_yaxis()
+        ax1.spines[['top', 'right']].set_visible(False)
+        ax1.grid(axis='x', alpha=0.3, linestyle='--')
+
+        # Value labels on bars
+        for bar, val in zip(bars, global_importance[top_idx]):
+            ax1.text(
+                val + global_importance[top_idx].max() * 0.01,
+                bar.get_y() + bar.get_height() / 2,
+                f'{val:.4f}', va='center', ha='left', fontsize=7, color='#444'
+            )
+
+        # ── Panel B: Per-cluster heatmap ──────────────────────────────
+        vmax = cluster_ig.max() if cluster_ig.max() > 0 else 1.0
+        im = ax2.imshow(
+            cluster_ig, aspect='auto', cmap='YlOrRd',
+            vmin=0, vmax=vmax, interpolation='nearest'
+        )
+        ax2.set_xticks(range(top_dims))
+        ax2.set_xticklabels(
+            [f"d{idx}" for idx in top_idx],
+            rotation=90, fontsize=7
+        )
+        ax2.set_yticks(range(len(uniq)))
+        ax2.set_yticklabels(
+            [f"C{c} ({(cluster_assignments == c).sum()})" for c in uniq],
+            fontsize=9
+        )
+        ax2.set_title(
+            "Per-Cluster Attribution Heatmap\n"
+            "(rows = clusters, cols = top dims, values = mean |IG|)",
+            fontsize=11
+        )
+        ax2.set_xlabel("Embedding Dimension (index)", fontsize=10)
+
+        cbar = plt.colorbar(im, ax=ax2, fraction=0.046, pad=0.04)
+        cbar.set_label("Mean |IG|", fontsize=9)
+
+        # Cell annotations (only if grid is small enough to read)
+        if top_dims <= 30 and len(uniq) <= 20:
+            for i in range(len(uniq)):
+                for j in range(top_dims):
+                    val = cluster_ig[i, j]
+                    txt_color = 'white' if val > vmax * 0.6 else '#333'
+                    ax2.text(
+                        j, i, f'{val:.3f}',
+                        ha='center', va='center',
+                        fontsize=6, color=txt_color
+                    )
+
+        plt.tight_layout()
+
+        if save_plot:
+            os.makedirs(save_dir, exist_ok=True)
+            out = os.path.join(save_dir, f"integrated_gradients_epoch_{epoch}.png")
+            plt.savefig(out, dpi=150, bbox_inches='tight',
+                        facecolor='white', edgecolor='none')
+            print(f"  ✓ IG plot saved: {out}")
+
+        if show_plot:
+            plt.show()
+        else:
+            plt.close()
+
+        return fig
 
     # -------------------------
     # Training (fit)
@@ -882,53 +876,59 @@ class SEMTGPU(nn.Module):
         save_dir: str = "./results/fnnjst",
         plot_evolution: bool = True,
         plot_interval: Optional[int] = None,
-        plot_method: str = "tsne",  # 🆕 choose visualization method: 'tsne', 'pca', 'umap'
-        compute_metrics: bool = True,  # 🆕 compute comprehensive metrics
+        plot_method: str = "tsne",
+        compute_metrics: bool = True,
+        # ── 🆕 Integrated Gradients options ──────────────────────────
+        plot_integrated_gradients: bool = True,
+        ig_target_class: int = 1,
+        ig_n_steps: int = 50,
+        ig_top_dims: int = 20,
+        ig_max_samples: int = 512,
     ) -> Union[np.ndarray, Tuple[np.ndarray, np.ndarray, Dict[str, float]]]:
         """
-        Joint training (DEC + Sentiment + Reconstruction). 
-        
+        Joint training (DEC + Sentiment + Reconstruction).
+
         Loss = alpha * L_reconstruction + gamma * L_clustering + eta * L_sentiment
-        
-        Args:
-            alpha: weight for reconstruction loss (MSE) - default 0.1
-            gamma: weight for clustering loss (KL divergence) - default 1.0
-            eta: weight for sentiment loss (Cross Entropy) - default 0.1
-            plot_method: visualization method for plots - 'tsne' (default), 'pca', or 'umap'
-            compute_metrics: whether to compute comprehensive interpretability metrics
-            
-        Returns:
-            If has_labels: (cluster_pred, sentiment_probs, metrics_dict)
-            Else: cluster_pred
+
+        New parameters (Integrated Gradients):
+            plot_integrated_gradients: Generate IG plots every plot_interval iterations.
+            ig_target_class:           Sentiment class to attribute (0=neg, 1=pos).
+            ig_n_steps:                IG integration steps (50 is fine, 100 for papers).
+            ig_top_dims:               Top-K embedding dims to display in IG plot.
+            ig_max_samples:            Max samples used for IG (subsample for speed).
+                                       Full dataset can be slow; 512 is usually enough.
         """
         print("=" * 60)
         print("Joint Training: Clustering + Sentiment + Reconstruction")
-        print(f"Loss weights - Alpha (recon): {alpha}, Gamma (cluster): {gamma}, Eta (sentiment): {eta}")
+        print(f"Loss weights — Alpha (recon): {alpha}, Gamma (cluster): {gamma}, Eta (sentiment): {eta}")
         print(f"Update interval: {update_interval}")
+        if plot_integrated_gradients:
+            print(f"IG: target_class={ig_target_class}, n_steps={ig_n_steps}, "
+                  f"top_dims={ig_top_dims}, max_samples={ig_max_samples}")
         print("=" * 60)
-        
+
         dev = next(self.parameters()).device
         maxiter = int(maxiter)
         plot_interval = int(plot_interval) if plot_interval is not None else update_interval
 
         os.makedirs(save_dir, exist_ok=True)
         plot_dir = None
-        if plot_evolution:
+        if plot_evolution or plot_integrated_gradients:
             plot_dir = os.path.join(save_dir, "evolution_plots")
             os.makedirs(plot_dir, exist_ok=True)
 
-        # Collect embeddings (+ optional labels) + texts for metrics
+        # Collect data
         embs: List[torch.Tensor] = []
         lbls: List[torch.Tensor] = []
-        texts_list: List[str] = []  # 🆕 for interpretability metrics
-        
+        texts_list: List[str] = []
+
         for i in range(len(dataset)):
             item = dataset[i]
             if isinstance(item, tuple):
                 if len(item) == 2:
                     embs.append(item[0].detach().cpu())
                     lbls.append(item[1].detach().cpu())
-                elif len(item) == 3:  # (embedding, label, text)
+                elif len(item) == 3:
                     embs.append(item[0].detach().cpu())
                     lbls.append(item[1].detach().cpu())
                     texts_list.append(item[2])
@@ -939,19 +939,14 @@ class SEMTGPU(nn.Module):
         X = torch.stack(embs).to(dev)
         N, D = X.shape
         if D != self.dims[0]:
-            raise ValueError(
-                f"Input dim = {D}, but dims[0] = {self.dims[0]}. Samakan dims[0] dengan dimensi embedding."
-            )
+            raise ValueError(f"Input dim = {D}, but dims[0] = {self.dims[0]}.")
         if N < self.n_clusters:
-            raise ValueError(
-                f"n_samples ({N}) < n_clusters ({self.n_clusters}). Kurangi n_clusters atau tambah data."
-            )
+            raise ValueError(f"n_samples ({N}) < n_clusters ({self.n_clusters}).")
 
         has_labels = len(lbls) > 0
         Y = torch.stack(lbls).to(dev) if has_labels else None
         has_texts = len(texts_list) > 0
 
-        # class weights (if labels exist; accept one-hot)
         class_w_t: Optional[torch.Tensor] = None
         if has_labels:
             y_np = Y.detach().cpu().numpy()
@@ -960,7 +955,6 @@ class SEMTGPU(nn.Module):
             cw = self.compute_class_weights(y_np)
             class_w_t = torch.tensor([cw.get(i, 1.0) for i in range(2)], dtype=torch.float32, device=dev)
 
-        # optimizer
         opt_map = {
             "sgd": lambda: optim.SGD(self.parameters(), lr=learning_rate, momentum=momentum),
             "adam": lambda: optim.Adam(self.parameters(), lr=learning_rate),
@@ -976,56 +970,62 @@ class SEMTGPU(nn.Module):
             raise ValueError(f"Unsupported optimizer: {optimizer_type}")
         optimizer = opt_map[optimizer_type.lower()]()
 
-        # Loss functions
         kld_loss = nn.KLDivLoss(reduction="batchmean")
         ce_loss = nn.CrossEntropyLoss(weight=class_w_t) if class_w_t is not None else nn.CrossEntropyLoss()
         mse_loss = nn.MSELoss()
 
-        # Initialize clusters
         print("Initializing cluster centers with k-means.")
         y_pred_last = self._init_clusters_with_kmeans(X)
-        
-        # Select visualization method based on parameter or auto-select
+
         valid_methods = ['tsne', 'pca', 'umap']
         if plot_method not in valid_methods:
             print(f"Warning: plot_method '{plot_method}' not in {valid_methods}. Using 'tsne'.")
             plot_method = 'tsne'
         best_viz_method = plot_method
-        # Only auto-select if user chose 'tsne' (default) and has texts
         if plot_method == 'tsne' and compute_metrics and has_texts:
             feats_initial = self.extract_feature(X).cpu().numpy()
             best_viz_method, _ = self.select_best_visualization_method(feats_initial)
 
-        # Initial plot with best method (both versions)
+        # Initial plot
         if plot_evolution and plot_dir:
             try:
                 feats0 = self.extract_feature(X).cpu().numpy()
                 self.plot_cluster_evolution(
-                    feats0, y_pred_last, 0, 
-                    texts=texts_list if has_texts else None,  # 🆕 pass texts
-                    save_dir=plot_dir, 
+                    feats0, y_pred_last, 0,
+                    texts=texts_list if has_texts else None,
+                    save_dir=plot_dir,
                     method=best_viz_method,
                     show_plot=False,
-                    plot_tfidf_version=has_texts,  # 🆕 only if texts available
+                    plot_tfidf_version=has_texts,
                 )
             except Exception as e:
                 print(f"Warning: initial plot failed: {e}")
 
-        # Logging with comprehensive metrics
+        # 🆕 Initial IG plot
+        if plot_integrated_gradients and plot_dir and has_labels:
+            try:
+                idx_ig = np.random.choice(N, min(ig_max_samples, N), replace=False)
+                ig_attrs = self.compute_integrated_gradients(
+                    X[idx_ig], target_class=ig_target_class, n_steps=ig_n_steps
+                )
+                self.plot_integrated_gradients(
+                    ig_attrs, y_pred_last[idx_ig], epoch=0,
+                    save_dir=plot_dir, top_dims=ig_top_dims, show_plot=False,
+                )
+            except Exception as e:
+                print(f"Warning: initial IG plot failed: {e}")
+
         log_path = os.path.join(save_dir, "idec_sentiment_log.csv")
-        
-        # Extended fieldnames for comprehensive metrics
         log_fieldnames = [
             "iter", "acc_sentiment", "L", "Lr", "Lc", "Ls",
-            # Clustering metrics (supervised - if ground truth available)
             "ACC", "NMI", "ARI", "Homogeneity", "Completeness", "V-measure",
-            # Clustering metrics (unsupervised)
             "Silhouette",
-            # Topic interpretability metrics
             "Topic_Coherence", "Topic_Diversity", "Cluster_Balance",
             "Min_Cluster_Size", "Max_Cluster_Size",
+            # 🆕 IG summary columns
+            "IG_TopDim", "IG_TopDim_Score", "IG_Mean_Attribution",
         ]
-        
+
         with open(log_path, "w", newline="") as logfile:
             writer = csv.DictWriter(logfile, fieldnames=log_fieldnames)
             writer.writeheader()
@@ -1037,40 +1037,64 @@ class SEMTGPU(nn.Module):
             tot_L = Lr = Lc = Ls = 0.0
 
             for ite in range(maxiter):
-                # refresh target distribution
                 if ite % update_interval == 0:
                     self.eval()
                     with torch.no_grad():
                         q_list, s_list = [], []
                         for i in range(0, N, batch_size):
-                            qb, sb = self(X[i : i + batch_size])
+                            qb, sb = self(X[i: i + batch_size])
                             q_list.append(qb)
                             s_list.append(sb)
                         q_all = torch.cat(q_list, dim=0)
                         s_all = torch.cat(s_list, dim=0)
-
                         p_all = self.target_distribution(q_all)
 
                         y_pred = q_all.argmax(dim=1).cpu().numpy()
                         delta = float((y_pred != y_pred_last).sum() / len(y_pred))
                         y_pred_last = y_pred.copy()
 
-                        # evolution plot with best method (both versions)
+                        # Scatter plot
                         if plot_evolution and plot_dir and ite > 0 and (ite % plot_interval == 0):
                             try:
                                 feats = self.extract_feature(X).cpu().numpy()
                                 self.plot_cluster_evolution(
-                                    feats, y_pred, ite, 
-                                    texts=texts_list if has_texts else None,  # 🆕 pass texts
+                                    feats, y_pred, ite,
+                                    texts=texts_list if has_texts else None,
                                     save_dir=plot_dir,
                                     method=best_viz_method,
                                     show_plot=False,
-                                    plot_tfidf_version=has_texts,  # 🆕 create TF-IDF version
+                                    plot_tfidf_version=has_texts,
                                 )
                             except Exception as e:
                                 print(f"Warning: plot at iter {ite} failed: {e}")
 
-                        # sentiment accuracy (only during training for monitoring)
+                        # 🆕 Integrated Gradients plot (same interval)
+                        ig_top_dim_idx = -1
+                        ig_top_dim_score = 0.0
+                        ig_mean_attr = 0.0
+
+                        if plot_integrated_gradients and plot_dir and ite > 0 and (ite % plot_interval == 0):
+                            try:
+                                idx_ig = np.random.choice(N, min(ig_max_samples, N), replace=False)
+                                ig_attrs = self.compute_integrated_gradients(
+                                    X[idx_ig],
+                                    target_class=ig_target_class,
+                                    n_steps=ig_n_steps,
+                                )
+                                self.plot_integrated_gradients(
+                                    ig_attrs, y_pred[idx_ig], epoch=ite,
+                                    save_dir=plot_dir, top_dims=ig_top_dims,
+                                    show_plot=False,
+                                )
+                                # Log summary stats
+                                abs_ig = np.abs(ig_attrs)
+                                global_imp = abs_ig.mean(axis=0)
+                                ig_top_dim_idx = int(global_imp.argmax())
+                                ig_top_dim_score = float(global_imp.max())
+                                ig_mean_attr = float(global_imp.mean())
+                            except Exception as e:
+                                print(f"Warning: IG plot at iter {ite} failed: {e}")
+
                         acc_s = 0.0
                         if has_labels:
                             s_lab = s_all.argmax(dim=1).cpu().numpy()
@@ -1078,38 +1102,31 @@ class SEMTGPU(nn.Module):
                             if y_true.ndim == 2 and y_true.shape[1] > 1:
                                 y_true = y_true.argmax(axis=1)
                             acc_s = float((s_lab == y_true).mean())
-                        
-                        # 🆕 Compute comprehensive metrics for logging
+
                         feats_current = self.extract_feature(X).cpu().numpy()
-                        
-                        # Clustering metrics (supervised - only if has_labels)
                         clustering_sup = {}
                         if has_labels:
                             y_true_cluster = Y.detach().cpu().numpy()
                             if y_true_cluster.ndim == 2 and y_true_cluster.shape[1] > 1:
                                 y_true_cluster = y_true_cluster.argmax(axis=1)
                             clustering_sup = self.compute_clustering_metrics(y_true_cluster, y_pred)
-                        
-                        # Silhouette score (unsupervised)
+
                         silhouette_current = self.compute_silhouette_score(feats_current, y_pred)
-                        
-                        # Topic metrics (only if has_texts)
                         coherence_current = 0.0
                         diversity_current = 0.0
                         coverage_current = {'cluster_balance': 0.0, 'min_cluster_size': 0.0, 'max_cluster_size': 0.0}
-                        
+
                         if has_texts:
                             coherence_dict = self.compute_topic_coherence(texts_list, y_pred, top_n=10)
                             coherence_current = float(np.mean(list(coherence_dict.values()))) if coherence_dict else 0.0
                             diversity_current = self.compute_topic_diversity(texts_list, y_pred, top_n=10)
                             coverage_current = self.compute_topic_coverage(texts_list, y_pred)
 
-                    # log averages with comprehensive metrics
                     avg_L = tot_L / update_interval if iter_count > 0 else 0.0
                     avg_Lr = Lr / update_interval if iter_count > 0 else 0.0
                     avg_Lc = Lc / update_interval if iter_count > 0 else 0.0
                     avg_Ls = Ls / update_interval if iter_count > 0 else 0.0
-                    
+
                     log_row = {
                         "iter": ite,
                         "acc_sentiment": round(acc_s, 5),
@@ -1117,41 +1134,39 @@ class SEMTGPU(nn.Module):
                         "Lr": round(avg_Lr, 5),
                         "Lc": round(avg_Lc, 5),
                         "Ls": round(avg_Ls, 5),
-                        # Supervised clustering metrics
                         "ACC": round(clustering_sup.get('ACC', 0.0), 5),
                         "NMI": round(clustering_sup.get('NMI', 0.0), 5),
                         "ARI": round(clustering_sup.get('ARI', 0.0), 5),
                         "Homogeneity": round(clustering_sup.get('Homogeneity', 0.0), 5),
                         "Completeness": round(clustering_sup.get('Completeness', 0.0), 5),
                         "V-measure": round(clustering_sup.get('V-measure', 0.0), 5),
-                        # Unsupervised clustering
                         "Silhouette": round(silhouette_current, 5),
-                        # Topic metrics
                         "Topic_Coherence": round(coherence_current, 5),
                         "Topic_Diversity": round(diversity_current, 5),
                         "Cluster_Balance": round(coverage_current['cluster_balance'], 5),
                         "Min_Cluster_Size": round(coverage_current['min_cluster_size'], 5),
                         "Max_Cluster_Size": round(coverage_current['max_cluster_size'], 5),
+                        # 🆕 IG columns
+                        "IG_TopDim": ig_top_dim_idx,
+                        "IG_TopDim_Score": round(ig_top_dim_score, 6),
+                        "IG_Mean_Attribution": round(ig_mean_attr, 6),
                     }
-                    
                     writer.writerow(log_row)
-                    
-                    # Console output with key metrics
+
                     print(f"Iter {ite}: Lr={avg_Lr:.5f}, Lc={avg_Lc:.5f}, Ls={avg_Ls:.5f}, Acc={acc_s:.5f}; L={avg_L:.5f}")
                     if clustering_sup:
                         print(f"  Clustering: ACC={clustering_sup['ACC']:.4f}, NMI={clustering_sup['NMI']:.4f}, ARI={clustering_sup['ARI']:.4f}")
                     print(f"  Topic: Coherence={coherence_current:.4f}, Diversity={diversity_current:.4f}, Silhouette={silhouette_current:.4f}")
+                    if ig_top_dim_idx >= 0:
+                        print(f"  IG: top_dim=d{ig_top_dim_idx} ({ig_top_dim_score:.4f}), mean_attr={ig_mean_attr:.4f}")
 
-                    # reset counters
                     tot_L = Lr = Lc = Ls = 0.0
                     iter_count = 0
 
-                    # early stop by cluster stability
                     if ite > 0 and delta < tol:
                         print(f"delta_label {delta:.6f} < tol {tol}. Stop.")
                         break
 
-                    # refresh loader with new p (and labels if any)
                     if has_labels:
                         train_loader = DataLoader(TensorDataset(X, p_all, Y), batch_size=batch_size, shuffle=True)
                     else:
@@ -1159,7 +1174,6 @@ class SEMTGPU(nn.Module):
 
                     self.train()
 
-                # train step(s)
                 assert train_loader is not None
                 for batch in tqdm(train_loader, desc=f"Train {ite}", leave=False):
                     if has_labels and len(batch) == 3:
@@ -1174,28 +1188,22 @@ class SEMTGPU(nn.Module):
                     xb = xb.to(dev)
                     pb = pb.to(dev)
 
-                    # Forward pass with reconstruction
                     z = self.autoencoder.encode(xb)
                     x_recon = self.autoencoder.decode(z)
-                    
                     q = self.clustering(z)
                     s = torch.softmax(self.sentiment(z), dim=1)
 
-                    # Compute all losses
                     recon_loss = mse_loss(x_recon, xb)
                     c_loss = kld_loss((q + 1e-8).log(), pb)
                     s_loss = torch.tensor(0.0, device=dev)
                     if yb is not None:
                         s_loss = ce_loss(s, yb)
 
-                    # Combined loss with reconstruction
                     loss = alpha * recon_loss + gamma * c_loss + eta * s_loss
-                    
                     optimizer.zero_grad()
                     loss.backward()
                     optimizer.step()
 
-                    # Track all losses
                     tot_L += float(loss.item())
                     Lr += float(recon_loss.item())
                     Lc += float(c_loss.item())
@@ -1205,46 +1213,60 @@ class SEMTGPU(nn.Module):
                 if ite % save_interval == 0 and ite > 0:
                     self.save_weights(os.path.join(save_dir, f"SEMTGPU_{ite}.weights.pth"))
 
-        # final plot & save with best method (both versions)
+        # Final plots
         if plot_evolution and plot_dir:
             try:
                 feats_f = self.extract_feature(X).cpu().numpy()
                 y_final = self.get_cluster_assignments(X)
                 self.plot_cluster_evolution(
-                    feats_f, y_final, ite, 
-                    texts=texts_list if has_texts else None,  # 🆕 pass texts
+                    feats_f, y_final, ite,
+                    texts=texts_list if has_texts else None,
                     save_dir=plot_dir,
                     method=best_viz_method,
                     show_plot=False,
-                    plot_tfidf_version=has_texts,  # 🆕 create TF-IDF version
+                    plot_tfidf_version=has_texts,
                 )
             except Exception as e:
                 print(f"Warning: final plot failed: {e}")
 
+        # 🆕 Final IG plot
+        if plot_integrated_gradients and plot_dir and has_labels:
+            try:
+                y_final = self.get_cluster_assignments(X)
+                idx_ig = np.random.choice(N, min(ig_max_samples, N), replace=False)
+                ig_attrs_final = self.compute_integrated_gradients(
+                    X[idx_ig], target_class=ig_target_class, n_steps=ig_n_steps
+                )
+                self.plot_integrated_gradients(
+                    ig_attrs_final, y_final[idx_ig], epoch=ite,
+                    save_dir=plot_dir, top_dims=ig_top_dims, show_plot=False,
+                )
+                print(f"✓ Final IG plot saved.")
+            except Exception as e:
+                print(f"Warning: final IG plot failed: {e}")
+
         self.save_weights(os.path.join(save_dir, "SEMTGPU_final.weights.pth"))
 
-        # 🆕 Final evaluation with comprehensive metrics
         self.eval()
         with torch.no_grad():
             q_all, s_all = self(X)
             y_pred_cluster = q_all.argmax(dim=1).cpu().numpy()
             y_pred_sentiment = s_all.argmax(dim=1).cpu().numpy()
-            
+
             metrics = {}
-            
-            # Sentiment metrics (if labels available)
+
             if has_labels:
                 y_true = Y.detach().cpu().numpy()
                 if y_true.ndim == 2 and y_true.shape[1] > 1:
                     y_true = y_true.argmax(axis=1)
-                
+
                 metrics['sentiment'] = {
                     'accuracy': float((y_pred_sentiment == y_true).mean()),
                     'precision': float(precision_score(y_true, y_pred_sentiment, average='binary', zero_division=0)),
                     'recall': float(recall_score(y_true, y_pred_sentiment, average='binary', zero_division=0)),
                     'f1_score': float(f1_score(y_true, y_pred_sentiment, average='binary', zero_division=0)),
                 }
-                
+
                 print("\n" + "=" * 60)
                 print("FINAL SENTIMENT CLASSIFICATION METRICS")
                 print("=" * 60)
@@ -1253,32 +1275,24 @@ class SEMTGPU(nn.Module):
                 print(f"Recall:    {metrics['sentiment']['recall']:.4f}")
                 print(f"F1 Score:  {metrics['sentiment']['f1_score']:.4f}")
                 print("=" * 60)
-            
-            # 🆕 Comprehensive interpretability metrics
+
             if compute_metrics and has_texts:
                 feats_final = self.extract_feature(X).cpu().numpy()
-                
-                # Pass true labels for clustering evaluation (if available)
                 true_cluster_labels = None
                 if has_labels:
                     true_cluster_labels = Y.detach().cpu().numpy()
                     if true_cluster_labels.ndim == 2 and true_cluster_labels.shape[1] > 1:
                         true_cluster_labels = true_cluster_labels.argmax(axis=1)
-                
+
                 interp_metrics = self.compute_comprehensive_metrics(
-                    feats_final,
-                    texts_list,
-                    y_pred_cluster,
-                    true_labels=true_cluster_labels,
-                    top_n_words=10,
+                    feats_final, texts_list, y_pred_cluster,
+                    true_labels=true_cluster_labels, top_n_words=10,
                 )
                 metrics['interpretability'] = interp_metrics
-                
-                # Save metrics to file
+
                 metrics_path = os.path.join(save_dir, "interpretability_metrics.json")
                 import json
                 with open(metrics_path, 'w') as f:
-                    # Convert to JSON-serializable format
                     json_metrics = {}
                     for k, v in interp_metrics.items():
                         if isinstance(v, dict):
@@ -1287,10 +1301,10 @@ class SEMTGPU(nn.Module):
                             json_metrics[k] = v
                     json.dump(json_metrics, f, indent=2)
                 print(f"✓ Interpretability metrics saved to: {metrics_path}")
-            
+
             if has_labels:
                 return y_pred_cluster, s_all.cpu().numpy(), metrics
-            
+
             return y_pred_cluster
 
     # -------------------------
@@ -1299,15 +1313,10 @@ class SEMTGPU(nn.Module):
     def _init_clusters_with_kmeans(
         self, all_embeddings: torch.Tensor, n_init: int = 20, random_state: int = 42
     ) -> np.ndarray:
-        """
-        Run KMeans on encoded features and set cluster centers.
-        """
         dev = next(self.parameters()).device
         N = all_embeddings.size(0)
         if N < self.n_clusters:
-            raise ValueError(
-                f"n_samples ({N}) < n_clusters ({self.n_clusters}). Tambah data atau kurangi n_clusters."
-            )
+            raise ValueError(f"n_samples ({N}) < n_clusters ({self.n_clusters}).")
         self.eval()
         with torch.no_grad():
             feats = self.extract_feature(all_embeddings).cpu().numpy()
@@ -1324,9 +1333,6 @@ class SEMTGPU(nn.Module):
             q, _ = self(xt)
             return q.argmax(dim=1).cpu().numpy()
 
-    # -------------------------
-    # Topic & Text Utilities
-    # -------------------------
     def set_stop_words(self, stop_words: Union[Iterable[str], set[str]]) -> "SEMTGPU":
         self.stop_words = set(stop_words) if not isinstance(stop_words, set) else stop_words
         return self
@@ -1441,7 +1447,7 @@ class SEMTGPU(nn.Module):
         embeddings: Union[np.ndarray, torch.Tensor],
         cluster_assignments: np.ndarray,
         epoch: int,
-        texts: Optional[List[str]] = None,  # 🆕 for TF-IDF annotation
+        texts: Optional[List[str]] = None,
         save_dir: str = "./results/fnnjst",
         method: str = "tsne",
         figsize: Tuple[int, int] = (6, 6),
@@ -1449,27 +1455,10 @@ class SEMTGPU(nn.Module):
         alpha: float = 0.7,
         save_plot: bool = True,
         show_plot: bool = False,
-        plot_tfidf_version: bool = True,  # 🆕 create annotated version
-        max_keywords_per_cluster: int = 3,  # 🆕 max keywords to show
-        keyword_min_score: float = 0.3,  # 🆕 min TF-IDF score threshold
+        plot_tfidf_version: bool = True,
+        max_keywords_per_cluster: int = 3,
+        keyword_min_score: float = 0.3,
     ):
-        """
-        Plot cluster evolution with automatic or manual method selection.
-        
-        Creates TWO plots per epoch:
-        1. Regular scatter plot (clean visualization)
-        2. TF-IDF annotated plot (keywords at cluster centroids)
-        
-        Args:
-            embeddings: High-dimensional embeddings
-            cluster_assignments: Cluster labels
-            epoch: Current epoch number
-            texts: Optional list of texts for TF-IDF keyword extraction
-            method: Dimensionality reduction method ('pca', 'tsne', 'umap')
-            plot_tfidf_version: If True and texts provided, create annotated plot
-            max_keywords_per_cluster: Max keywords to display per cluster
-            keyword_min_score: Minimum TF-IDF score to display (filters common words)
-        """
         if isinstance(embeddings, torch.Tensor):
             emb = embeddings.detach().cpu().numpy()
         else:
@@ -1480,20 +1469,17 @@ class SEMTGPU(nn.Module):
             print(f"Skip plot at epoch {epoch}: n_samples={n} < 3")
             return None
 
-        # Dimensionality reduction
         if method.lower() == 'pca':
             from sklearn.decomposition import PCA
             reducer = PCA(n_components=2, random_state=42)
             emb_2d = reducer.fit_transform(emb)
             method_label = f"PCA ({reducer.explained_variance_ratio_.sum():.1%} var)"
-            
         elif method.lower() == "tsne":
             from sklearn.manifold import TSNE
             perplexity = max(2, min(30, n - 1))
             reducer = TSNE(n_components=2, perplexity=perplexity, random_state=42, init="pca", learning_rate="auto")
             emb_2d = reducer.fit_transform(emb)
             method_label = "t-SNE"
-            
         elif method.lower() == "umap":
             try:
                 import umap
@@ -1510,7 +1496,6 @@ class SEMTGPU(nn.Module):
         else:
             raise ValueError("method must be 'pca', 'tsne' or 'umap'")
 
-        # Color setup
         uniq = np.unique(cluster_assignments)
         k = len(uniq)
         if k <= 10:
@@ -1520,16 +1505,12 @@ class SEMTGPU(nn.Module):
         else:
             colors = plt.cm.hsv(np.linspace(0, 1, k))
 
-        # ====================================================================
-        # PLOT 1: Regular scatter plot (clean)
-        # ====================================================================
+        # Plot 1: Regular scatter
         fig1, ax1 = plt.subplots(figsize=figsize)
-        
         for i, cid in enumerate(uniq):
             mask = cluster_assignments == cid
             pts = emb_2d[mask]
             ax1.scatter(pts[:, 0], pts[:, 1], c=[colors[i]], marker="x", s=point_size, alpha=alpha, label=f"Cluster {cid}")
-
         ax1.set_title(f"Epoch {epoch} ({method_label})", fontsize=14, fontweight="bold")
         ax1.set_xticks([]), ax1.set_yticks([])
         for sp in ax1.spines.values():
@@ -1542,121 +1523,55 @@ class SEMTGPU(nn.Module):
             os.makedirs(save_dir, exist_ok=True)
             out1 = os.path.join(save_dir, f"cluster_evolution_epoch_{epoch}.png")
             plt.savefig(out1, dpi=150, bbox_inches="tight", facecolor="white", edgecolor="none")
-        
         if show_plot:
             plt.show()
         else:
             plt.close()
 
-        # ====================================================================
-        # PLOT 2: TF-IDF Annotated plot (with keywords)
-        # ====================================================================
+        # Plot 2: TF-IDF annotated
         if plot_tfidf_version and texts is not None and len(texts) == len(cluster_assignments):
             fig2, ax2 = plt.subplots(figsize=figsize)
-            
-            # Draw scatter points first
             for i, cid in enumerate(uniq):
                 mask = cluster_assignments == cid
                 pts = emb_2d[mask]
-                ax2.scatter(pts[:, 0], pts[:, 1], c=[colors[i]], marker="x", s=point_size, alpha=alpha, label=f"Cluster {cid}")
-            
-            # Extract TF-IDF keywords
+                ax2.scatter(pts[:, 0], pts[:, 1], c=[colors[i]], marker="x", s=point_size, alpha=alpha)
+
             try:
                 tfidf_keywords = self.extract_tfidf_keywords(
-                    texts, 
-                    cluster_assignments, 
-                    top_n=max_keywords_per_cluster * 3,  # Get more, filter later
-                    max_features=5000
+                    texts, cluster_assignments, top_n=max_keywords_per_cluster * 3, max_features=5000
                 )
-                
-                # Calculate cluster centroids and annotate
                 for cid in uniq:
                     mask = cluster_assignments == cid
                     centroid = emb_2d[mask].mean(axis=0)
-                    
-                    # Filter keywords by score threshold
                     if cid in tfidf_keywords:
                         keywords = tfidf_keywords[cid]
-                        
-                        # 🆕 Smart filtering logic:
-                        # 1. Remove keywords with low TF-IDF score (too common)
-                        # 2. Calculate cluster-specific threshold if needed
-                        
-                        # Get score distribution for this cluster
                         scores = [score for _, score in keywords]
-                        if len(scores) > 0:
-                            # Adaptive threshold: use provided min or 75th percentile
-                            adaptive_threshold = max(
-                                keyword_min_score,
-                                np.percentile(scores, 75) if len(scores) >= 4 else 0
-                            )
-                            
-                            # Filter keywords
-                            filtered_keywords = [
-                                (word, score) for word, score in keywords 
-                                if score >= adaptive_threshold
-                            ][:max_keywords_per_cluster]
-                            
-                            # Check if keywords are too generic (appear in too many clusters)
-                            # Build vocabulary across all clusters
+                        if scores:
+                            adaptive_threshold = max(keyword_min_score, np.percentile(scores, 75) if len(scores) >= 4 else 0)
+                            filtered_keywords = [(w, s) for w, s in keywords if s >= adaptive_threshold][:max_keywords_per_cluster]
                             all_words_count = {}
-                            for other_cid, other_keywords in tfidf_keywords.items():
-                                for word, _ in other_keywords[:10]:
+                            for other_cid, other_kw in tfidf_keywords.items():
+                                for word, _ in other_kw[:10]:
                                     all_words_count[word] = all_words_count.get(word, 0) + 1
-                            
-                            # Remove words that appear in > 50% of clusters (too generic)
                             max_cluster_frequency = max(2, k * 0.5)
-                            final_keywords = [
-                                (word, score) for word, score in filtered_keywords
-                                if all_words_count.get(word, 0) <= max_cluster_frequency
-                            ]
-                            
-                            # If after filtering we have no keywords, show top 1 anyway
+                            final_keywords = [(w, s) for w, s in filtered_keywords if all_words_count.get(w, 0) <= max_cluster_frequency]
                             if not final_keywords and filtered_keywords:
                                 final_keywords = [filtered_keywords[0]]
-                            
-                            # Create annotation text
                             if final_keywords:
-                                # Format: "word1\nword2\nword3"
-                                keyword_text = "\n".join([
-                                    f"{word}" for word, _ in final_keywords
-                                ])
-                                
-                                # Annotate at centroid
+                                keyword_text = "\n".join([word for word, _ in final_keywords])
                                 ax2.annotate(
-                                    keyword_text,
-                                    xy=centroid,
-                                    xytext=(5, 5),
-                                    textcoords='offset points',
-                                    fontsize=8,
-                                    fontweight='bold',
+                                    keyword_text, xy=centroid, xytext=(5, 5),
+                                    textcoords='offset points', fontsize=8, fontweight='bold',
                                     color=colors[list(uniq).index(cid)],
-                                    bbox=dict(
-                                        boxstyle='round,pad=0.5',
-                                        facecolor='white',
-                                        edgecolor=colors[list(uniq).index(cid)],
-                                        alpha=0.8,
-                                        linewidth=1.5
-                                    ),
-                                    ha='left',
-                                    va='bottom',
-                                    zorder=1000
+                                    bbox=dict(boxstyle='round,pad=0.5', facecolor='white',
+                                              edgecolor=colors[list(uniq).index(cid)], alpha=0.8, linewidth=1.5),
+                                    ha='left', va='bottom', zorder=1000
                                 )
-                                
-                                # Mark centroid
-                                ax2.scatter(
-                                    [centroid[0]], [centroid[1]], 
-                                    c=[colors[list(uniq).index(cid)]], 
-                                    marker='*', 
-                                    s=200, 
-                                    edgecolors='black',
-                                    linewidths=1,
-                                    zorder=999
-                                )
-                
+                                ax2.scatter([centroid[0]], [centroid[1]], c=[colors[list(uniq).index(cid)]],
+                                            marker='*', s=200, edgecolors='black', linewidths=1, zorder=999)
             except Exception as e:
                 print(f"Warning: TF-IDF annotation failed at epoch {epoch}: {e}")
-            
+
             ax2.set_title(f"Epoch {epoch} - TF-IDF Keywords ({method_label})", fontsize=14, fontweight="bold")
             ax2.set_xticks([]), ax2.set_yticks([])
             for sp in ax2.spines.values():
@@ -1668,60 +1583,35 @@ class SEMTGPU(nn.Module):
             if save_plot:
                 out2 = os.path.join(save_dir, f"cluster_evolution_epoch_{epoch}_tfidf.png")
                 plt.savefig(out2, dpi=150, bbox_inches="tight", facecolor="white", edgecolor="none")
-            
             if show_plot:
                 plt.show()
             else:
                 plt.close()
-            
             return fig1, fig2
-        
+
         return fig1
 
     def create_evolution_grid(
-        self, 
-        save_dir: str = "./results/fnnjst", 
-        epochs_to_show: Optional[List[int]] = None, 
-        grid_cols: int = 3, 
+        self,
+        save_dir: str = "./results/fnnjst",
+        epochs_to_show: Optional[List[int]] = None,
+        grid_cols: int = 3,
         figsize: Tuple[int, int] = (15, 10),
-        plot_type: str = "both"  # 🆕 "regular", "tfidf", or "both"
+        plot_type: str = "both",
     ):
-        """
-        Create grid of evolution plots.
-        
-        Args:
-            save_dir: Directory with evolution plots
-            epochs_to_show: Specific epochs to display (None = all)
-            grid_cols: Number of columns in grid
-            figsize: Figure size
-            plot_type: "regular" (clean plots), "tfidf" (annotated), or "both" (side-by-side)
-        """
-        import matplotlib.image as mpimg
-
         if plot_type == "both":
-            # Create two separate grids
             fig_regular = self._create_single_grid(save_dir, epochs_to_show, grid_cols, figsize, suffix="")
             fig_tfidf = self._create_single_grid(save_dir, epochs_to_show, grid_cols, figsize, suffix="_tfidf")
             return fig_regular, fig_tfidf
         elif plot_type == "tfidf":
             return self._create_single_grid(save_dir, epochs_to_show, grid_cols, figsize, suffix="_tfidf")
-        else:  # regular
+        else:
             return self._create_single_grid(save_dir, epochs_to_show, grid_cols, figsize, suffix="")
-    
-    def _create_single_grid(
-        self,
-        save_dir: str,
-        epochs_to_show: Optional[List[int]],
-        grid_cols: int,
-        figsize: Tuple[int, int],
-        suffix: str = ""  # "" for regular, "_tfidf" for annotated
-    ):
-        """Helper to create a single grid of plots."""
+
+    def _create_single_grid(self, save_dir, epochs_to_show, grid_cols, figsize, suffix=""):
         import matplotlib.image as mpimg
-        
         pattern = f"cluster_evolution_epoch_*{suffix}.png"
         files = glob.glob(os.path.join(save_dir, pattern))
-        
         if not files:
             print(f"No cluster evolution plots found with pattern: {pattern}")
             return None
