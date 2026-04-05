@@ -874,9 +874,6 @@ class SEMTGPU(nn.Module):
             km.cluster_centers_, dtype=torch.float32, device=dev)
         return y_pred
 
-    # ─────────────────────────────────────────────────────────────────────────
-    # ██████████████████████  fit()  ██████████████████████████████████████████
-    # ─────────────────────────────────────────────────────────────────────────
     def fit(
         self,
         dataset,
@@ -1169,7 +1166,7 @@ class SEMTGPU(nn.Module):
                     print(f"  Cluster    Val   → Coh={val_metrics.get('val_coherence',0):.4f}  "
                           f"Div={val_metrics.get('val_diversity',0):.4f}  "
                           f"Score={val_metrics.get('val_cluster_score',0):.4f}  "
-                          f"{'⭐ BEST' if is_best else ''}")
+                          f"{'BEST' if is_best else ''}")
                     if cl_sup_tr:
                         print(f"  Supervised Train → ACC={cl_sup_tr['ACC']:.4f}  "
                               f"NMI={cl_sup_tr['NMI']:.4f}  ARI={cl_sup_tr['ARI']:.4f}")
