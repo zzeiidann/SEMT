@@ -121,10 +121,13 @@ class SEMTGPU(nn.Module):
     """
     Joint Sentiment + Topic Clustering (DEC-style) with Autoencoder features.
 
-    New in v2:
-      • Validation split during fit() → val_ratio parameter
-      • Best-model checkpoint selected by val_f1 (or val_acc if no labels)
-      • BERT token interpretation only at: early epoch, half epoch, last epoch
+    v3 Changes (vs v2):
+      • Train metrics now include F1 / Precision / Recall (consistent with val)
+      • Val cluster metric changed: silhouette (geometric) → coherence + diversity (semantic)
+      • val_metric="auto" now uses val_f1 (if labels) else val_cluster_score
+        where val_cluster_score = mean(coherence, diversity)
+      • Print output aligned: train and val show the same metric set
+      • CSV log updated accordingly
     """
 
     def __init__(
@@ -153,7 +156,7 @@ class SEMTGPU(nn.Module):
         self.stop_words: set = set()
 
         # ── best-model tracking ──────────────────────────────────────────────
-        self._best_val_score: float = -1.0          # higher = better
+        self._best_val_score: float = -1.0
         self._best_val_iter:  int   = -1
         self._best_state_dict: Optional[dict] = None
 
@@ -210,7 +213,6 @@ class SEMTGPU(nn.Module):
         print(f"✓ Loaded weights from {path}")
 
     def load_best_weights(self) -> None:
-        """Restore best-validation checkpoint saved in memory."""
         if self._best_state_dict is None:
             print("⚠  No best checkpoint available; keeping current weights.")
             return
@@ -219,7 +221,7 @@ class SEMTGPU(nn.Module):
               f"val_score={self._best_val_score:.4f})")
 
     # ─────────────────────────────────────────────────────────────────────────
-    # Validation evaluation helper
+    # Validation evaluation
     # ─────────────────────────────────────────────────────────────────────────
     def _evaluate_val(
         self,
@@ -229,16 +231,25 @@ class SEMTGPU(nn.Module):
         batch_size: int,
     ) -> Dict[str, float]:
         """
-        Run a full pass over the validation set.
+        Full pass over validation set.
 
-        Returns a dict with at minimum:
-            val_loss, val_acc_sentiment, val_f1,
-            val_silhouette, val_nmi (if labels), val_ari (if labels)
+        Sentiment metrics (if labels available):
+            val_acc_sentiment, val_f1, val_precision, val_recall
+            val_nmi, val_ari, val_acc_cluster
 
-        The *primary* metric used for best-model selection is:
-            val_f1  (if labels available)  else  val_silhouette
+        Cluster quality metrics (semantic, text-based):
+            val_coherence  — mean NPMI topic coherence across clusters
+            val_diversity  — unique top-words ratio across clusters
+            val_cluster_score = mean(coherence, diversity)
+
+        Fallback when no texts provided:
+            val_coherence = silhouette score (geometric fallback)
+            val_diversity = 0.0
+
+        Primary metric for best-model selection:
+            val_f1           (if labels available)
+            val_cluster_score (otherwise)
         """
-        dev = next(self.parameters()).device
         self.eval()
 
         q_list, s_list = [], []
@@ -254,42 +265,59 @@ class SEMTGPU(nn.Module):
 
         metrics: Dict[str, float] = {}
 
-        # Sentiment metrics (need labels)
+        # ── Sentiment metrics ────────────────────────────────────────────────
         if Y_val is not None:
             y_true = Y_val.cpu().numpy()
             if y_true.ndim == 2 and y_true.shape[1] > 1:
                 y_true = y_true.argmax(1)
             metrics["val_acc_sentiment"] = float((y_pred_sent == y_true).mean())
-            metrics["val_f1"]  = float(f1_score(y_true, y_pred_sent,
-                                                  average="binary", zero_division=0))
+            metrics["val_f1"]        = float(f1_score(y_true, y_pred_sent,
+                                                       average="binary", zero_division=0))
             metrics["val_precision"] = float(precision_score(y_true, y_pred_sent,
-                                                               average="binary", zero_division=0))
+                                                              average="binary", zero_division=0))
             metrics["val_recall"]    = float(recall_score(y_true, y_pred_sent,
-                                                            average="binary", zero_division=0))
+                                                           average="binary", zero_division=0))
             if len(np.unique(y_true)) > 1 and len(np.unique(y_pred_cluster)) > 1:
-                metrics["val_nmi"] = float(normalized_mutual_info_score(y_true, y_pred_cluster))
-                metrics["val_ari"] = float(adjusted_rand_score(y_true, y_pred_cluster))
+                metrics["val_nmi"]         = float(normalized_mutual_info_score(y_true, y_pred_cluster))
+                metrics["val_ari"]         = float(adjusted_rand_score(y_true, y_pred_cluster))
                 metrics["val_acc_cluster"] = cluster_acc(y_true, y_pred_cluster)
             else:
                 metrics.update({"val_nmi": 0.0, "val_ari": 0.0, "val_acc_cluster": 0.0})
         else:
-            metrics.update({"val_acc_sentiment": 0.0, "val_f1": 0.0,
-                             "val_precision": 0.0, "val_recall": 0.0,
-                             "val_nmi": 0.0, "val_ari": 0.0, "val_acc_cluster": 0.0})
+            metrics.update({
+                "val_acc_sentiment": 0.0, "val_f1": 0.0,
+                "val_precision": 0.0,     "val_recall": 0.0,
+                "val_nmi": 0.0,           "val_ari": 0.0,
+                "val_acc_cluster": 0.0,
+            })
 
-        # Unsupervised: silhouette
-        feats_val = self.extract_feature(X_val).cpu().numpy()
-        if len(np.unique(y_pred_cluster)) >= 2:
-            try:
-                metrics["val_silhouette"] = float(silhouette_score(feats_val, y_pred_cluster))
-            except Exception:
-                metrics["val_silhouette"] = 0.0
+        # ── Semantic cluster quality (coherence + diversity) ─────────────────
+        # Preferred over silhouette for text: coherence measures whether top
+        # words in a cluster co-occur (topic is real), diversity measures
+        # whether clusters cover distinct vocabulary (no redundancy).
+        if texts_val and len(texts_val) > 0:
+            coh_scores = self.compute_topic_coherence(texts_val, y_pred_cluster)
+            metrics["val_coherence"] = float(np.mean(list(coh_scores.values())) or 0.0)
+            metrics["val_diversity"] = self.compute_topic_diversity(texts_val, y_pred_cluster)
         else:
-            metrics["val_silhouette"] = 0.0
+            # Geometric fallback when no texts available
+            feats_val = self.extract_feature(X_val).cpu().numpy()
+            if len(np.unique(y_pred_cluster)) >= 2:
+                try:
+                    metrics["val_coherence"] = float(silhouette_score(feats_val, y_pred_cluster))
+                except Exception:
+                    metrics["val_coherence"] = 0.0
+            else:
+                metrics["val_coherence"] = 0.0
+            metrics["val_diversity"] = 0.0
 
-        # Primary score: val_f1 if labels else val_silhouette
+        metrics["val_cluster_score"] = (
+            metrics["val_coherence"] + metrics["val_diversity"]
+        ) / 2.0
+
+        # ── Primary score for best-model selection ───────────────────────────
         metrics["val_primary_score"] = (
-            metrics["val_f1"] if Y_val is not None else metrics["val_silhouette"]
+            metrics["val_f1"] if Y_val is not None else metrics["val_cluster_score"]
         )
         return metrics
 
@@ -340,7 +368,7 @@ class SEMTGPU(nn.Module):
         return str(weights_path)
 
     # ─────────────────────────────────────────────────────────────────────────
-    # Metrics helpers (unchanged from original)
+    # Metrics helpers
     # ─────────────────────────────────────────────────────────────────────────
     @staticmethod
     def target_distribution(q):
@@ -773,7 +801,7 @@ class SEMTGPU(nn.Module):
         return fig
 
     # ─────────────────────────────────────────────────────────────────────────
-    # Cluster evolution plot helpers (unchanged)
+    # Cluster evolution plot helpers
     # ─────────────────────────────────────────────────────────────────────────
     def plot_cluster_evolution(
         self, embeddings, cluster_assignments, epoch,
@@ -867,8 +895,8 @@ class SEMTGPU(nn.Module):
         maxiter:         int   = int(2e4),
         save_dir:        str   = "./results/fnnjst",
         # ── Validation split ─────────────────────────────────────────────────
-        val_ratio:       float = 0.1,   # fraction of data used for validation
-        val_metric:      str   = "auto", # "f1", "silhouette", or "auto"
+        val_ratio:       float = 0.1,
+        val_metric:      str   = "auto",
         # ── Plot control ─────────────────────────────────────────────────────
         plot_evolution:  bool  = True,
         plot_interval:   Optional[int] = None,
@@ -881,7 +909,6 @@ class SEMTGPU(nn.Module):
         ig_top_dims:      int  = 20,
         ig_max_samples:   int  = 512,
         # ── Token Attribution ────────────────────────────────────────────────
-        # Scheduled: early / half / last epoch only (not every plot_interval)
         plot_token_attribution:    bool = False,
         token_attr_bert_name:      str  = "indolem/indobert-base-uncased",
         token_attr_sentiment_class: int = 1,
@@ -892,35 +919,25 @@ class SEMTGPU(nn.Module):
         """
         Joint DEC + Sentiment + Reconstruction training.
 
-        Key additions vs v1:
-        ─────────────────────
-        val_ratio  : float (default 0.1)
-            Fraction of the dataset held out for validation.
-            Val metrics are computed at every update_interval.
+        Metric consistency (v3):
+        ─────────────────────────
+        Train and validation now expose the SAME metric set:
+            Sentiment : Acc, F1, Precision, Recall
+            Cluster   : Coherence (NPMI), Diversity (unique top-word ratio)
+                        combined into cluster_score = mean(coherence, diversity)
 
-        val_metric : str  ("auto" | "f1" | "silhouette")
-            Metric used to select the best model checkpoint.
-            "auto"  → val_f1 if labels are available, else silhouette.
-            "f1"    → val F1 sentiment score.
-            "silhouette" → unsupervised silhouette on cluster features.
-
-        BERT Token Attribution schedule:
-        ─────────────────────────────────
-        Instead of running at every plot_interval, token attribution is
-        computed only at three key epochs:
-            • early  — first plot_interval iteration (iter == plot_interval)
-            • half   — ~50 % of maxiter
-            • last   — final iteration before stopping
+        Silhouette is only used as a geometric fallback when no texts are
+        supplied. For text data, coherence + diversity are more meaningful:
+            - Coherence  → are the top words in a cluster actually co-occurring?
+            - Diversity  → are the clusters covering distinct vocabulary?
 
         Best-model selection:
         ─────────────────────
-        At every update_interval the validation primary score is evaluated.
-        If it improves, the state_dict is saved in memory.
-        After training completes, weights are automatically restored to the
-        best checkpoint.  A JSON summary is written to <save_dir>/best_model.json.
+        val_f1 (if labels)  |  val_cluster_score (if no labels, text available)
+        val_coherence/silhouette (fallback, no texts)
         """
         print("=" * 60)
-        print("SEMTGPU v2 — Joint Training: Clustering + Sentiment + Reconstruction")
+        print("SEMTGPU v3 — Joint Training: Clustering + Sentiment + Reconstruction")
         print(f"Loss: α(recon)={alpha}, γ(cluster)={gamma}, η(sentiment)={eta}")
         print(f"Update interval: {update_interval}  |  val_ratio: {val_ratio:.0%}")
         print(f"Best-model metric: {val_metric}")
@@ -961,7 +978,7 @@ class SEMTGPU(nn.Module):
         # ── Validation split ─────────────────────────────────────────────────
         n_val   = max(1, int(N * val_ratio))
         n_train = N - n_val
-        idx_all = np.random.permutation(N)
+        idx_all   = np.random.permutation(N)
         idx_train = idx_all[:n_train]
         idx_val   = idx_all[n_train:]
 
@@ -976,13 +993,16 @@ class SEMTGPU(nn.Module):
 
         # ── Determine primary val metric ──────────────────────────────────────
         if val_metric == "auto":
-            _primary = "val_f1" if has_labels else "val_silhouette"
+            _primary = "val_f1" if has_labels else "val_cluster_score"
         elif val_metric == "f1":
             _primary = "val_f1"
-        elif val_metric == "silhouette":
-            _primary = "val_silhouette"
+        elif val_metric in ("cluster_score", "silhouette"):
+            # Accept legacy "silhouette" keyword, redirect to semantic score
+            _primary = "val_cluster_score"
         else:
-            raise ValueError(f"val_metric must be 'auto'|'f1'|'silhouette', got {val_metric}")
+            raise ValueError(
+                f"val_metric must be 'auto'|'f1'|'cluster_score', got {val_metric}"
+            )
         print(f"Primary validation metric: {_primary}")
 
         # ── Class weights on train split ──────────────────────────────────────
@@ -996,15 +1016,15 @@ class SEMTGPU(nn.Module):
 
         # ── Optimizer ─────────────────────────────────────────────────────────
         opt_map = {
-            "adam":    lambda: optim.Adam(self.parameters(), lr=learning_rate),
-            "adamw":   lambda: optim.AdamW(self.parameters(), lr=learning_rate),
-            "sgd":     lambda: optim.SGD(self.parameters(), lr=learning_rate, momentum=momentum),
-            "rmsprop": lambda: optim.RMSprop(self.parameters(), lr=learning_rate),
-            "adamax":  lambda: optim.Adamax(self.parameters(), lr=learning_rate),
-            "nadam":   lambda: optim.NAdam(self.parameters(), lr=learning_rate),
-            "adagrad": lambda: optim.Adagrad(self.parameters(), lr=learning_rate),
-            "adadelta":lambda: optim.Adadelta(self.parameters(), lr=learning_rate),
-            "asgd":    lambda: optim.ASGD(self.parameters(), lr=learning_rate),
+            "adam":     lambda: optim.Adam(self.parameters(), lr=learning_rate),
+            "adamw":    lambda: optim.AdamW(self.parameters(), lr=learning_rate),
+            "sgd":      lambda: optim.SGD(self.parameters(), lr=learning_rate, momentum=momentum),
+            "rmsprop":  lambda: optim.RMSprop(self.parameters(), lr=learning_rate),
+            "adamax":   lambda: optim.Adamax(self.parameters(), lr=learning_rate),
+            "nadam":    lambda: optim.NAdam(self.parameters(), lr=learning_rate),
+            "adagrad":  lambda: optim.Adagrad(self.parameters(), lr=learning_rate),
+            "adadelta": lambda: optim.Adadelta(self.parameters(), lr=learning_rate),
+            "asgd":     lambda: optim.ASGD(self.parameters(), lr=learning_rate),
         }
         if optimizer_type.lower() not in opt_map:
             raise ValueError(f"Unknown optimizer: {optimizer_type}")
@@ -1020,13 +1040,9 @@ class SEMTGPU(nn.Module):
         y_pred_last = self._init_clusters_with_kmeans(X_train)
 
         # ── Token attribution schedule ────────────────────────────────────────
-        # Three trigger points (in terms of iteration number):
-        #   early = first pinterv (but >0)
-        #   half  = ~maxiter // 2  (rounded to nearest update_interval multiple)
-        #   last  = dynamically set when training ends (handled separately)
         n_intervals = maxiter // update_interval
         half_iter   = (n_intervals // 2) * update_interval
-        early_iter  = pinterv   # first plot after warm-up
+        early_iter  = pinterv
 
         def _should_run_token_attr(ite: int, is_final: bool = False) -> bool:
             if not plot_token_attribution or not has_texts: return False
@@ -1035,18 +1051,28 @@ class SEMTGPU(nn.Module):
 
         # ── CSV log ───────────────────────────────────────────────────────────
         log_path = os.path.join(save_dir, "idec_sentiment_log.csv")
+        # v3: replaced val_silhouette with val_coherence, val_diversity, val_cluster_score
+        #     added train_f1, train_precision, train_recall for consistency
         log_fields = [
             "iter", "split",
-            "acc_sentiment", "L", "Lr", "Lc", "Ls",
+            # Train sentiment (now full set, consistent with val)
+            "train_acc", "train_f1", "train_precision", "train_recall",
+            # Train losses
+            "L", "Lr", "Lc", "Ls",
+            # Train clustering (supervised)
             "ACC", "NMI", "ARI", "Homogeneity", "Completeness", "V-measure",
-            "Silhouette",
-            "Topic_Coherence", "Topic_Diversity", "Cluster_Balance",
-            "Min_Cluster_Size", "Max_Cluster_Size",
-            # validation columns
-            "val_acc_sentiment", "val_f1", "val_precision", "val_recall",
-            "val_nmi", "val_ari", "val_silhouette", "val_primary_score",
-            "is_best",
-            # IG columns
+            # Train cluster quality (semantic)
+            "Train_Coherence", "Train_Diversity", "Train_Cluster_Score",
+            "Cluster_Balance", "Min_Cluster_Size", "Max_Cluster_Size",
+            # Val sentiment
+            "val_acc", "val_f1", "val_precision", "val_recall",
+            # Val clustering (supervised)
+            "val_nmi", "val_ari", "val_acc_cluster",
+            # Val cluster quality (semantic)
+            "val_coherence", "val_diversity", "val_cluster_score",
+            # Best-model
+            "val_primary_score", "is_best",
+            # IG
             "IG_TopDim", "IG_TopDim_Score", "IG_Mean_Attribution",
         ]
 
@@ -1059,7 +1085,7 @@ class SEMTGPU(nn.Module):
             self.train()
             iter_count = 0
             tot_L = Lr = Lc = Ls = 0.0
-            last_ite = 0    # track final iteration for cleanup
+            last_ite = 0
 
             for ite in range(maxiter):
                 last_ite = ite
@@ -1080,27 +1106,39 @@ class SEMTGPU(nn.Module):
                         delta  = float((y_pred != y_pred_last).sum() / len(y_pred))
                         y_pred_last = y_pred.copy()
 
-                    # Train-split sentiment acc
-                    acc_s = 0.0
+                    # ── Train sentiment metrics (full set, consistent with val) ─
+                    train_acc = train_f1 = train_prec = train_rec = 0.0
                     if has_labels:
                         s_lab  = s_all.argmax(1).cpu().numpy()
                         y_true = Y_train.cpu().numpy()
-                        if y_true.ndim == 2 and y_true.shape[1] > 1: y_true = y_true.argmax(1)
-                        acc_s = float((s_lab == y_true).mean())
+                        if y_true.ndim == 2 and y_true.shape[1] > 1:
+                            y_true = y_true.argmax(1)
+                        train_acc  = float((s_lab == y_true).mean())
+                        train_f1   = float(f1_score(y_true, s_lab,
+                                                     average="binary", zero_division=0))
+                        train_prec = float(precision_score(y_true, s_lab,
+                                                           average="binary", zero_division=0))
+                        train_rec  = float(recall_score(y_true, s_lab,
+                                                        average="binary", zero_division=0))
 
-                    # Train clustering metrics
+                    # ── Train clustering metrics (supervised) ─────────────────
                     feats_tr = self.extract_feature(X_train).cpu().numpy()
                     cl_sup_tr = {}
                     if has_labels:
                         yt = Y_train.cpu().numpy()
                         if yt.ndim == 2 and yt.shape[1] > 1: yt = yt.argmax(1)
                         cl_sup_tr = self.compute_clustering_metrics(yt, y_pred)
-                    sil_tr = self.compute_silhouette_score(feats_tr, y_pred)
-                    coh_tr = div_tr = 0.0; cov_tr = {'cluster_balance':0.0,'min_cluster_size':0.0,'max_cluster_size':0.0}
+
+                    # ── Train cluster quality (semantic) ──────────────────────
+                    train_coh = train_div = 0.0
+                    cov_tr = {'cluster_balance': 0.0, 'min_cluster_size': 0.0,
+                              'max_cluster_size': 0.0}
                     if has_texts:
-                        coh_tr = float(np.mean(list(self.compute_topic_coherence(texts_train, y_pred).values())) or 0.0)
-                        div_tr = self.compute_topic_diversity(texts_train, y_pred)
-                        cov_tr = self.compute_topic_coverage(texts_train, y_pred)
+                        coh_scores = self.compute_topic_coherence(texts_train, y_pred)
+                        train_coh  = float(np.mean(list(coh_scores.values())) or 0.0)
+                        train_div  = self.compute_topic_diversity(texts_train, y_pred)
+                        cov_tr     = self.compute_topic_coverage(texts_train, y_pred)
+                    train_cluster_score = (train_coh + train_div) / 2.0
 
                     avg_L  = tot_L / update_interval if iter_count > 0 else 0.0
                     avg_Lr = Lr    / update_interval if iter_count > 0 else 0.0
@@ -1109,7 +1147,7 @@ class SEMTGPU(nn.Module):
 
                     # ── Validation evaluation ─────────────────────────────────
                     val_metrics = self._evaluate_val(X_val, Y_val, texts_val, batch_size)
-                    vs = val_metrics["val_primary_score"]
+                    vs      = val_metrics["val_primary_score"]
                     is_best = vs > self._best_val_score
                     if is_best:
                         self._best_val_score = vs
@@ -1118,13 +1156,23 @@ class SEMTGPU(nn.Module):
                         print(f"  ✓ New best model at iter {ite}: {_primary}={vs:.4f}")
                         self.save_weights(os.path.join(save_dir, "SEMTGPU_best.weights.pth"))
 
-                    print(f"Iter {ite}: Lr={avg_Lr:.5f}, Lc={avg_Lc:.5f}, Ls={avg_Ls:.5f}, "
-                          f"TrainAcc={acc_s:.4f} | ValF1={val_metrics.get('val_f1',0):.4f} "
-                          f"ValSil={val_metrics['val_silhouette']:.4f} "
-                          f"{'⭐BEST' if is_best else ''}")
+                    # ── Aligned print (train vs val, same metric set) ─────────
+                    print(f"\nIter {ite:5d} | Lr={avg_Lr:.5f}  Lc={avg_Lc:.5f}  Ls={avg_Ls:.5f}")
+                    print(f"  Sentiment  Train → Acc={train_acc:.4f}  F1={train_f1:.4f}  "
+                          f"P={train_prec:.4f}  R={train_rec:.4f}")
+                    print(f"  Sentiment  Val   → Acc={val_metrics.get('val_acc_sentiment',0):.4f}  "
+                          f"F1={val_metrics.get('val_f1',0):.4f}  "
+                          f"P={val_metrics.get('val_precision',0):.4f}  "
+                          f"R={val_metrics.get('val_recall',0):.4f}")
+                    print(f"  Cluster    Train → Coh={train_coh:.4f}  Div={train_div:.4f}  "
+                          f"Score={train_cluster_score:.4f}")
+                    print(f"  Cluster    Val   → Coh={val_metrics.get('val_coherence',0):.4f}  "
+                          f"Div={val_metrics.get('val_diversity',0):.4f}  "
+                          f"Score={val_metrics.get('val_cluster_score',0):.4f}  "
+                          f"{'⭐ BEST' if is_best else ''}")
                     if cl_sup_tr:
-                        print(f"  Train clustering: ACC={cl_sup_tr['ACC']:.4f}, "
-                              f"NMI={cl_sup_tr['NMI']:.4f}, ARI={cl_sup_tr['ARI']:.4f}")
+                        print(f"  Supervised Train → ACC={cl_sup_tr['ACC']:.4f}  "
+                              f"NMI={cl_sup_tr['NMI']:.4f}  ARI={cl_sup_tr['ARI']:.4f}")
 
                     # ── Scatter plot ──────────────────────────────────────────
                     if plot_evolution and ite > 0 and (ite % pinterv == 0):
@@ -1148,11 +1196,11 @@ class SEMTGPU(nn.Module):
                             self.plot_integrated_gradients(
                                 ig_attrs, y_pred[idx_ig], epoch=ite,
                                 save_dir=plot_dir, top_dims=ig_top_dims, show_plot=False)
-                            abs_ig          = np.abs(ig_attrs)
-                            gi              = abs_ig.mean(0)
-                            ig_top_dim_idx  = int(gi.argmax())
-                            ig_top_dim_score= float(gi.max())
-                            ig_mean_attr    = float(gi.mean())
+                            abs_ig           = np.abs(ig_attrs)
+                            gi               = abs_ig.mean(0)
+                            ig_top_dim_idx   = int(gi.argmax())
+                            ig_top_dim_score = float(gi.max())
+                            ig_mean_attr     = float(gi.mean())
                         except Exception as e:
                             print(f"  Warning: IG plot failed at iter {ite}: {e}")
 
@@ -1180,36 +1228,52 @@ class SEMTGPU(nn.Module):
 
                     # ── CSV row ───────────────────────────────────────────────
                     writer.writerow({
-                        "iter": ite, "split": "train",
-                        "acc_sentiment": round(acc_s, 5),
-                        "L": round(avg_L,5), "Lr": round(avg_Lr,5),
-                        "Lc": round(avg_Lc,5), "Ls": round(avg_Ls,5),
-                        "ACC":         round(cl_sup_tr.get('ACC',0.0),5),
-                        "NMI":         round(cl_sup_tr.get('NMI',0.0),5),
-                        "ARI":         round(cl_sup_tr.get('ARI',0.0),5),
-                        "Homogeneity": round(cl_sup_tr.get('Homogeneity',0.0),5),
-                        "Completeness":round(cl_sup_tr.get('Completeness',0.0),5),
-                        "V-measure":   round(cl_sup_tr.get('V-measure',0.0),5),
-                        "Silhouette":  round(sil_tr,5),
-                        "Topic_Coherence":   round(coh_tr,5),
-                        "Topic_Diversity":   round(div_tr,5),
-                        "Cluster_Balance":   round(cov_tr['cluster_balance'],5),
-                        "Min_Cluster_Size":  round(cov_tr['min_cluster_size'],5),
-                        "Max_Cluster_Size":  round(cov_tr['max_cluster_size'],5),
-                        # val
-                        "val_acc_sentiment": round(val_metrics.get('val_acc_sentiment',0.0),5),
-                        "val_f1":            round(val_metrics.get('val_f1',0.0),5),
-                        "val_precision":     round(val_metrics.get('val_precision',0.0),5),
-                        "val_recall":        round(val_metrics.get('val_recall',0.0),5),
-                        "val_nmi":           round(val_metrics.get('val_nmi',0.0),5),
-                        "val_ari":           round(val_metrics.get('val_ari',0.0),5),
-                        "val_silhouette":    round(val_metrics.get('val_silhouette',0.0),5),
-                        "val_primary_score": round(val_metrics.get('val_primary_score',0.0),5),
+                        "iter":   ite,
+                        "split":  "train",
+                        # Train sentiment
+                        "train_acc":       round(train_acc,  5),
+                        "train_f1":        round(train_f1,   5),
+                        "train_precision": round(train_prec, 5),
+                        "train_recall":    round(train_rec,  5),
+                        # Losses
+                        "L":  round(avg_L,  5),
+                        "Lr": round(avg_Lr, 5),
+                        "Lc": round(avg_Lc, 5),
+                        "Ls": round(avg_Ls, 5),
+                        # Train clustering supervised
+                        "ACC":         round(cl_sup_tr.get('ACC',         0.0), 5),
+                        "NMI":         round(cl_sup_tr.get('NMI',         0.0), 5),
+                        "ARI":         round(cl_sup_tr.get('ARI',         0.0), 5),
+                        "Homogeneity": round(cl_sup_tr.get('Homogeneity', 0.0), 5),
+                        "Completeness":round(cl_sup_tr.get('Completeness',0.0), 5),
+                        "V-measure":   round(cl_sup_tr.get('V-measure',   0.0), 5),
+                        # Train cluster quality (semantic)
+                        "Train_Coherence":    round(train_coh,           5),
+                        "Train_Diversity":    round(train_div,           5),
+                        "Train_Cluster_Score":round(train_cluster_score, 5),
+                        "Cluster_Balance":    round(cov_tr['cluster_balance'],   5),
+                        "Min_Cluster_Size":   round(cov_tr['min_cluster_size'],  5),
+                        "Max_Cluster_Size":   round(cov_tr['max_cluster_size'],  5),
+                        # Val sentiment
+                        "val_acc":       round(val_metrics.get('val_acc_sentiment', 0.0), 5),
+                        "val_f1":        round(val_metrics.get('val_f1',            0.0), 5),
+                        "val_precision": round(val_metrics.get('val_precision',     0.0), 5),
+                        "val_recall":    round(val_metrics.get('val_recall',        0.0), 5),
+                        # Val clustering supervised
+                        "val_nmi":         round(val_metrics.get('val_nmi',         0.0), 5),
+                        "val_ari":         round(val_metrics.get('val_ari',         0.0), 5),
+                        "val_acc_cluster": round(val_metrics.get('val_acc_cluster', 0.0), 5),
+                        # Val cluster quality (semantic)
+                        "val_coherence":     round(val_metrics.get('val_coherence',     0.0), 5),
+                        "val_diversity":     round(val_metrics.get('val_diversity',     0.0), 5),
+                        "val_cluster_score": round(val_metrics.get('val_cluster_score', 0.0), 5),
+                        # Best-model
+                        "val_primary_score": round(val_metrics.get('val_primary_score', 0.0), 5),
                         "is_best":           int(is_best),
                         # IG
-                        "IG_TopDim":          ig_top_dim_idx,
-                        "IG_TopDim_Score":    round(ig_top_dim_score,6),
-                        "IG_Mean_Attribution":round(ig_mean_attr,6),
+                        "IG_TopDim":           ig_top_dim_idx,
+                        "IG_TopDim_Score":     round(ig_top_dim_score, 6),
+                        "IG_Mean_Attribution": round(ig_mean_attr,     6),
                     })
 
                     tot_L = Lr = Lc = Ls = 0.0
@@ -1246,10 +1310,12 @@ class SEMTGPU(nn.Module):
                     s       = torch.softmax(self.sentiment(z), 1)
                     rl = mse_loss(x_recon, xb)
                     cl = kld_loss((q + 1e-8).log(), pb)
-                    sl = ce_loss(s, yb) if yb is not None else torch.zeros(1, device=dev).squeeze()
+                    sl = ce_loss(s, yb) if yb is not None else \
+                         torch.zeros(1, device=dev).squeeze()
                     loss = alpha*rl + gamma*cl + eta*sl
                     optimizer.zero_grad(); loss.backward(); optimizer.step()
-                    tot_L += float(loss); Lr += float(rl); Lc += float(cl); Ls += float(sl)
+                    tot_L += float(loss); Lr += float(rl)
+                    Lc    += float(cl);   Ls += float(sl)
                     iter_count += 1
 
                 if ite % save_interval == 0 and ite > 0:
@@ -1260,30 +1326,29 @@ class SEMTGPU(nn.Module):
         print("Training complete.  Restoring best model checkpoint…")
         self.load_best_weights()
 
-        # Best model summary JSON
         best_summary = {
-            "best_iter":         self._best_val_iter,
-            "best_val_score":    round(self._best_val_score, 5),
-            "primary_metric":    _primary,
-            "val_ratio":         val_ratio,
-            "n_train":           n_train,
-            "n_val":             n_val,
+            "best_iter":      self._best_val_iter,
+            "best_val_score": round(self._best_val_score, 5),
+            "primary_metric": _primary,
+            "val_ratio":      val_ratio,
+            "n_train":        n_train,
+            "n_val":          n_val,
         }
         with open(os.path.join(save_dir, "best_model.json"), "w") as f:
             json.dump(best_summary, f, indent=2)
         print(f"✓ Best model info saved → {save_dir}/best_model.json")
         print(f"  Best iter={self._best_val_iter}, {_primary}={self._best_val_score:.4f}")
 
-        # Final periodic weights
         self.save_weights(os.path.join(save_dir, "SEMTGPU_final.weights.pth"))
 
-        # ── Token attribution at LAST epoch ───────────────────────────────────
+        # ── Final cluster assignments ─────────────────────────────────────────
         self.eval()
         with torch.no_grad():
             q_all_f = torch.cat([self(X_train[i:i+batch_size])[0]
                                   for i in range(0, n_train, batch_size)], 0)
         y_final = q_all_f.argmax(1).cpu().numpy()
 
+        # ── Token attribution at LAST epoch ───────────────────────────────────
         if _should_run_token_attr(last_ite, is_final=True) and has_texts:
             try:
                 print("\n[Token Attr @ LAST epoch]")
@@ -1337,9 +1402,12 @@ class SEMTGPU(nn.Module):
             if y_true.ndim == 2 and y_true.shape[1] > 1: y_true = y_true.argmax(1)
             metrics["sentiment"] = {
                 "accuracy":  float((y_pred_sent == y_true).mean()),
-                "precision": float(precision_score(y_true, y_pred_sent, average="binary", zero_division=0)),
-                "recall":    float(recall_score(y_true, y_pred_sent, average="binary", zero_division=0)),
-                "f1_score":  float(f1_score(y_true, y_pred_sent, average="binary", zero_division=0)),
+                "precision": float(precision_score(y_true, y_pred_sent,
+                                                    average="binary", zero_division=0)),
+                "recall":    float(recall_score(y_true, y_pred_sent,
+                                                average="binary", zero_division=0)),
+                "f1_score":  float(f1_score(y_true, y_pred_sent,
+                                            average="binary", zero_division=0)),
             }
             print("\n" + "=" * 60)
             print("FINAL (BEST MODEL) SENTIMENT METRICS — TRAIN SPLIT")
@@ -1348,12 +1416,17 @@ class SEMTGPU(nn.Module):
                 print(f"  {k:12s}: {v:.4f}")
             print("=" * 60)
 
-        # Val metrics on best model
+        # ── Final val metrics on best model ───────────────────────────────────
         val_final = self._evaluate_val(X_val, Y_val, texts_val, batch_size)
         metrics["val_final"] = val_final
         print("\nFINAL VAL METRICS (best model):")
-        for k, v in val_final.items():
-            print(f"  {k}: {v:.4f}" if isinstance(v, float) else f"  {k}: {v}")
+        print(f"  Sentiment → Acc={val_final.get('val_acc_sentiment',0):.4f}  "
+              f"F1={val_final.get('val_f1',0):.4f}  "
+              f"P={val_final.get('val_precision',0):.4f}  "
+              f"R={val_final.get('val_recall',0):.4f}")
+        print(f"  Cluster   → Coh={val_final.get('val_coherence',0):.4f}  "
+              f"Div={val_final.get('val_diversity',0):.4f}  "
+              f"Score={val_final.get('val_cluster_score',0):.4f}")
 
         if has_labels:
             return y_pred_cl, s_all_f.cpu().numpy(), metrics
