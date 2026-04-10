@@ -1604,7 +1604,7 @@ class SEMTGPU(nn.Module):
         ig_max_samples:   int  = 512,
         plot_token_attribution:    bool = False,
         token_attr_bert_name:      str  = "allenai/longformer-base-4096",
-        token_attr_top_k:          int  = 10,
+        token_attr_top_k:          int  = 30,
         token_attr_max_samples:    int  = 15,
         token_attr_max_length:     int  = 4096,
     ):
