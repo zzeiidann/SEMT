@@ -173,7 +173,7 @@ class SEMTGPU(nn.Module):
     """
     Joint Sentiment + Topic Clustering (DEC-style) with Autoencoder features.
 
-    v3.2 Changes (vs v3.1):
+    v3.3 Changes (vs v3.2):
       • Default BERT model changed to allenai/longformer-base-4096
         - Handles long documents up to 4096 tokens
         - Uses global attention on [CLS] token for classification
@@ -191,6 +191,10 @@ class SEMTGPU(nn.Module):
         for its positive vs negative drivers — no cross-contamination.
       • plot_token_attribution_per_cluster updated to use new neg_pool/pos_pool keys
       • plot_token_attribution_heatmap updated to use new neg_pool/pos_pool keys
+      • Token attribution now runs ONLY ONCE at post-training on the final best
+        model — no more intermediate runs at early/half iteration. This avoids
+        redundant expensive BERT inference during training and gives a single
+        clean, authoritative attribution result from the best checkpoint.
     """
 
     def __init__(
@@ -1607,9 +1611,11 @@ class SEMTGPU(nn.Module):
         """
         Joint DEC + Sentiment + Reconstruction training.
 
-        v3.2 changes vs v3.1:
+        v3.3 changes vs v3.2:
+        - Token attribution runs ONLY ONCE after training on the final best model.
+          Removed early/half-iteration intermediate attribution runs entirely.
+          Result is saved to <save_dir>/token_attribution/.
         - Default token attribution model: allenai/longformer-base-4096
-          (handles documents up to 4096 tokens with global CLS attention)
         - Token cleaning handles Ġ (Longformer/RoBERTa), ▁ (SentencePiece), ## (WordPiece)
         - Attribution aggregated per predicted sentiment label within each cluster:
             neg_pool: tokens from predicted-negative samples → scores toward negative
@@ -1617,15 +1623,15 @@ class SEMTGPU(nn.Module):
         - Occlusion scoring uses global_attention_mask for Longformer models
         """
         print("=" * 60)
-        print("SEMTGPU v3.2 — Joint Training: Clustering + Sentiment + Reconstruction")
+        print("SEMTGPU v3.3 — Joint Training: Clustering + Sentiment + Reconstruction")
         print(f"Loss: α(recon)={alpha}, γ(cluster)={gamma}, η(sentiment)={eta}")
         print(f"Update interval: {update_interval}  |  val_ratio: {val_ratio:.0%}")
         print(f"Best-model metric: {val_metric}")
         if plot_token_attribution:
             print(f"Token attribution model: {token_attr_bert_name}")
-            print(f"Token attribution: neg_pool + pos_pool  |  samples/cluster={token_attr_max_samples} "
+            print(f"Token attribution: FINAL BEST MODEL ONLY")
+            print(f"  samples/cluster={token_attr_max_samples} "
                   f"({token_attr_max_samples//2} neg + {token_attr_max_samples - token_attr_max_samples//2} pos)")
-            print("Token attribution schedule: early / half / last epoch only")
         print("=" * 60)
 
         dev     = next(self.parameters()).device
@@ -1714,15 +1720,6 @@ class SEMTGPU(nn.Module):
 
         print("Initialising cluster centres with k-means (train split).")
         y_pred_last = self._init_clusters_with_kmeans(X_train)
-
-        n_intervals = maxiter // update_interval
-        half_iter   = (n_intervals // 2) * update_interval
-        early_iter  = pinterv
-
-        def _should_run_token_attr(ite: int, is_final: bool = False) -> bool:
-            if not plot_token_attribution or not has_texts: return False
-            if is_final: return True
-            return ite in {early_iter, half_iter}
 
         log_path = os.path.join(save_dir, "idec_sentiment_log.csv")
         log_fields = [
@@ -1856,26 +1853,6 @@ class SEMTGPU(nn.Module):
                         except Exception as e:
                             print(f"  Warning: IG plot failed at iter {ite}: {e}")
 
-                    if _should_run_token_attr(ite, is_final=False):
-                        try:
-                            print(f"  [Token Attr @ iter {ite}] — using {token_attr_bert_name}")
-                            ta = self.compute_token_attribution_per_cluster_with_embeddings(
-                                texts_train,
-                                X_train.cpu().numpy(),
-                                y_pred,
-                                bert_model_name=token_attr_bert_name,
-                                top_k=token_attr_top_k,
-                                max_length=token_attr_max_length,
-                                max_samples_per_cluster=token_attr_max_samples,
-                            )
-                            self.plot_token_attribution_per_cluster(
-                                ta, epoch=ite, save_dir=plot_dir,
-                                top_k=token_attr_top_k, show_plot=False)
-                            self.plot_token_attribution_heatmap(
-                                ta, epoch=ite, save_dir=plot_dir, show_plot=False)
-                        except Exception as e:
-                            print(f"  Warning: token attr failed at iter {ite}: {e}")
-
                     writer.writerow({
                         "iter":   ite,   "split": "train",
                         "train_acc":       round(train_acc,  5),
@@ -1982,10 +1959,11 @@ class SEMTGPU(nn.Module):
                                   for i in range(0, n_train, batch_size)], 0)
         y_final = q_all_f.argmax(1).cpu().numpy()
 
-        if _should_run_token_attr(last_ite, is_final=True) and has_texts:
+        if plot_token_attribution and has_texts:
             try:
-                print(f"\n[Token Attr @ LAST epoch] — using {token_attr_bert_name}")
-                ta_last = self.compute_token_attribution_per_cluster_with_embeddings(
+                print(f"\n[Token Attribution — Final Best Model]")
+                print(f"  Model: {token_attr_bert_name}")
+                ta_final = self.compute_token_attribution_per_cluster_with_embeddings(
                     texts_train,
                     X_train.cpu().numpy(),
                     y_final,
@@ -1995,12 +1973,18 @@ class SEMTGPU(nn.Module):
                     max_samples_per_cluster=token_attr_max_samples,
                 )
                 ta_dir = os.path.join(save_dir, "token_attribution")
+                os.makedirs(ta_dir, exist_ok=True)
                 self.plot_token_attribution_per_cluster(
-                    ta_last, epoch=last_ite, save_dir=ta_dir,
+                    ta_final, epoch=last_ite, save_dir=ta_dir,
                     top_k=token_attr_top_k, show_plot=False)
                 self.plot_token_attribution_heatmap(
-                    ta_last, epoch=last_ite, save_dir=ta_dir, show_plot=False)
-                print("✓ Final token attribution complete.")
+                    ta_final, epoch=last_ite, save_dir=ta_dir, show_plot=False)
+                # Save raw scores to JSON for later inspection
+                ta_json_path = os.path.join(ta_dir, "token_attribution_final.json")
+                with open(ta_json_path, "w") as f:
+                    json.dump({str(k): v for k, v in ta_final.items()}, f, indent=2)
+                print(f"  ✓ Token attribution complete → {ta_dir}")
+                print(f"  ✓ Raw scores saved → {ta_json_path}")
             except Exception as e:
                 print(f"Warning: final token attribution failed: {e}")
 
