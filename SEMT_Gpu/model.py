@@ -75,17 +75,14 @@ def _apply_professional_style():
     })
 
 # ── Colour palettes ──────────────────────────────────────────────────────────
-# Professional diverging: deep red ↔ white ↔ deep teal
 _RWG = LinearSegmentedColormap.from_list(
     "rwg_pro", ["#C0392B", "#FAFAFA", "#1A7A4A"], N=512
 )
 
-# Positive / Negative brand colours
 _COL_POS = "#1A7A4A"   # deep teal-green  → supports positive
 _COL_NEG = "#C0392B"   # deep crimson     → supports negative
 _COL_NEU = "#7F8C8D"   # slate grey       → neutral
 
-# Cluster colour cycle (colorbrewer-inspired, 30 distinct)
 _CLUSTER_PALETTE = [
     "#2E86AB","#A23B72","#F18F01","#C73E1D","#3B1F2B",
     "#44BBA4","#E94F37","#393E41","#F5A623","#7B2D8B",
@@ -176,18 +173,24 @@ class SEMTGPU(nn.Module):
     """
     Joint Sentiment + Topic Clustering (DEC-style) with Autoencoder features.
 
-    v3.1 Changes (vs v3):
-      • Occlusion scoring is now BIDIRECTIONAL — every sample is scored for
-        BOTH positive (class=1) and negative (class=0) sentiment influence.
-        No sentiment_class parameter needed; the result contains both axes.
-      • Token attribution sampling is STRATIFIED by predicted sentiment:
-        default max_samples_per_cluster=15 → 7 negative + 8 positive samples.
-        This gives a balanced, direction-agnostic view of each cluster.
-      • All saved plots upgraded to a professional/publication-quality style:
-        – Consistent colour palette, typography, and layout conventions
-        – Attribution heatmap uses diverging scale with annotated cells
-        – Per-cluster bar charts show pos/neg attribution stacked side-by-side
-        – Integrated Gradients plot uses refined colour ramp and clean typography
+    v3.2 Changes (vs v3.1):
+      • Default BERT model changed to allenai/longformer-base-4096
+        - Handles long documents up to 4096 tokens
+        - Uses global attention on [CLS] token for classification
+        - Occlusion scoring adapted for Longformer attention_mask format
+      • Token cleaning now handles Longformer/RoBERTa-style Ġ prefix (U+0120)
+        in addition to SentencePiece ▁ (U+2581) and WordPiece ## prefixes.
+        Covers all common HuggingFace tokenizer artifact styles.
+      • Token attribution aggregation now STRATIFIED AND SEPARATED per predicted
+        sentiment label within each cluster:
+        - neg_pool: attribution toward negative, computed ONLY from samples
+          predicted as negative (pred_sent == 0)
+        - pos_pool: attribution toward positive, computed ONLY from samples
+          predicted as positive (pred_sent == 1)
+        This means each cluster can have a completely different token vocabulary
+        for its positive vs negative drivers — no cross-contamination.
+      • plot_token_attribution_per_cluster updated to use new neg_pool/pos_pool keys
+      • plot_token_attribution_heatmap updated to use new neg_pool/pos_pool keys
     """
 
     def __init__(
@@ -215,7 +218,6 @@ class SEMTGPU(nn.Module):
         self.topic_mapping: Dict[int, str] = {}
         self.stop_words: set = set()
 
-        # ── best-model tracking ──────────────────────────────────────────────
         self._best_val_score: float = -1.0
         self._best_val_iter:  int   = -1
         self._best_state_dict: Optional[dict] = None
@@ -225,6 +227,34 @@ class SEMTGPU(nn.Module):
                 nn.init.xavier_uniform_(m.weight)
                 if m.bias is not None:
                     nn.init.zeros_(m.bias)
+
+    # ─────────────────────────────────────────────────────────────────────────
+    # Token Cleaning Helper
+    # ─────────────────────────────────────────────────────────────────────────
+    @staticmethod
+    def _clean_token(tok: str) -> str:
+        """
+        Strip tokenizer prefix artifacts from all common HuggingFace tokenizers.
+
+        Handles:
+          - Longformer / RoBERTa / GPT-2 style: Ġ (U+0120) prefix marks word start
+          - SentencePiece (IndoBERT, mBERT, etc.): ▁ (U+2581) prefix marks word start
+          - WordPiece (BERT): ## prefix marks subword continuation
+          - Other common artifacts: underscores, leading punctuation
+
+        After stripping prefixes, also removes any remaining leading/trailing
+        whitespace and non-alphanumeric leading characters that are artifacts.
+        """
+        # Longformer/RoBERTa/GPT-2: Ġ (U+0120) is the word-start marker
+        tok = tok.lstrip('\u0120')          # Ġ
+        # SentencePiece: ▁ (U+2581) is the word-start marker
+        tok = tok.lstrip('\u2581')          # ▁
+        # WordPiece subword continuation prefix
+        tok = tok.replace('##', '')
+        # Other known HF tokenizer artifacts
+        tok = tok.lstrip('\u2047')          # ⁇ (used by some multilingual models)
+        tok = tok.strip()
+        return tok
 
     # ─────────────────────────────────────────────────────────────────────────
     # Forward / inference helpers
@@ -485,16 +515,14 @@ class SEMTGPU(nn.Module):
 
     def compute_topic_diversity(self, texts, cluster_assignments, top_n=10):
         """
-        TF-IDF-weighted topic diversity (improved over raw word-count version).
+        TF-IDF-weighted topic diversity.
         Uses TF-IDF scores to select top-n representative words per cluster,
         then measures the unique-word ratio across all cluster vocabularies.
-        Higher = clusters cover more distinct vocabulary.
         """
         clusters: Dict[int, List[str]] = {}
         for i, cid in enumerate(cluster_assignments):
             clusters.setdefault(int(cid), []).append(texts[i])
 
-        # Build a per-cluster document for TF-IDF
         cluster_ids   = sorted(clusters.keys())
         cluster_docs  = [" ".join(clusters[c]) for c in cluster_ids]
 
@@ -508,7 +536,7 @@ class SEMTGPU(nn.Module):
                 min_df=1,
                 ngram_range=(1, 1),
             )
-            mat = vect.fit_transform(cluster_docs)          # (n_clusters, vocab)
+            mat = vect.fit_transform(cluster_docs)
             feat_names = vect.get_feature_names_out()
 
             all_sets = []
@@ -518,7 +546,6 @@ class SEMTGPU(nn.Module):
                 top_words   = set(feat_names[i] for i in top_indices if row[i] > 0)
                 all_sets.append(top_words)
         except Exception:
-            # Fallback: raw frequency
             all_sets = []
             for c in cluster_ids:
                 words = [w for w in " ".join(clusters[c]).lower().split()
@@ -610,28 +637,17 @@ class SEMTGPU(nn.Module):
             fontsize=13, fontweight="bold", color="#1C1C1C", y=1.01
         )
 
-        gs = gridspec.GridSpec(
-            1, 2, figure=fig,
-            width_ratios=[1, 2.0],
-            wspace=0.35,
-        )
+        gs = gridspec.GridSpec(1, 2, figure=fig, width_ratios=[1, 2.0], wspace=0.35)
 
-        # ── Left: global importance bar chart ───────────────────────────────
         ax1 = fig.add_subplot(gs[0])
         norm_vals = top_vals / (top_vals.max() + 1e-8)
-        bar_colors = [
-            plt.cm.YlOrRd(0.25 + 0.70 * v) for v in norm_vals
-        ]
+        bar_colors = [plt.cm.YlOrRd(0.25 + 0.70 * v) for v in norm_vals]
         ypos = np.arange(top_dims)
-        bars = ax1.barh(
-            ypos, top_vals,
-            color=bar_colors, edgecolor="#FFFFFF", linewidth=0.6, height=0.72
-        )
+        bars = ax1.barh(ypos, top_vals, color=bar_colors, edgecolor="#FFFFFF",
+                        linewidth=0.6, height=0.72)
         ax1.set_yticks(ypos)
-        ax1.set_yticklabels(
-            [f"dim {i}" for i in top_idx],
-            fontsize=7.5, fontfamily="monospace"
-        )
+        ax1.set_yticklabels([f"dim {i}" for i in top_idx],
+                             fontsize=7.5, fontfamily="monospace")
         ax1.invert_yaxis()
         ax1.set_xlabel("Mean |IG Attribution|", fontsize=9, color="#444")
         ax1.set_title("Top Embedding Dimensions\n(Global Sentiment Influence)",
@@ -640,43 +656,29 @@ class SEMTGPU(nn.Module):
                     linestyle=":", label=f"mean={top_vals.mean():.4f}")
         ax1.legend(fontsize=7, loc="lower right")
         for bar, val in zip(bars, top_vals):
-            ax1.text(
-                val + top_vals.max() * 0.015,
-                bar.get_y() + bar.get_height() / 2,
-                f"{val:.4f}", va="center", ha="left",
-                fontsize=6.5, color="#333"
-            )
+            ax1.text(val + top_vals.max() * 0.015, bar.get_y() + bar.get_height() / 2,
+                     f"{val:.4f}", va="center", ha="left", fontsize=6.5, color="#333")
         ax1.set_facecolor("#FFFFFF")
 
-        # ── Right: per-cluster heatmap ───────────────────────────────────────
         ax2 = fig.add_subplot(gs[1])
-        im = ax2.imshow(
-            cl_ig, aspect="auto",
-            cmap="YlOrRd", vmin=0, vmax=vmax_hm,
-            interpolation="nearest"
-        )
+        im = ax2.imshow(cl_ig, aspect="auto", cmap="YlOrRd", vmin=0, vmax=vmax_hm,
+                        interpolation="nearest")
         ax2.set_xticks(range(top_dims))
-        ax2.set_xticklabels(
-            [f"d{i}" for i in top_idx],
-            rotation=90, fontsize=7, fontfamily="monospace"
-        )
+        ax2.set_xticklabels([f"d{i}" for i in top_idx], rotation=90,
+                             fontsize=7, fontfamily="monospace")
         ax2.set_yticks(range(len(uniq)))
         ax2.set_yticklabels(
             [f"C{c}  (n={int((cluster_assignments == c).sum())})" for c in uniq],
-            fontsize=8
-        )
+            fontsize=8)
         ax2.set_title("Per-Cluster Dimension Attribution Heatmap",
                       fontsize=10, fontweight="bold", pad=8)
         ax2.set_xlabel("Embedding Dimension", fontsize=9, color="#444")
         ax2.set_ylabel("Cluster", fontsize=9, color="#444")
         ax2.tick_params(axis="both", which="both", length=0)
-
-        # Grid lines between cells
         ax2.set_xticks(np.arange(-0.5, top_dims, 1), minor=True)
         ax2.set_yticks(np.arange(-0.5, len(uniq), 1), minor=True)
         ax2.grid(which="minor", color="#E0E0E0", linewidth=0.5)
 
-        # Annotate cells if small enough
         if top_dims <= 30 and len(uniq) <= 30:
             for i in range(len(uniq)):
                 for j in range(top_dims):
@@ -699,21 +701,58 @@ class SEMTGPU(nn.Module):
         else:         plt.close()
 
     # ─────────────────────────────────────────────────────────────────────────
-    # Token Attribution (bidirectional occlusion)
+    # Token Attribution — Longformer-aware CLS embedding
     # ─────────────────────────────────────────────────────────────────────────
-    def _bert_cls_embedding(self, text, bert, tokenizer, max_length=128):
+    def _longformer_cls_embedding(self, text, model, tokenizer, max_length=4096):
+        """
+        Get CLS embedding from Longformer with proper global attention on [CLS] token.
+        Longformer requires global_attention_mask where position 0 ([CLS]) has value 1
+        and all other tokens have value 0 for document classification tasks.
+        """
         dev = next(self.parameters()).device
-        enc = tokenizer(text, return_tensors="pt", padding=True,
-                        truncation=True, max_length=max_length).to(dev)
-        with torch.no_grad():
-            out = bert(**enc)
-        return out.last_hidden_state[:, 0, :], None, enc
+        enc = tokenizer(
+            text,
+            return_tensors="pt",
+            padding=True,
+            truncation=True,
+            max_length=max_length,
+        ).to(dev)
 
+        # Build global attention mask: 1 for [CLS] (position 0), 0 for all others
+        global_attention_mask = torch.zeros_like(enc["input_ids"])
+        global_attention_mask[:, 0] = 1  # global attention on [CLS]
+
+        with torch.no_grad():
+            out = model(
+                **enc,
+                global_attention_mask=global_attention_mask,
+            )
+        # CLS token is at position 0 of last_hidden_state
+        return out.last_hidden_state[:, 0, :], None, enc, global_attention_mask
+
+    def _get_model_cls_embedding(self, text, model, tokenizer, max_length,
+                                  is_longformer: bool):
+        """Unified CLS embedding getter that handles both Longformer and standard models."""
+        if is_longformer:
+            return self._longformer_cls_embedding(text, model, tokenizer, max_length)
+        else:
+            # Standard BERT / RoBERTa style
+            dev = next(self.parameters()).device
+            enc = tokenizer(text, return_tensors="pt", padding=True,
+                            truncation=True, max_length=max_length).to(dev)
+            with torch.no_grad():
+                out = model(**enc)
+            return out.last_hidden_state[:, 0, :], None, enc, None
+
+    # ─────────────────────────────────────────────────────────────────────────
+    # Bidirectional Occlusion Scoring (Longformer-aware)
+    # ─────────────────────────────────────────────────────────────────────────
     def _occlusion_scores_bidirectional(
-        self, text, bert, tokenizer, max_length=128
+        self, text, model, tokenizer, max_length=4096, is_longformer: bool = True
     ) -> Tuple[List[str], np.ndarray, np.ndarray, np.ndarray]:
         """
         Compute occlusion-based token attribution for BOTH sentiment classes.
+        Supports both Longformer (with global_attention_mask) and standard BERT.
 
         Returns
         -------
@@ -724,16 +763,17 @@ class SEMTGPU(nn.Module):
 
         Attribution interpretation
         --------------------------
-        scores_pos[i] > 0  → masking token i *reduces* positive probability
-                             ⟹ token supports positive sentiment
-        scores_pos[i] < 0  → masking token i *increases* positive probability
-                             ⟹ token opposes positive sentiment (i.e. supports negative)
+        scores_pos[i] > 0  → masking token i reduces positive probability
+                             → token supports positive sentiment
+        scores_pos[i] < 0  → masking token i increases positive probability
+                             → token opposes positive sentiment
 
-        scores_neg is simply −scores_pos (they are exact mirror for 2-class softmax),
-        kept explicit for clarity.
+        scores_neg is the mirror of scores_pos for 2-class softmax.
         """
         dev = next(self.parameters()).device
-        cls_emb, _, enc = self._bert_cls_embedding(text, bert, tokenizer, max_length)
+        cls_emb, _, enc, global_attn_mask = self._get_model_cls_embedding(
+            text, model, tokenizer, max_length, is_longformer
+        )
         self.eval()
         with torch.no_grad():
             _, s = self(cls_emb)
@@ -741,116 +781,119 @@ class SEMTGPU(nn.Module):
 
         tokens  = tokenizer.convert_ids_to_tokens(enc["input_ids"][0].cpu().tolist())
         ids     = enc["input_ids"][0].cpu().tolist()
-        mask_id = tokenizer.mask_token_id
         n_tok   = len(ids)
+
+        # Longformer uses <mask> token (id=50264 for longformer-base)
+        # Standard BERT uses [MASK] token
+        mask_id = tokenizer.mask_token_id
+        if mask_id is None:
+            # Fallback: use pad token id for models without explicit mask token
+            mask_id = tokenizer.pad_token_id
 
         scores_pos = np.zeros(n_tok)
         scores_neg = np.zeros(n_tok)
 
-        _SKIP = {"[CLS]", "[SEP]", "<s>", "</s>", "[PAD]"}
+        # Special tokens to skip across tokenizer families
+        _SKIP_TOKENS = {
+            "[CLS]", "[SEP]", "[PAD]",    # BERT / WordPiece
+            "<s>", "</s>", "<pad>",        # RoBERTa / Longformer
+            "<mask>",                      # Longformer mask token
+        }
+
         for i, tok in enumerate(tokens):
-            if tok in _SKIP:
+            if tok in _SKIP_TOKENS:
                 continue
-            masked = ids.copy()
-            masked[i] = mask_id
+
+            masked_ids = ids.copy()
+            masked_ids[i] = mask_id
+
             inp = {k: enc[k].clone() for k in enc}
-            inp["input_ids"] = torch.tensor([masked], device=dev)
+            inp["input_ids"] = torch.tensor([masked_ids], device=dev)
+
             with torch.no_grad():
-                out     = bert(**inp)
-                _, sm   = self(out.last_hidden_state[:, 0, :])
+                if is_longformer:
+                    out = model(**inp, global_attention_mask=global_attn_mask)
+                else:
+                    out = model(**inp)
+                _, sm = self(out.last_hidden_state[:, 0, :])
+
             masked_prob = sm.squeeze(0).cpu().numpy()
             # Δ = base_prob − masked_prob
-            #   positive value → token was contributing to that class
+            # Positive value → token was contributing to that class
             scores_pos[i] = float(base_prob[1] - masked_prob[1])
             scores_neg[i] = float(base_prob[0] - masked_prob[0])
 
         return tokens, scores_pos, scores_neg, base_prob
 
+    # ─────────────────────────────────────────────────────────────────────────
+    # compute_token_attribution_per_cluster (raw text, no embeddings)
+    # ─────────────────────────────────────────────────────────────────────────
     def compute_token_attribution_per_cluster(
         self,
         texts,
         cluster_assignments,
-        bert_model_name: str       = "indolem/indobert-base-uncased",
-        max_length: int            = 128,
-        max_samples_per_cluster: int = 15,   # default: 7 neg + 8 pos
-        top_k: int                 = 10,
-        # sentiment_class is REMOVED — we always compute both directions
+        bert_model_name: str         = "allenai/longformer-base-4096",
+        max_length: int              = 4096,
+        max_samples_per_cluster: int = 15,
+        top_k: int                   = 10,
     ) -> Dict[int, Dict[str, Dict[str, float]]]:
         """
         Compute bidirectional token attribution for every cluster.
+        No embeddings passed — samples stratified by cluster only (random split).
 
-        Sampling strategy (stratified by predicted sentiment):
-            n_neg = max_samples_per_cluster // 2
-            n_pos = max_samples_per_cluster - n_neg
-            e.g. default 15 → 7 negative + 8 positive
+        For full stratification by predicted sentiment, use
+        compute_token_attribution_per_cluster_with_embeddings instead.
 
         Returns
         -------
         dict mapping  cluster_id  →  {
-            "pos": { token: mean_attribution_toward_positive, ... },
-            "neg": { token: mean_attribution_toward_negative, ... },
+            "pos_pool": { token: mean_attribution_toward_positive, ... },
+            "neg_pool": { token: mean_attribution_toward_negative, ... },
         }
-        Top-k tokens are selected by |mean attribution| within each direction.
         """
+        is_longformer = "longformer" in bert_model_name.lower()
         dev = next(self.parameters()).device
-        print(f"  Loading BERT: {bert_model_name}")
-        tokenizer = AutoTokenizer.from_pretrained(bert_model_name)
-        bert = AutoModel.from_pretrained(
-            bert_model_name, attn_implementation="eager"
-        ).to(dev).eval()
 
-        # Pre-compute predicted sentiments for stratified sampling
-        self.eval()
-        pred_sent = self.predict_sentiment(
-            torch.as_tensor(
-                np.array([texts[i] for i in range(len(texts))]),
-                dtype=torch.float32, device="cpu"
-            ) if isinstance(texts[0], (np.ndarray, list)) else None
-        ) if False else None  # will sample by index only, see below
+        print(f"  Loading model: {bert_model_name}")
+        print(f"  Mode: {'Longformer (global CLS attention)' if is_longformer else 'Standard BERT'}")
+        tokenizer = AutoTokenizer.from_pretrained(bert_model_name)
+        lang_model = AutoModel.from_pretrained(bert_model_name).to(dev).eval()
 
         # Group indices by cluster
         cl_idx: Dict[int, List[int]] = defaultdict(list)
         for i, cid in enumerate(cluster_assignments):
             cl_idx[int(cid)].append(i)
 
-        # Storage: cluster → direction → token → list[scores]
+        # Without embeddings: collect both directions from all samples
         cl_tok_pos: Dict[int, Dict[str, List[float]]] = defaultdict(lambda: defaultdict(list))
         cl_tok_neg: Dict[int, Dict[str, List[float]]] = defaultdict(lambda: defaultdict(list))
 
-        _SKIP = {"[CLS]", "[SEP]", "<s>", "</s>", "[PAD]"}
+        _SKIP_TOKENS = {
+            "[CLS]", "[SEP]", "[PAD]", "<s>", "</s>", "<pad>", "<mask>",
+        }
         n_neg_default = max_samples_per_cluster // 2
         n_pos_default = max_samples_per_cluster - n_neg_default
 
         self.eval()
         for cid, indices in sorted(cl_idx.items()):
-            # ── Stratified sampling by predicted sentiment ───────────────────
-            # We need embeddings to predict; assume texts are raw strings and
-            # cluster_assignments are already from model inference.
-            # Strategy: split indices into predicted-pos and predicted-neg pools
-            # by re-using cluster_assignments parity as a proxy when sentiment
-            # predictions aren't directly available. For proper stratification,
-            # users should pass the full embedding dataset separately.
-            # Here we simply shuffle and take the first max_samples_per_cluster.
-            # Users who pass embeddings via the dataset argument get full stratification.
             sampled = indices
             if len(sampled) > max_samples_per_cluster:
                 rng = np.random.default_rng(seed=42)
                 sampled = rng.choice(sampled, max_samples_per_cluster, replace=False).tolist()
 
             print(f"  Cluster {cid:3d}  ({len(sampled)} samples, "
-                  f"requested {max_samples_per_cluster}: "
-                  f"{n_neg_default} neg + {n_pos_default} pos)...",
+                  f"quota: {n_neg_default} neg + {n_pos_default} pos)...",
                   end=" ", flush=True)
             ok = 0
             for idx in sampled:
                 try:
                     toks, sc_pos, sc_neg, _ = self._occlusion_scores_bidirectional(
-                        texts[idx], bert, tokenizer, max_length
+                        texts[idx], lang_model, tokenizer, max_length, is_longformer
                     )
-                    for i, (tok, sp, sn) in enumerate(zip(toks, sc_pos, sc_neg)):
-                        if tok in _SKIP:
+                    for tok, sp, sn in zip(toks, sc_pos, sc_neg):
+                        if tok in _SKIP_TOKENS:
                             continue
-                        clean = tok.replace("##", "").replace("▁", "").strip()
+                        clean = self._clean_token(tok)
                         if len(clean) < 2:
                             continue
                         cl_tok_pos[cid][clean].append(sp)
@@ -860,45 +903,86 @@ class SEMTGPU(nn.Module):
                     continue
             print(f"✓  ({ok}/{len(sampled)} succeeded)")
 
-        del bert
+        del lang_model
 
-        # Aggregate: mean scores, keep top_k by |mean|
+        def _top(d: Dict[str, List[float]]) -> Dict[str, float]:
+            means = {t: float(np.mean(sc)) for t, sc in d.items() if len(sc) >= 2}
+            return dict(sorted(means.items(), key=lambda x: abs(x[1]), reverse=True)[:top_k])
+
         result: Dict[int, Dict[str, Dict[str, float]]] = {}
         for cid in sorted(set(list(cl_tok_pos.keys()) + list(cl_tok_neg.keys()))):
-            def _top(d: Dict[str, List[float]]) -> Dict[str, float]:
-                means = {
-                    t: float(np.mean(sc))
-                    for t, sc in d.items()
-                    if len(sc) >= 2
-                }
-                return dict(
-                    sorted(means.items(), key=lambda x: abs(x[1]), reverse=True)[:top_k]
-                )
             result[cid] = {
-                "pos": _top(cl_tok_pos[cid]),
-                "neg": _top(cl_tok_neg[cid]),
+                "pos_pool": _top(cl_tok_pos[cid]),
+                "neg_pool": _top(cl_tok_neg[cid]),
             }
 
         return result
 
+    # ─────────────────────────────────────────────────────────────────────────
+    # compute_token_attribution_per_cluster_with_embeddings
+    # v3.2: Stratified AND aggregated separately per predicted sentiment label
+    # ─────────────────────────────────────────────────────────────────────────
     def compute_token_attribution_per_cluster_with_embeddings(
         self,
         texts: List[str],
-        embeddings: np.ndarray,           # shape (N, D) — model input embeddings
+        embeddings: np.ndarray,
         cluster_assignments: np.ndarray,
-        bert_model_name: str      = "indolem/indobert-base-uncased",
-        max_length: int           = 128,
+        bert_model_name: str         = "allenai/longformer-base-4096",
+        max_length: int              = 4096,
         max_samples_per_cluster: int = 15,
-        top_k: int                = 10,
+        top_k: int                   = 10,
     ) -> Dict[int, Dict[str, Dict[str, float]]]:
         """
-        Same as compute_token_attribution_per_cluster but uses provided
-        embeddings for true stratified sampling (neg/pos by predicted sentiment).
+        Bidirectional token attribution, stratified AND aggregated SEPARATELY
+        per predicted sentiment label within each cluster.
+
+        KEY CHANGE vs v3.1
+        ------------------
+        Previously: scores_pos and scores_neg were collected from ALL samples
+        in a cluster and aggregated together — causing cross-contamination.
+
+        Now:
+          neg_pool → scores_neg collected ONLY from samples predicted as NEGATIVE
+                     (pred_sent == 0). These are the tokens that actually drive
+                     negative sentiment within this cluster.
+          pos_pool → scores_pos collected ONLY from samples predicted as POSITIVE
+                     (pred_sent == 1). These are the tokens that actually drive
+                     positive sentiment within this cluster.
+
+        This means each cluster can have a completely different vocabulary for
+        its positive vs negative drivers — no cross-contamination between pools.
+
+        Parameters
+        ----------
+        texts               : raw text strings, one per sample
+        embeddings          : model input embeddings, shape (N, D)
+        cluster_assignments : predicted cluster id per sample, shape (N,)
+        bert_model_name     : HuggingFace model name (default: longformer-base-4096)
+        max_length          : max token length for the language model
+        max_samples_per_cluster : total samples per cluster (split equally neg/pos)
+        top_k               : number of top tokens to keep per pool per cluster
+
+        Returns
+        -------
+        dict mapping  cluster_id  →  {
+            "neg_pool": { token: mean_attribution_toward_negative },
+            "pos_pool": { token: mean_attribution_toward_positive },
+        }
+        neg_pool tokens: sorted by |mean_attribution_toward_negative|
+        pos_pool tokens: sorted by |mean_attribution_toward_positive|
         """
+        is_longformer = "longformer" in bert_model_name.lower()
+
+        # ── Step 1: predict sentiment for all samples using embeddings ────────
         pred_sent = self.predict_sentiment(embeddings)
 
-        cl_idx_pos: Dict[int, List[int]] = defaultdict(list)
+        print(f"\n  Predicted sentiment distribution:")
+        print(f"    Negative (0): {(pred_sent == 0).sum()}")
+        print(f"    Positive (1): {(pred_sent == 1).sum()}")
+
+        # ── Step 2: split per cluster AND per predicted sentiment ─────────────
         cl_idx_neg: Dict[int, List[int]] = defaultdict(list)
+        cl_idx_pos: Dict[int, List[int]] = defaultdict(list)
         for i, (cid, ps) in enumerate(zip(cluster_assignments, pred_sent)):
             if ps == 1:
                 cl_idx_pos[int(cid)].append(i)
@@ -906,120 +990,164 @@ class SEMTGPU(nn.Module):
                 cl_idx_neg[int(cid)].append(i)
 
         all_clusters = sorted(set(cluster_assignments.tolist()))
-        n_neg_default = max_samples_per_cluster // 2
-        n_pos_default = max_samples_per_cluster - n_neg_default
+        n_neg_quota  = max_samples_per_cluster // 2
+        n_pos_quota  = max_samples_per_cluster - n_neg_quota
         rng = np.random.default_rng(42)
 
-        stratified: Dict[int, List[int]] = {}
+        # ── Step 3: stratified sampling per cluster ───────────────────────────
+        stratified: Dict[int, Dict[str, List[int]]] = {}
         for cid in all_clusters:
             pool_neg = cl_idx_neg[cid]
             pool_pos = cl_idx_pos[cid]
-            samp_neg = rng.choice(pool_neg, min(n_neg_default, len(pool_neg)),
-                                   replace=False).tolist() if pool_neg else []
-            samp_pos = rng.choice(pool_pos, min(n_pos_default, len(pool_pos)),
-                                   replace=False).tolist() if pool_pos else []
-            stratified[cid] = samp_neg + samp_pos
+            samp_neg = rng.choice(
+                pool_neg, min(n_neg_quota, len(pool_neg)), replace=False
+            ).tolist() if pool_neg else []
+            samp_pos = rng.choice(
+                pool_pos, min(n_pos_quota, len(pool_pos)), replace=False
+            ).tolist() if pool_pos else []
+            stratified[cid] = {"neg": samp_neg, "pos": samp_pos}
 
-        # Re-use the main method but patch cl_idx
+        # ── Step 4: load language model ───────────────────────────────────────
         dev = next(self.parameters()).device
-        print(f"  Loading BERT: {bert_model_name}")
-        tokenizer = AutoTokenizer.from_pretrained(bert_model_name)
-        bert = AutoModel.from_pretrained(
-            bert_model_name, attn_implementation="eager"
-        ).to(dev).eval()
+        print(f"\n  Loading model: {bert_model_name}")
+        print(f"  Mode: {'Longformer (global CLS attention)' if is_longformer else 'Standard BERT'}")
+        tokenizer  = AutoTokenizer.from_pretrained(bert_model_name)
+        lang_model = AutoModel.from_pretrained(bert_model_name).to(dev).eval()
 
-        cl_tok_pos: Dict[int, Dict[str, List[float]]] = defaultdict(lambda: defaultdict(list))
-        cl_tok_neg: Dict[int, Dict[str, List[float]]] = defaultdict(lambda: defaultdict(list))
-        _SKIP = {"[CLS]", "[SEP]", "<s>", "</s>", "[PAD]"}
+        # ── Step 5: separate storage per pool ────────────────────────────────
+        # neg_pool: collect scores_neg from samples predicted as NEGATIVE
+        # pos_pool: collect scores_pos from samples predicted as POSITIVE
+        cl_neg_pool: Dict[int, Dict[str, List[float]]] = defaultdict(lambda: defaultdict(list))
+        cl_pos_pool: Dict[int, Dict[str, List[float]]] = defaultdict(lambda: defaultdict(list))
+
+        _SKIP_TOKENS = {
+            "[CLS]", "[SEP]", "[PAD]",    # BERT / WordPiece
+            "<s>", "</s>", "<pad>",        # RoBERTa / Longformer
+            "<mask>",                      # Longformer mask token
+        }
 
         self.eval()
-        for cid, sampled in sorted(stratified.items()):
-            n_neg = sum(1 for i in sampled if pred_sent[i] == 0)
-            n_pos = sum(1 for i in sampled if pred_sent[i] == 1)
-            print(f"  Cluster {cid:3d}  ({len(sampled)} samples: "
-                  f"{n_neg} neg + {n_pos} pos)...", end=" ", flush=True)
+        for cid, pools in sorted(stratified.items()):
+            neg_indices = pools["neg"]
+            pos_indices = pools["pos"]
+            total       = len(neg_indices) + len(pos_indices)
+
+            print(f"  Cluster {cid:3d}  "
+                  f"({len(neg_indices)} neg samples + {len(pos_indices)} pos samples = {total})...",
+                  end=" ", flush=True)
             ok = 0
-            for idx in sampled:
+
+            # ── Process NEGATIVE samples → collect scores_neg ──────────────
+            # scores_neg[i] = base_prob[0] - masked_prob[0]
+            # = how much this token contributes to NEGATIVE class
+            for idx in neg_indices:
                 try:
-                    toks, sc_pos, sc_neg, _ = self._occlusion_scores_bidirectional(
-                        texts[idx], bert, tokenizer, max_length
+                    toks, _sc_pos, sc_neg, _ = self._occlusion_scores_bidirectional(
+                        texts[idx], lang_model, tokenizer, max_length, is_longformer
                     )
-                    for tok, sp, sn in zip(toks, sc_pos, sc_neg):
-                        if tok in _SKIP: continue
-                        clean = tok.replace("##", "").replace("▁", "").strip()
-                        if len(clean) < 2: continue
-                        cl_tok_pos[cid][clean].append(sp)
-                        cl_tok_neg[cid][clean].append(sn)
+                    for tok, sn in zip(toks, sc_neg):
+                        if tok in _SKIP_TOKENS:
+                            continue
+                        clean = self._clean_token(tok)
+                        if len(clean) < 2:
+                            continue
+                        cl_neg_pool[cid][clean].append(sn)
                     ok += 1
                 except Exception:
                     continue
-            print(f"✓  ({ok}/{len(sampled)} succeeded)")
 
-        del bert
+            # ── Process POSITIVE samples → collect scores_pos ──────────────
+            # scores_pos[i] = base_prob[1] - masked_prob[1]
+            # = how much this token contributes to POSITIVE class
+            for idx in pos_indices:
+                try:
+                    toks, sc_pos, _sc_neg, _ = self._occlusion_scores_bidirectional(
+                        texts[idx], lang_model, tokenizer, max_length, is_longformer
+                    )
+                    for tok, sp in zip(toks, sc_pos):
+                        if tok in _SKIP_TOKENS:
+                            continue
+                        clean = self._clean_token(tok)
+                        if len(clean) < 2:
+                            continue
+                        cl_pos_pool[cid][clean].append(sp)
+                    ok += 1
+                except Exception:
+                    continue
+
+            print(f"✓  ({ok}/{total} succeeded)")
+
+        del lang_model
+
+        # ── Step 6: aggregate — mean score, keep top_k by |mean| ─────────────
+        def _top(d: Dict[str, List[float]]) -> Dict[str, float]:
+            means = {t: float(np.mean(sc)) for t, sc in d.items() if len(sc) >= 2}
+            return dict(sorted(means.items(), key=lambda x: abs(x[1]), reverse=True)[:top_k])
 
         result: Dict[int, Dict[str, Dict[str, float]]] = {}
         for cid in all_clusters:
-            def _top(d):
-                means = {t: float(np.mean(sc)) for t, sc in d.items() if len(sc) >= 2}
-                return dict(sorted(means.items(), key=lambda x: abs(x[1]), reverse=True)[:top_k])
-            result[cid] = {"pos": _top(cl_tok_pos[cid]), "neg": _top(cl_tok_neg[cid])}
+            neg_agg = _top(cl_neg_pool[cid])
+            pos_agg = _top(cl_pos_pool[cid])
+            result[cid] = {
+                "neg_pool": neg_agg,  # tokens driving negative, from negative samples
+                "pos_pool": pos_agg,  # tokens driving positive, from positive samples
+            }
+
+            # Debug summary
+            print(f"  Cluster {cid:3d} → "
+                  f"neg_pool top tokens: {list(neg_agg.keys())[:5]}  |  "
+                  f"pos_pool top tokens: {list(pos_agg.keys())[:5]}")
 
         return result
 
     # ─────────────────────────────────────────────────────────────────────────
-    # Plot: Per-Cluster Token Attribution (bidirectional, professional)
+    # Plot: Per-Cluster Token Attribution (neg_pool / pos_pool, professional)
     # ─────────────────────────────────────────────────────────────────────────
     def plot_token_attribution_per_cluster(
         self,
         cluster_token_scores: Dict[int, Dict[str, Dict[str, float]]],
-        epoch: int             = 0,
-        save_dir: str          = "./results/fnnjst",
-        figsize: tuple         = (18, 11),
-        top_k: int             = 10,
+        epoch: int               = 0,
+        save_dir: str            = "./results/fnnjst",
+        figsize: tuple           = (18, 11),
+        top_k: int               = 10,
         max_clusters_per_row: int = 4,
-        save_plot: bool        = True,
-        show_plot: bool        = False,
-        # Legacy compatibility: if old-style dict (no "pos"/"neg" keys) is passed,
-        # treat it as positive-only attribution.
+        save_plot: bool          = True,
+        show_plot: bool          = False,
     ):
         """
-        Professional bidirectional token attribution chart.
+        Bidirectional token attribution chart using neg_pool / pos_pool keys.
 
         Layout per cluster (side-by-side horizontal bars):
-            LEFT  half → tokens most important for NEGATIVE sentiment (red)
-            RIGHT half → tokens most important for POSITIVE sentiment (teal)
-        This makes it immediately clear which tokens drive each sentiment direction.
+            LEFT  bars (crimson) → tokens from neg_pool  (drive NEGATIVE sentiment)
+            RIGHT bars (teal)    → tokens from pos_pool  (drive POSITIVE sentiment)
+
+        Tokens in each pool are independent — different words can appear in each side.
         """
         _apply_professional_style()
 
-        # ── Normalise legacy format ──────────────────────────────────────────
         cids = sorted(cluster_token_scores.keys())
         if not cids:
             return None
 
-        # Detect format: new (dict with "pos"/"neg") vs old (dict of floats)
-        sample_val = next(iter(cluster_token_scores[cids[0]].values()), None)
-        is_new_format = isinstance(sample_val, dict)
-
+        # ── Key normalisation: support v3.1 (pos/neg) and v3.2 (pos_pool/neg_pool)
         def _get_pos_neg(cid):
-            if is_new_format:
-                return (cluster_token_scores[cid].get("pos", {}),
-                        cluster_token_scores[cid].get("neg", {}))
-            # Legacy: treat as positive-only
-            legacy = cluster_token_scores[cid]
-            pos = {t: v for t, v in legacy.items() if v > 0}
-            neg = {t: abs(v) for t, v in legacy.items() if v < 0}
+            entry = cluster_token_scores[cid]
+            # v3.2 format
+            if "pos_pool" in entry or "neg_pool" in entry:
+                return (entry.get("pos_pool", {}), entry.get("neg_pool", {}))
+            # v3.1 format
+            if "pos" in entry or "neg" in entry:
+                return (entry.get("pos", {}), entry.get("neg", {}))
+            # Legacy format: dict of floats
+            pos = {t: v for t, v in entry.items() if isinstance(v, float) and v > 0}
+            neg = {t: abs(v) for t, v in entry.items() if isinstance(v, float) and v < 0}
             return pos, neg
 
-        # ── Layout ──────────────────────────────────────────────────────────
-        ncols = min(max_clusters_per_row, len(cids))
-        nrows = (len(cids) + ncols - 1) // ncols
-        fig_h = max(figsize[1], nrows * 4.5)
-        fig, axes = plt.subplots(
-            nrows, ncols,
-            figsize=(figsize[0], fig_h),
-            facecolor="#FAFAFA"
-        )
+        ncols  = min(max_clusters_per_row, len(cids))
+        nrows  = (len(cids) + ncols - 1) // ncols
+        fig_h  = max(figsize[1], nrows * 4.5)
+        fig, axes = plt.subplots(nrows, ncols, figsize=(figsize[0], fig_h),
+                                  facecolor="#FAFAFA")
         axes = np.array(axes).reshape(-1)
 
         for i, cid in enumerate(cids):
@@ -1033,45 +1161,45 @@ class SEMTGPU(nn.Module):
                 ax.axis("off")
                 continue
 
-            # Merge and select top_k by absolute value across both directions
-            all_tokens = set(list(pos_d.keys()) + list(neg_d.keys()))
-            combined = {}
-            for t in all_tokens:
-                pv = pos_d.get(t, 0.0)
-                nv = neg_d.get(t, 0.0)
-                combined[t] = (pv, nv, abs(pv) + abs(nv))
+            # Each pool is independent — show top_k from each separately
+            # Left panel: neg_pool tokens (sorted by |score|)
+            neg_tokens = sorted(neg_d.keys(), key=lambda t: abs(neg_d[t]), reverse=True)[:top_k]
+            # Right panel: pos_pool tokens (sorted by |score|)
+            pos_tokens = sorted(pos_d.keys(), key=lambda t: abs(pos_d[t]), reverse=True)[:top_k]
 
-            top_tokens = sorted(combined.keys(),
-                                 key=lambda t: combined[t][2], reverse=True)[:top_k]
-            top_tokens = list(reversed(top_tokens))   # bottom-up for horizontal bar
+            # Union for y-axis, but track which pool each token belongs to
+            all_tokens = list(dict.fromkeys(neg_tokens + pos_tokens))  # dedup, preserve order
+            all_tokens = list(reversed(all_tokens))  # bottom-up for horizontal bar
 
-            pos_vals = np.array([combined[t][0] for t in top_tokens])
-            neg_vals = np.array([combined[t][1] for t in top_tokens])
-
-            ypos  = np.arange(len(top_tokens))
+            ypos  = np.arange(len(all_tokens))
             width = 0.35
 
-            # Positive bars (teal)
+            pos_vals = np.array([pos_d.get(t, 0.0) for t in all_tokens])
+            neg_vals = np.array([neg_d.get(t, 0.0) for t in all_tokens])
+
+            # Positive bars (teal) — from pos_pool
             ax.barh(ypos + width / 2, pos_vals, height=width,
-                    color=_COL_POS, alpha=0.85, label="→ Positive",
+                    color=_COL_POS, alpha=0.85, label="→ Positive (pos_pool)",
                     edgecolor="#FFFFFF", linewidth=0.4)
-            # Negative bars (crimson)
+            # Negative bars (crimson) — from neg_pool
             ax.barh(ypos - width / 2, neg_vals, height=width,
-                    color=_COL_NEG, alpha=0.85, label="→ Negative",
+                    color=_COL_NEG, alpha=0.85, label="→ Negative (neg_pool)",
                     edgecolor="#FFFFFF", linewidth=0.4)
 
             ax.set_yticks(ypos)
-            ax.set_yticklabels(top_tokens, fontsize=8, fontfamily="monospace")
+            ax.set_yticklabels(all_tokens, fontsize=8, fontfamily="monospace")
             ax.axvline(0, color="#888888", linewidth=0.8, linestyle="--")
             ax.set_xlabel("Mean Occlusion Attribution", fontsize=8, color="#555")
             ax.spines["left"].set_visible(False)
             ax.spines["bottom"].set_color("#CCCCCC")
 
             cluster_label = self.topic_mapping.get(cid, f"Cluster {cid}")
-            n_samples     = len(pos_d) + len(neg_d)
+            n_neg_tok = len([t for t in all_tokens if t in neg_d])
+            n_pos_tok = len([t for t in all_tokens if t in pos_d])
             ax.set_title(
-                f"{cluster_label}",
-                fontsize=9, fontweight="bold", pad=5, color="#1C1C1C"
+                f"{cluster_label}\n"
+                f"neg_pool: {n_neg_tok} tokens  |  pos_pool: {n_pos_tok} tokens",
+                fontsize=8, fontweight="bold", pad=5, color="#1C1C1C"
             )
             ax.tick_params(axis="y", which="both", length=0)
             ax.set_facecolor("#FFFFFF")
@@ -1080,10 +1208,12 @@ class SEMTGPU(nn.Module):
         for j in range(i + 1, len(axes)):
             axes[j].axis("off")
 
-        # ── Shared legend ────────────────────────────────────────────────────
+        # Shared legend
         legend_handles = [
-            mpatches.Patch(facecolor=_COL_POS, alpha=0.85, label="Supports Positive Sentiment"),
-            mpatches.Patch(facecolor=_COL_NEG, alpha=0.85, label="Supports Negative Sentiment"),
+            mpatches.Patch(facecolor=_COL_POS, alpha=0.85,
+                           label="pos_pool — Supports Positive Sentiment"),
+            mpatches.Patch(facecolor=_COL_NEG, alpha=0.85,
+                           label="neg_pool — Supports Negative Sentiment"),
         ]
         fig.legend(
             handles=legend_handles,
@@ -1097,7 +1227,7 @@ class SEMTGPU(nn.Module):
 
         fig.suptitle(
             f"Bidirectional Token Sentiment Attribution  ·  Epoch {epoch}\n"
-            f"Occlusion-based · Both Sentiment Directions",
+            f"neg_pool from negative samples  ·  pos_pool from positive samples",
             fontsize=12, fontweight="bold",
             color="#1C1C1C", y=1.05
         )
@@ -1112,7 +1242,7 @@ class SEMTGPU(nn.Module):
         else:         plt.close()
 
     # ─────────────────────────────────────────────────────────────────────────
-    # Plot: Attribution Heatmap (bidirectional, professional)
+    # Plot: Attribution Heatmap (neg_pool / pos_pool, professional)
     # ─────────────────────────────────────────────────────────────────────────
     def plot_token_attribution_heatmap(
         self,
@@ -1125,12 +1255,12 @@ class SEMTGPU(nn.Module):
         show_plot: bool        = False,
     ):
         """
-        Professional dual-panel heatmap.
+        Dual-panel heatmap using neg_pool / pos_pool.
 
-        Left panel  → attribution toward POSITIVE sentiment per cluster
-        Right panel → attribution toward NEGATIVE sentiment per cluster
+        Left panel  → pos_pool attribution (tokens from positive samples)
+        Right panel → neg_pool attribution (tokens from negative samples)
 
-        Both use a shared colour scale; diverging RWG colormap centred at 0.
+        Each panel uses its own top-k global tokens so the vocabulary can differ.
         """
         _apply_professional_style()
 
@@ -1138,71 +1268,68 @@ class SEMTGPU(nn.Module):
         if not cids:
             return None
 
-        # ── Normalise legacy format ──────────────────────────────────────────
-        sample_val = next(iter(cluster_token_scores[cids[0]].values()), None)
-        is_new_format = isinstance(sample_val, dict)
-
+        # ── Key normalisation ─────────────────────────────────────────────────
         def _get_pos_neg(cid):
-            if is_new_format:
-                return (cluster_token_scores[cid].get("pos", {}),
-                        cluster_token_scores[cid].get("neg", {}))
-            legacy = cluster_token_scores[cid]
-            pos = {t: v for t, v in legacy.items() if v > 0}
-            neg = {t: abs(v) for t, v in legacy.items() if v < 0}
+            entry = cluster_token_scores[cid]
+            if "pos_pool" in entry or "neg_pool" in entry:
+                return (entry.get("pos_pool", {}), entry.get("neg_pool", {}))
+            if "pos" in entry or "neg" in entry:
+                return (entry.get("pos", {}), entry.get("neg", {}))
+            pos = {t: v for t, v in entry.items() if isinstance(v, float) and v > 0}
+            neg = {t: abs(v) for t, v in entry.items() if isinstance(v, float) and v < 0}
             return pos, neg
 
-        # ── Collect global top tokens (by |mean| across all clusters & both directions)
-        global_sc: Dict[str, List[float]] = defaultdict(list)
+        # ── Collect global top tokens separately for each pool ─────────────
+        global_pos_sc: Dict[str, List[float]] = defaultdict(list)
+        global_neg_sc: Dict[str, List[float]] = defaultdict(list)
         for cid in cids:
             pos_d, neg_d = _get_pos_neg(cid)
-            for t, v in pos_d.items(): global_sc[t].append(v)
-            for t, v in neg_d.items(): global_sc[t].append(v)
+            for t, v in pos_d.items(): global_pos_sc[t].append(v)
+            for t, v in neg_d.items(): global_neg_sc[t].append(v)
 
-        top_tokens = [
+        top_pos_tokens = [
             t for t, _ in sorted(
-                {t: float(np.mean(np.abs(s))) for t, s in global_sc.items()}.items(),
+                {t: float(np.mean(np.abs(s))) for t, s in global_pos_sc.items()}.items(),
+                key=lambda x: x[1], reverse=True
+            )[:top_k_global]
+        ]
+        top_neg_tokens = [
+            t for t, _ in sorted(
+                {t: float(np.mean(np.abs(s))) for t, s in global_neg_sc.items()}.items(),
                 key=lambda x: x[1], reverse=True
             )[:top_k_global]
         ]
 
-        # ── Build matrices ───────────────────────────────────────────────────
+        # ── Build matrices ────────────────────────────────────────────────────
         mat_pos = np.array([
-            [_get_pos_neg(c)[0].get(t, 0.0) for t in top_tokens] for c in cids
+            [_get_pos_neg(c)[0].get(t, 0.0) for t in top_pos_tokens] for c in cids
         ])
         mat_neg = np.array([
-            [_get_pos_neg(c)[1].get(t, 0.0) for t in top_tokens] for c in cids
+            [_get_pos_neg(c)[1].get(t, 0.0) for t in top_neg_tokens] for c in cids
         ])
 
-        vmax = max(np.abs(mat_pos).max(), np.abs(mat_neg).max(), 1e-6)
+        vmax_pos = max(np.abs(mat_pos).max(), 1e-6)
+        vmax_neg = max(np.abs(mat_neg).max(), 1e-6)
 
-        cluster_labels = [
-            self.topic_mapping.get(c, f"C{c}") for c in cids
-        ]
+        cluster_labels = [self.topic_mapping.get(c, f"C{c}") for c in cids]
 
-        # ── Figure ───────────────────────────────────────────────────────────
+        # ── Figure ────────────────────────────────────────────────────────────
         fig, (ax_pos, ax_neg) = plt.subplots(
-            1, 2,
-            figsize=figsize,
-            facecolor="#FAFAFA",
+            1, 2, figsize=figsize, facecolor="#FAFAFA",
             gridspec_kw={"wspace": 0.08}
         )
         fig.suptitle(
             f"Per-Cluster Token Attribution Heatmap  ·  Epoch {epoch}\n"
-            f"Occlusion Attribution — Bidirectional Sentiment Analysis",
+            f"pos_pool (from positive samples)  ·  neg_pool (from negative samples)",
             fontsize=12, fontweight="bold", color="#1C1C1C", y=1.02
         )
 
-        def _draw_panel(ax, matrix, title, vmax_):
-            im = ax.imshow(
-                matrix, aspect="auto",
-                cmap="RdYlGn", vmin=0, vmax=vmax_,
-                interpolation="nearest"
-            )
+        def _draw_panel(ax, matrix, top_tokens, title, vmax_, cmap="RdYlGn"):
+            im = ax.imshow(matrix, aspect="auto", cmap=cmap, vmin=0, vmax=vmax_,
+                           interpolation="nearest")
             ax.set_xticks(range(len(top_tokens)))
-            ax.set_xticklabels(
-                top_tokens, rotation=45, ha="right",
-                fontsize=8, fontfamily="monospace"
-            )
+            ax.set_xticklabels(top_tokens, rotation=45, ha="right",
+                               fontsize=8, fontfamily="monospace")
             ax.set_yticks(range(len(cids)))
             ax.set_yticklabels(cluster_labels, fontsize=8)
             ax.set_title(title, fontsize=10, fontweight="bold", pad=8, color="#1C1C1C")
@@ -1226,17 +1353,18 @@ class SEMTGPU(nn.Module):
             return im
 
         _draw_panel(
-            ax_pos, mat_pos,
-            f"Attribution → Positive Sentiment\n(Teal: token supports positive)",
-            vmax
+            ax_pos, mat_pos, top_pos_tokens,
+            "pos_pool  →  Positive Sentiment Attribution\n"
+            "(tokens from predicted-positive samples)",
+            vmax_pos, cmap="YlGn"
         )
         _draw_panel(
-            ax_neg, mat_neg,
-            f"Attribution → Negative Sentiment\n(Teal: token supports negative)",
-            vmax
+            ax_neg, mat_neg, top_neg_tokens,
+            "neg_pool  →  Negative Sentiment Attribution\n"
+            "(tokens from predicted-negative samples)",
+            vmax_neg, cmap="YlOrRd"
         )
 
-        # Remove duplicate y-axis labels on right panel
         ax_neg.set_ylabel("")
         ax_neg.set_yticklabels([])
 
@@ -1250,41 +1378,44 @@ class SEMTGPU(nn.Module):
         else:         plt.close()
 
     # ─────────────────────────────────────────────────────────────────────────
-    # Plot: Explain single text (professional, bidirectional)
+    # Plot: Explain single text (bidirectional, Longformer-aware)
     # ─────────────────────────────────────────────────────────────────────────
     def explain_single_text(
         self, text,
-        bert_model_name="indolem/indobert-base-uncased",
-        max_length=128,
+        bert_model_name="allenai/longformer-base-4096",
+        max_length=4096,
         figsize=(13, 5),
         save_path=None,
         show=False
     ):
         """
-        Professional single-text explanation with bidirectional occlusion.
-        Shows BOTH positive and negative attribution bars side-by-side.
+        Single-text bidirectional occlusion explanation.
+        Supports Longformer (with global CLS attention) and standard BERT.
         """
         _apply_professional_style()
 
+        is_longformer = "longformer" in bert_model_name.lower()
         dev = next(self.parameters()).device
-        tokenizer = AutoTokenizer.from_pretrained(bert_model_name)
-        bert = AutoModel.from_pretrained(
-            bert_model_name, attn_implementation="eager"
-        ).to(dev).eval()
+        tokenizer  = AutoTokenizer.from_pretrained(bert_model_name)
+        lang_model = AutoModel.from_pretrained(bert_model_name).to(dev).eval()
 
         tokens, scores_pos, scores_neg, base_prob = \
-            self._occlusion_scores_bidirectional(text, bert, tokenizer, max_length)
-        del bert
+            self._occlusion_scores_bidirectional(
+                text, lang_model, tokenizer, max_length, is_longformer
+            )
+        del lang_model
 
         pred_class = int(base_prob.argmax())
         pred_label = {0: "Negative", 1: "Positive"}.get(pred_class, str(pred_class))
         pred_conf  = float(base_prob.max())
 
-        _SKIP = {"[CLS]", "[SEP]", "<s>", "</s>", "[PAD]"}
+        _SKIP_TOKENS = {
+            "[CLS]", "[SEP]", "[PAD]", "<s>", "</s>", "<pad>", "<mask>",
+        }
         dt, ds_pos, ds_neg = [], [], []
         for tok, sp, sn in zip(tokens, scores_pos, scores_neg):
-            if tok in _SKIP: continue
-            clean = tok.replace("##", "").replace("▁", "")
+            if tok in _SKIP_TOKENS: continue
+            clean = self._clean_token(tok)
             if len(clean) < 1: continue
             dt.append(clean)
             ds_pos.append(sp)
@@ -1294,9 +1425,8 @@ class SEMTGPU(nn.Module):
         ds_pos = np.array(ds_pos)
         ds_neg = np.array(ds_neg)
 
-        # Sort by total absolute attribution
         order  = np.argsort(np.abs(ds_pos) + np.abs(ds_neg))[::-1][:20]
-        order  = order[::-1]   # bottom-up
+        order  = order[::-1]
         dt     = dt[order]
         ds_pos = ds_pos[order]
         ds_neg = ds_neg[order]
@@ -1328,7 +1458,8 @@ class SEMTGPU(nn.Module):
 
         ax.legend(loc="lower right", fontsize=8)
         ax.set_title(
-            f"Token Attribution Analysis  ·  Bidirectional Occlusion",
+            f"Token Attribution Analysis  ·  Bidirectional Occlusion\n"
+            f"Model: {bert_model_name}",
             fontsize=11, fontweight="bold", pad=8
         )
         fig.suptitle(
@@ -1338,7 +1469,8 @@ class SEMTGPU(nn.Module):
         plt.tight_layout()
 
         if save_path:
-            os.makedirs(os.path.dirname(save_path) if os.path.dirname(save_path) else ".", exist_ok=True)
+            os.makedirs(os.path.dirname(save_path) if os.path.dirname(save_path) else ".",
+                        exist_ok=True)
             fig.savefig(save_path, dpi=200, bbox_inches="tight", facecolor="#FAFAFA")
             print(f"✓ Saved: {save_path}")
         if show: plt.show()
@@ -1346,7 +1478,7 @@ class SEMTGPU(nn.Module):
         return fig
 
     # ─────────────────────────────────────────────────────────────────────────
-    # Cluster evolution plot (professional)
+    # Cluster evolution plot
     # ─────────────────────────────────────────────────────────────────────────
     def plot_cluster_evolution(
         self, embeddings, cluster_assignments, epoch,
@@ -1408,11 +1540,8 @@ class SEMTGPU(nn.Module):
         ax.grid(True, color="#F0F0F0", linewidth=0.5)
 
         if k <= 15:
-            ax.legend(
-                fontsize=7, loc="best",
-                framealpha=0.9, edgecolor="#CCCCCC",
-                markerscale=1.3, ncol=max(1, k // 8)
-            )
+            ax.legend(fontsize=7, loc="best", framealpha=0.9, edgecolor="#CCCCCC",
+                      markerscale=1.3, ncol=max(1, k // 8))
 
         plt.tight_layout()
         if save_plot:
@@ -1470,28 +1599,31 @@ class SEMTGPU(nn.Module):
         ig_top_dims:      int  = 20,
         ig_max_samples:   int  = 512,
         plot_token_attribution:    bool = False,
-        token_attr_bert_name:      str  = "indolem/indobert-base-uncased",
+        token_attr_bert_name:      str  = "allenai/longformer-base-4096",
         token_attr_top_k:          int  = 10,
-        token_attr_max_samples:    int  = 15,   # ← 7 neg + 8 pos
-        token_attr_max_length:     int  = 128,
-        # REMOVED: token_attr_sentiment_class — always bidirectional now
+        token_attr_max_samples:    int  = 15,
+        token_attr_max_length:     int  = 4096,
     ):
         """
         Joint DEC + Sentiment + Reconstruction training.
 
-        v3.1 changes vs v3:
-        - token_attr_sentiment_class parameter REMOVED (always bidirectional)
-        - token_attr_max_samples default = 15 (7 neg + 8 pos stratified)
-        - All plots use professional style
-        - Topic Diversity now TF-IDF weighted (see compute_topic_diversity)
+        v3.2 changes vs v3.1:
+        - Default token attribution model: allenai/longformer-base-4096
+          (handles documents up to 4096 tokens with global CLS attention)
+        - Token cleaning handles Ġ (Longformer/RoBERTa), ▁ (SentencePiece), ## (WordPiece)
+        - Attribution aggregated per predicted sentiment label within each cluster:
+            neg_pool: tokens from predicted-negative samples → scores toward negative
+            pos_pool: tokens from predicted-positive samples → scores toward positive
+        - Occlusion scoring uses global_attention_mask for Longformer models
         """
         print("=" * 60)
-        print("SEMTGPU v3.1 — Joint Training: Clustering + Sentiment + Reconstruction")
+        print("SEMTGPU v3.2 — Joint Training: Clustering + Sentiment + Reconstruction")
         print(f"Loss: α(recon)={alpha}, γ(cluster)={gamma}, η(sentiment)={eta}")
         print(f"Update interval: {update_interval}  |  val_ratio: {val_ratio:.0%}")
         print(f"Best-model metric: {val_metric}")
         if plot_token_attribution:
-            print(f"Token attribution: BIDIRECTIONAL  |  samples/cluster={token_attr_max_samples} "
+            print(f"Token attribution model: {token_attr_bert_name}")
+            print(f"Token attribution: neg_pool + pos_pool  |  samples/cluster={token_attr_max_samples} "
                   f"({token_attr_max_samples//2} neg + {token_attr_max_samples - token_attr_max_samples//2} pos)")
             print("Token attribution schedule: early / half / last epoch only")
         print("=" * 60)
@@ -1503,7 +1635,7 @@ class SEMTGPU(nn.Module):
         plot_dir = os.path.join(save_dir, "evolution_plots")
         os.makedirs(plot_dir, exist_ok=True)
 
-        # ── Collect dataset ──────────────────────────────────────────────────
+        # ── Collect dataset ───────────────────────────────────────────────────
         embs, lbls, texts_list = [], [], []
         for i in range(len(dataset)):
             item = dataset[i]
@@ -1526,7 +1658,7 @@ class SEMTGPU(nn.Module):
         has_labels = len(lbls) > 0
         has_texts  = len(texts_list) > 0
 
-        # ── Validation split ─────────────────────────────────────────────────
+        # ── Validation split ──────────────────────────────────────────────────
         n_val   = max(1, int(N * val_ratio))
         n_train = N - n_val
         idx_all   = np.random.permutation(N)
@@ -1726,9 +1858,11 @@ class SEMTGPU(nn.Module):
 
                     if _should_run_token_attr(ite, is_final=False):
                         try:
-                            print(f"  [Token Attr @ iter {ite}]")
-                            ta = self.compute_token_attribution_per_cluster(
-                                texts_train, y_pred,
+                            print(f"  [Token Attr @ iter {ite}] — using {token_attr_bert_name}")
+                            ta = self.compute_token_attribution_per_cluster_with_embeddings(
+                                texts_train,
+                                X_train.cpu().numpy(),
+                                y_pred,
                                 bert_model_name=token_attr_bert_name,
                                 top_k=token_attr_top_k,
                                 max_length=token_attr_max_length,
@@ -1822,7 +1956,7 @@ class SEMTGPU(nn.Module):
                 if ite % save_interval == 0 and ite > 0:
                     self.save_weights(os.path.join(save_dir, f"SEMTGPU_{ite}.weights.pth"))
 
-        # ── Post-training ─────────────────────────────────────────────────────
+        # ── Post-training ──────────────────────────────────────────────────────
         print("\n" + "=" * 60)
         print("Training complete.  Restoring best model checkpoint…")
         self.load_best_weights()
@@ -1850,9 +1984,11 @@ class SEMTGPU(nn.Module):
 
         if _should_run_token_attr(last_ite, is_final=True) and has_texts:
             try:
-                print("\n[Token Attr @ LAST epoch]")
-                ta_last = self.compute_token_attribution_per_cluster(
-                    texts_train, y_final,
+                print(f"\n[Token Attr @ LAST epoch] — using {token_attr_bert_name}")
+                ta_last = self.compute_token_attribution_per_cluster_with_embeddings(
+                    texts_train,
+                    X_train.cpu().numpy(),
+                    y_final,
                     bert_model_name=token_attr_bert_name,
                     top_k=token_attr_top_k,
                     max_length=token_attr_max_length,
