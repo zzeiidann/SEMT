@@ -173,24 +173,28 @@ class SEMTGPU(nn.Module):
     """
     Joint Sentiment + Topic Clustering (DEC-style) with Autoencoder features.
 
-    v3.4 Changes (vs v3.3):
-      • Token attribution sampling is now FREQUENCY-BASED, not random.
-        For each cluster×sentiment split, we first rank all texts by their
-        word-frequency coverage of the cluster's top-N vocabulary (TF-IDF based),
-        then take the top-max_samples_per_cluster texts with highest coverage.
-        This ensures the occlusion runs on the most *representative* texts.
-      • Plots are separated into TWO independent grid figures:
-        - plot_token_attribution_pos_grid: one subplot per cluster, pos_pool only
-        - plot_token_attribution_neg_grid: one subplot per cluster, neg_pool only
-        Both are horizontal bar charts, sorted by |mean attribution|.
-      • The combined bidirectional plot (plot_token_attribution_per_cluster) is
-        kept for backward compatibility but the main output is now the two grids.
-      • In fit(), after training, both grid plots are generated automatically
-        when plot_token_attribution=True.
-      • Default BERT model remains allenai/longformer-base-4096.
-      • All other v3.3 changes retained:
-        - Token attribution runs ONLY ONCE at post-training on the final best model.
-        - neg_pool / pos_pool are fully separated — no cross-contamination.
+    v3.6 Changes (vs v3.5):
+      • TWO SEPARATE TF-IDF vocabularies per cluster — one from negative texts,
+        one from positive texts — instead of a single shared cluster vocab.
+
+        vocab_neg[cid] = top-tfidf_vocab_size TF-IDF words from the NEGATIVE
+                         texts of cluster cid.
+        vocab_pos[cid] = top-tfidf_vocab_size TF-IDF words from the POSITIVE
+                         texts of cluster cid.
+
+        Sampling: neg texts ranked by vocab_neg coverage, pos by vocab_pos.
+        Filtering: neg occlusion scores filtered to vocab_neg only,
+                   pos occlusion scores filtered to vocab_pos only.
+
+        Result: each pool's attribution scores are grounded in words that are
+        actually frequent/distinctive within that specific sentiment × cluster
+        cell — the neg pool and pos pool can have completely different vocabularies.
+
+      • All v3.5/v3.4 behaviours retained:
+        - Frequency-based text sampling.
+        - Two separated grid plots: POS grid (green) + NEG grid (red).
+        - Runs ONCE on the final best-model checkpoint only.
+        - neg_pool/pos_pool fully separated (no cross-contamination).
         - Longformer global attention on [CLS] token.
         - Token cleaning for Ġ, ▁, ## prefixes.
     """
@@ -852,15 +856,25 @@ class SEMTGPU(nn.Module):
         return tokens, scores_pos, scores_neg, base_prob
 
     # ─────────────────────────────────────────────────────────────────────────
-    # compute_token_attribution_per_cluster_with_embeddings  (v3.4)
+    # compute_token_attribution_per_cluster_with_embeddings  (v3.6)
     #
-    # KEY CHANGES vs v3.3:
-    #   1. Sampling is FREQUENCY-BASED (most representative texts first) instead
-    #      of random.  For each cluster×sentiment pool, texts are ranked by how
-    #      many of the cluster's top TF-IDF words they contain; the top-N ranked
-    #      texts are selected.  This ensures occlusion runs on the most
-    #      representative texts rather than a random draw.
-    #   2. Separate neg_pool / pos_pool pools retained from v3.3 (no mixing).
+    # KEY CHANGE vs v3.5:
+    #   Two SEPARATE TF-IDF vocabularies per cluster — one built from the
+    #   NEGATIVE texts of that cluster, one from the POSITIVE texts.
+    #
+    #   Pipeline per cluster:
+    #     1. Split cluster texts into neg_texts / pos_texts by predicted sentiment
+    #     2. Build vocab_neg = top-tfidf_vocab_size TF-IDF words from neg_texts
+    #        Build vocab_pos = top-tfidf_vocab_size TF-IDF words from pos_texts
+    #     3. Rank neg_texts by vocab_neg coverage → pick top n_neg_quota texts
+    #        Rank pos_texts by vocab_pos coverage → pick top n_pos_quota texts
+    #     4. Run occlusion on selected texts
+    #     5. neg texts  → collect scores_neg, filter to vocab_neg only
+    #        pos texts  → collect scores_pos, filter to vocab_pos only
+    #     6. Aggregate mean per token; top_k by |mean|
+    #
+    #   This means each pool's attribution scores are grounded in words that
+    #   are genuinely frequent/distinctive within that sentiment × cluster cell.
     # ─────────────────────────────────────────────────────────────────────────
     def compute_token_attribution_per_cluster_with_embeddings(
         self,
@@ -869,28 +883,23 @@ class SEMTGPU(nn.Module):
         cluster_assignments: np.ndarray,
         bert_model_name: str         = "allenai/longformer-base-4096",
         max_length: int              = 4096,
-        max_samples_per_cluster: int = 15,
-        top_k: int                   = 10,
+        max_samples_per_cluster: int = 30,
+        top_k: int                   = 15,
         tfidf_vocab_size: int        = 30,
     ) -> Dict[int, Dict[str, Dict[str, float]]]:
         """
-        Bidirectional token attribution, stratified AND aggregated SEPARATELY
-        per predicted sentiment label within each cluster.
+        Bidirectional token attribution with SENTIMENT-SPECIFIC TF-IDF vocabularies.
 
-        Sampling strategy (v3.4):
-        ─────────────────────────
-        For each (cluster, sentiment) pool:
-          1. Compute cluster-level TF-IDF vocabulary (top tfidf_vocab_size terms).
-          2. Rank pool texts by vocabulary coverage (word overlap with top terms).
-          3. Select the top-max_samples_per_cluster//2 highest-coverage texts.
+        For every cluster:
+          - vocab_neg  = top-tfidf_vocab_size TF-IDF words computed from
+                         the NEGATIVE texts of that cluster.
+          - vocab_pos  = top-tfidf_vocab_size TF-IDF words computed from
+                         the POSITIVE texts of that cluster.
 
-        This replaces the random sampling of v3.3 and ensures we run occlusion
-        on the most *thematically representative* texts.
-
-        Attribution separation (retained from v3.3):
-        ─────────────────────────────────────────────
-          neg_pool → scores_neg from texts predicted as NEGATIVE only
-          pos_pool → scores_pos from texts predicted as POSITIVE only
+        The neg pool is sampled from neg texts ranked by vocab_neg coverage,
+        and attribution scores are filtered to vocab_neg words only.
+        The pos pool is sampled from pos texts ranked by vocab_pos coverage,
+        and attribution scores are filtered to vocab_pos words only.
 
         Parameters
         ----------
@@ -899,15 +908,18 @@ class SEMTGPU(nn.Module):
         cluster_assignments    : predicted cluster id per sample, shape (N,)
         bert_model_name        : HuggingFace model name
         max_length             : max token length for the language model
-        max_samples_per_cluster: total budget per cluster (split equally neg/pos)
-        top_k                  : number of top tokens to keep per pool
-        tfidf_vocab_size       : size of TF-IDF vocab used to rank representative texts
+        max_samples_per_cluster: total sample budget per cluster
+                                  (split: //2 neg + remainder pos → default 15+15)
+        top_k                  : max tokens to keep per pool (default 15)
+        tfidf_vocab_size       : TF-IDF vocab size per sentiment pool (default 30)
 
         Returns
         -------
         dict  cluster_id  →  {
             "neg_pool": { token: mean_attribution_toward_negative },
+                         tokens ∈ top-30 TF-IDF of cluster's NEGATIVE texts
             "pos_pool": { token: mean_attribution_toward_positive },
+                         tokens ∈ top-30 TF-IDF of cluster's POSITIVE texts
         }
         """
         is_longformer = "longformer" in bert_model_name.lower()
@@ -932,40 +944,62 @@ class SEMTGPU(nn.Module):
         n_neg_quota  = max_samples_per_cluster // 2
         n_pos_quota  = max_samples_per_cluster - n_neg_quota
 
-        # ── Step 3: precompute TF-IDF vocab per cluster ───────────────────────
-        print(f"\n  Precomputing TF-IDF vocab (top {tfidf_vocab_size} terms) per cluster…")
-        cluster_vocab: Dict[int, List[str]] = {}
-        for cid in all_clusters:
-            mask = cluster_assignments == cid
-            cluster_vocab[cid] = self._get_cluster_tfidf_vocab(
-                texts, mask, top_n=tfidf_vocab_size
-            )
-            print(f"    Cluster {cid:3d}: {cluster_vocab[cid][:8]}")
+        # ── Step 3: build SEPARATE TF-IDF vocab per cluster × sentiment ──────
+        #   vocab_neg[cid] = top-N words from negative texts of cluster cid
+        #   vocab_pos[cid] = top-N words from positive texts of cluster cid
+        print(f"\n  Building sentiment-specific TF-IDF vocab "
+              f"(top {tfidf_vocab_size} per pool) per cluster…")
 
-        # ── Step 4: frequency-based stratified sampling ───────────────────────
-        #   For each pool (neg/pos), rank by vocab coverage and take top-N.
+        vocab_neg:     Dict[int, List[str]] = {}
+        vocab_pos:     Dict[int, List[str]] = {}
+        vocab_neg_set: Dict[int, set]       = {}   # lowercased for O(1) lookup
+        vocab_pos_set: Dict[int, set]       = {}
+
+        for cid in all_clusters:
+            neg_indices = cl_idx_neg[cid]
+            pos_indices = cl_idx_pos[cid]
+
+            # Build boolean masks pointing into `texts`
+            neg_mask = np.zeros(len(texts), dtype=bool)
+            pos_mask = np.zeros(len(texts), dtype=bool)
+            if neg_indices:
+                neg_mask[neg_indices] = True
+            if pos_indices:
+                pos_mask[pos_indices] = True
+
+            v_neg = self._get_cluster_tfidf_vocab(texts, neg_mask, top_n=tfidf_vocab_size)
+            v_pos = self._get_cluster_tfidf_vocab(texts, pos_mask, top_n=tfidf_vocab_size)
+
+            vocab_neg[cid]     = v_neg
+            vocab_pos[cid]     = v_pos
+            vocab_neg_set[cid] = set(w.lower() for w in v_neg)
+            vocab_pos_set[cid] = set(w.lower() for w in v_pos)
+
+            print(f"    Cluster {cid:3d}  "
+                  f"neg_vocab ({len(v_neg)}): {v_neg[:6]}  |  "
+                  f"pos_vocab ({len(v_pos)}): {v_pos[:6]}")
+
+        # ── Step 4: frequency-based sampling, each pool ranked by OWN vocab ──
         stratified: Dict[int, Dict[str, List[int]]] = {}
         for cid in all_clusters:
-            vocab = cluster_vocab[cid]
-
             pool_neg = cl_idx_neg[cid]
             pool_pos = cl_idx_pos[cid]
 
-            # Rank neg pool texts by cluster vocab coverage
+            # Neg texts ranked by vocab_neg coverage
             if pool_neg:
                 pool_neg_texts = [texts[i] for i in pool_neg]
                 ranked_neg = self._rank_texts_by_vocab_coverage(
-                    pool_neg_texts, vocab, n_neg_quota
+                    pool_neg_texts, vocab_neg[cid], n_neg_quota
                 )
                 samp_neg = [pool_neg[r] for r in ranked_neg]
             else:
                 samp_neg = []
 
-            # Rank pos pool texts by cluster vocab coverage
+            # Pos texts ranked by vocab_pos coverage
             if pool_pos:
                 pool_pos_texts = [texts[i] for i in pool_pos]
                 ranked_pos = self._rank_texts_by_vocab_coverage(
-                    pool_pos_texts, vocab, n_pos_quota
+                    pool_pos_texts, vocab_pos[cid], n_pos_quota
                 )
                 samp_pos = [pool_pos[r] for r in ranked_pos]
             else:
@@ -980,7 +1014,7 @@ class SEMTGPU(nn.Module):
         tokenizer  = AutoTokenizer.from_pretrained(bert_model_name)
         lang_model = AutoModel.from_pretrained(bert_model_name).to(dev).eval()
 
-        # ── Step 6: separate storage per pool ────────────────────────────────
+        # ── Step 6: occlusion + SENTIMENT-VOCAB-FILTERED collection ──────────
         cl_neg_pool: Dict[int, Dict[str, List[float]]] = defaultdict(lambda: defaultdict(list))
         cl_pos_pool: Dict[int, Dict[str, List[float]]] = defaultdict(lambda: defaultdict(list))
 
@@ -995,14 +1029,16 @@ class SEMTGPU(nn.Module):
             neg_indices = pools["neg"]
             pos_indices = pools["pos"]
             total       = len(neg_indices) + len(pos_indices)
+            vset_neg    = vocab_neg_set[cid]   # filter for neg pool
+            vset_pos    = vocab_pos_set[cid]   # filter for pos pool
 
             print(f"  Cluster {cid:3d}  "
-                  f"({len(neg_indices)} neg [freq-selected] + "
-                  f"{len(pos_indices)} pos [freq-selected] = {total})...",
+                  f"({len(neg_indices)} neg + {len(pos_indices)} pos | "
+                  f"neg_vocab={len(vset_neg)}  pos_vocab={len(vset_pos)})...",
                   end=" ", flush=True)
             ok = 0
 
-            # ── Process NEGATIVE samples → collect scores_neg ──────────────
+            # ── Negative texts → scores_neg, filtered to vocab_neg ────────
             for idx in neg_indices:
                 try:
                     toks, _sc_pos, sc_neg, _ = self._occlusion_scores_bidirectional(
@@ -1012,14 +1048,14 @@ class SEMTGPU(nn.Module):
                         if tok in _SKIP_TOKENS:
                             continue
                         clean = self._clean_token(tok)
-                        if len(clean) < 2:
+                        if clean.lower() not in vset_neg:   # ← filter to neg vocab
                             continue
                         cl_neg_pool[cid][clean].append(sn)
                     ok += 1
                 except Exception:
                     continue
 
-            # ── Process POSITIVE samples → collect scores_pos ──────────────
+            # ── Positive texts → scores_pos, filtered to vocab_pos ────────
             for idx in pos_indices:
                 try:
                     toks, sc_pos, _sc_neg, _ = self._occlusion_scores_bidirectional(
@@ -1029,20 +1065,22 @@ class SEMTGPU(nn.Module):
                         if tok in _SKIP_TOKENS:
                             continue
                         clean = self._clean_token(tok)
-                        if len(clean) < 2:
+                        if clean.lower() not in vset_pos:   # ← filter to pos vocab
                             continue
                         cl_pos_pool[cid][clean].append(sp)
                     ok += 1
                 except Exception:
                     continue
 
-            print(f"✓  ({ok}/{total} succeeded)")
+            print(f"✓  ({ok}/{total} succeeded)  "
+                  f"neg_tokens={len(cl_neg_pool[cid])}  "
+                  f"pos_tokens={len(cl_pos_pool[cid])}")
 
         del lang_model
 
-        # ── Step 7: aggregate — mean score, keep top_k by |mean| ─────────────
+        # ── Step 7: aggregate — mean score, top_k by |mean| ──────────────────
         def _top(d: Dict[str, List[float]]) -> Dict[str, float]:
-            means = {t: float(np.mean(sc)) for t, sc in d.items() if len(sc) >= 2}
+            means = {t: float(np.mean(sc)) for t, sc in d.items() if len(sc) >= 1}
             return dict(sorted(means.items(), key=lambda x: abs(x[1]), reverse=True)[:top_k])
 
         result: Dict[int, Dict[str, Dict[str, float]]] = {}
@@ -1054,8 +1092,8 @@ class SEMTGPU(nn.Module):
                 "pos_pool": pos_agg,
             }
             print(f"  Cluster {cid:3d} → "
-                  f"neg_pool top: {list(neg_agg.keys())[:5]}  |  "
-                  f"pos_pool top: {list(pos_agg.keys())[:5]}")
+                  f"neg_pool ({len(neg_agg)}): {list(neg_agg.keys())[:6]}  |  "
+                  f"pos_pool ({len(pos_agg)}): {list(pos_agg.keys())[:6]}")
 
         return result
 
@@ -1837,47 +1875,52 @@ class SEMTGPU(nn.Module):
         ig_max_samples:   int  = 512,
         plot_token_attribution:    bool = False,
         token_attr_bert_name:      str  = "allenai/longformer-base-4096",
-        token_attr_top_k:          int  = 30,
-        token_attr_max_samples:    int  = 15,
+        token_attr_top_k:          int  = 15,
+        token_attr_max_samples:    int  = 30,
         token_attr_max_length:     int  = 4096,
         token_attr_tfidf_vocab:    int  = 30,
     ):
         """
         Joint DEC + Sentiment + Reconstruction training.
 
-        v3.4 changes vs v3.3:
+        v3.5 changes vs v3.4:
         ─────────────────────
-        1. Token attribution sampling is FREQUENCY-BASED.
-           For each cluster × sentiment pool, texts are ranked by cluster
-           TF-IDF vocabulary coverage; the top-N most representative texts
-           are selected for occlusion (replaces random sampling).
-           New parameter: token_attr_tfidf_vocab (default 30).
+        1. Token attribution is now VOCAB-CONSTRAINED.
+           After occlusion, only tokens whose cleaned form appears in the
+           cluster's top-tfidf_vocab_size TF-IDF vocabulary are recorded.
+           This means attribution scores are computed ONLY for the top-N
+           characteristic words of each cluster — no unrelated tokens leak in.
 
-        2. Post-training token attribution generates THREE output files per run:
-             • token_attr_POS_grid_epoch_<N>.png  — green bar grid (pos pool)
-             • token_attr_NEG_grid_epoch_<N>.png  — red bar grid (neg pool)
-             • token_attr_per_cluster_epoch_<N>.png  — combined (compat)
-             • token_attr_heatmap_epoch_<N>.png    — dual-panel heatmap
-             • token_attribution_final.json        — raw scores
+        2. Default sample budget changed: token_attr_max_samples=30
+           → 15 neg texts + 15 pos texts per cluster (was 15 total).
+           token_attr_top_k=15 (was 30) — matches tfidf_vocab_size semantics.
 
-        3. All v3.3 behaviours retained:
-             - Runs ONCE, on the final best-model checkpoint only.
+        3. min_count for aggregation lowered to 1 (was 2) since the vocab
+           constraint already ensures relevance; a word appearing in one text
+           is still a valid signal within the constrained vocabulary.
+
+        4. All v3.4 behaviours retained:
+             - Frequency-based sampling (most vocab-coverage texts first).
+             - Runs ONCE on the final best-model checkpoint only.
              - neg_pool/pos_pool fully separated (no cross-contamination).
+             - Two separated grid plots: POS (green) + NEG (red).
              - Longformer global attention on [CLS].
              - Token cleaning for Ġ, ▁, ## prefixes.
         """
         print("=" * 60)
-        print("SEMTGPU v3.4 — Joint Training: Clustering + Sentiment + Reconstruction")
+        print("SEMTGPU v3.5 — Joint Training: Clustering + Sentiment + Reconstruction")
         print(f"Loss: α(recon)={alpha}, γ(cluster)={gamma}, η(sentiment)={eta}")
         print(f"Update interval: {update_interval}  |  val_ratio: {val_ratio:.0%}")
         print(f"Best-model metric: {val_metric}")
         if plot_token_attribution:
             print(f"Token attribution model : {token_attr_bert_name}")
             print(f"Token attribution timing: FINAL BEST MODEL ONLY")
-            print(f"  samples/cluster  = {token_attr_max_samples} "
+            print(f"  sample budget    = {token_attr_max_samples} total "
                   f"({token_attr_max_samples//2} neg + "
-                  f"{token_attr_max_samples - token_attr_max_samples//2} pos)")
+                  f"{token_attr_max_samples - token_attr_max_samples//2} pos per cluster)")
             print(f"  selection method = frequency-based (TF-IDF vocab top-{token_attr_tfidf_vocab})")
+            print(f"  token filter     = VOCAB-CONSTRAINED (only top-{token_attr_tfidf_vocab} TF-IDF words per cluster)")
+            print(f"  top_k per pool   = {token_attr_top_k}")
         print("=" * 60)
 
         dev     = next(self.parameters()).device
@@ -2210,9 +2253,10 @@ class SEMTGPU(nn.Module):
         # ── Token attribution (final best model, frequency-based sampling) ─────
         if plot_token_attribution and has_texts:
             try:
-                print(f"\n[Token Attribution — Final Best Model]")
+                print(f"\n[Token Attribution — Final Best Model  (v3.5 vocab-constrained)]")
                 print(f"  Model      : {token_attr_bert_name}")
-                print(f"  Sampling   : frequency-based (TF-IDF top-{token_attr_tfidf_vocab})")
+                print(f"  Vocab size : top-{token_attr_tfidf_vocab} TF-IDF words per cluster (token filter)")
+                print(f"  Sampling   : {token_attr_max_samples//2} neg + {token_attr_max_samples - token_attr_max_samples//2} pos texts per cluster (freq-based)")
                 ta_final = self.compute_token_attribution_per_cluster_with_embeddings(
                     texts_train,
                     X_train.cpu().numpy(),
