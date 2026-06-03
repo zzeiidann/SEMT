@@ -526,7 +526,6 @@ class SEMTGPU(nn.Module):
 
     # ── Integrated Gradients ──────────────────────────────────────────────────
     def compute_integrated_gradients(self, x, target_class=1, n_steps=50, batch_size=64):
-        \"\"\"Uses eval() to prevent BatchNorm running stat corruption (FIX 1).\"\"\"
         dev  = next(self.parameters()).device
         xt   = torch.as_tensor(x, dtype=torch.float32, device=dev)
         N, D = xt.shape
@@ -1527,22 +1526,6 @@ class SEMTGPU(nn.Module):
         token_attr_max_length:     int  = 4096,
         token_attr_tfidf_vocab:    int  = 30,
     ):
-        \"\"\"
-        Joint DEC + Sentiment training  (v3.7 — no reconstruction loss).
-
-        The encoder is updated purely by:
-          γ · L_cluster   (KL divergence to target distribution, DEC-style)
-          η · L_sentiment  (cross-entropy, when labels are available)
-
-        Reconstruction loss belongs in pretrain_autoencoder(), where it is the
-        sole signal.  During multi-task joint training it is redundant and has
-        been removed.
-
-        Fixes retained from v3.6.2:
-          FIX 1 — compute_integrated_gradients uses eval() → no BN stat corruption.
-          FIX 2 — final metrics computed BEFORE IG/token-attribution calls.
-          FIX 4 — early stop only after ite >= update_interval (no spurious stop at ite=0).
-        \"\"\"
         print("=" * 60)
         print("SEMTGPU v3.7 — Joint Training: Clustering + Sentiment")
         print("  (reconstruction loss removed — lives in pretrain_autoencoder)")
