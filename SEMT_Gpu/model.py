@@ -1348,7 +1348,7 @@ class SEMTGPU(nn.Module):
         tokenizer  = AutoTokenizer.from_pretrained(bert_model_name)
         lang_model = AutoModel.from_pretrained(bert_model_name).to(dev).eval()
 
-        tokens, scores_pos, scores_neg, base_prob = \\
+        tokens, scores_pos, scores_neg, base_prob = 
             self._occlusion_scores_bidirectional(
                 text, lang_model, tokenizer, max_length, is_longformer)
         del lang_model
