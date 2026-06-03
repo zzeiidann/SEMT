@@ -44,7 +44,6 @@ import seaborn as sns
 # Professional Plot Style
 # ─────────────────────────────────────────────────────────────────────────────
 def _apply_professional_style():
-    """Apply a consistent, publication-quality matplotlib style."""
     plt.rcParams.update({
         "figure.facecolor":        "#FAFAFA",
         "axes.facecolor":          "#FFFFFF",
@@ -74,14 +73,13 @@ def _apply_professional_style():
         "legend.fontsize":         8,
     })
 
-# ── Colour palettes ──────────────────────────────────────────────────────────
 _RWG = LinearSegmentedColormap.from_list(
     "rwg_pro", ["#C0392B", "#FAFAFA", "#1A7A4A"], N=512
 )
 
-_COL_POS = "#1A7A4A"   # deep teal-green  → supports positive
-_COL_NEG = "#C0392B"   # deep crimson     → supports negative
-_COL_NEU = "#7F8C8D"   # slate grey       → neutral
+_COL_POS = "#1A7A4A"
+_COL_NEG = "#C0392B"
+_COL_NEU = "#7F8C8D"
 
 _CLUSTER_PALETTE = [
     "#2E86AB","#A23B72","#F18F01","#C73E1D","#3B1F2B",
@@ -167,44 +165,9 @@ class Autoencoder(nn.Module):
 
 
 # ─────────────────────────────────────────────────────────────────────────────
-# SEMTGPU — main class
+# SEMTGPU
 # ─────────────────────────────────────────────────────────────────────────────
 class SEMTGPU(nn.Module):
-    """
-    Joint Sentiment + Topic Clustering (DEC-style) with Autoencoder features.
-
-    v3.6 Changes (vs v3.5):
-      • TWO SEPARATE TF-IDF vocabularies per cluster — one from negative texts,
-        one from positive texts — instead of a single shared cluster vocab.
-
-        vocab_neg[cid] = top-tfidf_vocab_size TF-IDF words from the NEGATIVE
-                         texts of cluster cid.
-        vocab_pos[cid] = top-tfidf_vocab_size TF-IDF words from the POSITIVE
-                         texts of cluster cid.
-
-        Sampling: neg texts ranked by vocab_neg coverage, pos by vocab_pos.
-        Filtering: neg occlusion scores filtered to vocab_neg only,
-                   pos occlusion scores filtered to vocab_pos only.
-
-        Result: each pool's attribution scores are grounded in words that are
-        actually frequent/distinctive within that specific sentiment × cluster
-        cell — the neg pool and pos pool can have completely different vocabularies.
-
-      • All v3.5/v3.4 behaviours retained:
-        - Frequency-based text sampling.
-        - Two separated grid plots: POS grid (green) + NEG grid (red).
-        - Runs ONCE on the final best-model checkpoint only.
-        - neg_pool/pos_pool fully separated (no cross-contamination).
-        - Longformer global attention on [CLS] token.
-        - Token cleaning for Ġ, ▁, ## prefixes.
-
-    v3.6.1 Fix:
-      • Loss logging sekarang menampilkan KONTRIBUSI AKTUAL ke total loss
-        (alpha*Lr, gamma*Lc, eta*Ls) bukan raw component loss.
-      • Normalisasi loss menggunakan iter_count (jumlah batch aktual)
-        bukan update_interval, sehingga lebih akurat terutama di iter pertama.
-    """
-
     def __init__(
         self,
         dims: List[int],
@@ -240,21 +203,17 @@ class SEMTGPU(nn.Module):
                 if m.bias is not None:
                     nn.init.zeros_(m.bias)
 
-    # ─────────────────────────────────────────────────────────────────────────
-    # Token Cleaning Helper
-    # ─────────────────────────────────────────────────────────────────────────
+    # ── Token Cleaning ────────────────────────────────────────────────────────
     @staticmethod
     def _clean_token(tok: str) -> str:
-        tok = tok.lstrip('\u0120')   # Ġ  — Longformer / RoBERTa / GPT-2
-        tok = tok.lstrip('\u2581')   # ▁  — SentencePiece (IndoBERT, mBERT …)
-        tok = tok.replace('##', '')  # ## — WordPiece (BERT)
-        tok = tok.lstrip('\u2047')   # ⁇  — some multilingual models
+        tok = tok.lstrip('\\u0120')
+        tok = tok.lstrip('\\u2581')
+        tok = tok.replace('##', '')
+        tok = tok.lstrip('\\u2047')
         tok = tok.strip()
         return tok
 
-    # ─────────────────────────────────────────────────────────────────────────
-    # Forward / inference helpers
-    # ─────────────────────────────────────────────────────────────────────────
+    # ── Forward / inference ───────────────────────────────────────────────────
     def forward(self, x):
         z = self.autoencoder.encode(x)
         return self.clustering(z), torch.softmax(self.sentiment(z), dim=1)
@@ -283,9 +242,7 @@ class SEMTGPU(nn.Module):
     def get_cluster_assignments(self, x):
         return self.predict_clusters(x)
 
-    # ─────────────────────────────────────────────────────────────────────────
-    # Weight I/O
-    # ─────────────────────────────────────────────────────────────────────────
+    # ── Weight I/O ────────────────────────────────────────────────────────────
     def save_weights(self, path: str) -> None:
         os.makedirs(os.path.dirname(os.path.abspath(path)), exist_ok=True)
         torch.save({"model_state_dict": self.state_dict()}, path)
@@ -306,9 +263,7 @@ class SEMTGPU(nn.Module):
         print(f"✓ Restored best model (iter={self._best_val_iter}, "
               f"val_score={self._best_val_score:.4f})")
 
-    # ─────────────────────────────────────────────────────────────────────────
-    # Validation evaluation
-    # ─────────────────────────────────────────────────────────────────────────
+    # ── Validation evaluation ─────────────────────────────────────────────────
     def _evaluate_val(
         self,
         X_val: torch.Tensor,
@@ -380,9 +335,7 @@ class SEMTGPU(nn.Module):
         )
         return metrics
 
-    # ─────────────────────────────────────────────────────────────────────────
-    # Pretraining
-    # ─────────────────────────────────────────────────────────────────────────
+    # ── Pretraining (reconstruction loss lives here — unchanged) ─────────────
     def pretrain_autoencoder(
         self,
         dataset,
@@ -426,9 +379,7 @@ class SEMTGPU(nn.Module):
         print(f"✓ AE pretrain complete → {weights_path}")
         return str(weights_path)
 
-    # ─────────────────────────────────────────────────────────────────────────
-    # Metrics helpers
-    # ─────────────────────────────────────────────────────────────────────────
+    # ── Metrics helpers ───────────────────────────────────────────────────────
     @staticmethod
     def target_distribution(q):
         weight = (q ** 2) / torch.clamp(torch.sum(q, 0), min=1e-12)
@@ -514,8 +465,8 @@ class SEMTGPU(nn.Module):
         for i, cid in enumerate(cluster_assignments):
             clusters.setdefault(int(cid), []).append(texts[i])
 
-        cluster_ids   = sorted(clusters.keys())
-        cluster_docs  = [" ".join(clusters[c]) for c in cluster_ids]
+        cluster_ids  = sorted(clusters.keys())
+        cluster_docs = [" ".join(clusters[c]) for c in cluster_ids]
 
         if len(cluster_docs) < 2:
             return 0.0
@@ -524,12 +475,10 @@ class SEMTGPU(nn.Module):
             vect = TfidfVectorizer(
                 max_features=5000,
                 stop_words=list(self.stop_words) or None,
-                min_df=1,
-                ngram_range=(1, 1),
+                min_df=1, ngram_range=(1, 1),
             )
             mat = vect.fit_transform(cluster_docs)
             feat_names = vect.get_feature_names_out()
-
             all_sets = []
             for row_idx in range(mat.shape[0]):
                 row = mat[row_idx].toarray()[0]
@@ -546,8 +495,8 @@ class SEMTGPU(nn.Module):
         if not all_sets:
             return 0.0
 
-        unique_words  = set().union(*all_sets)
-        total_words   = sum(len(s) for s in all_sets)
+        unique_words = set().union(*all_sets)
+        total_words  = sum(len(s) for s in all_sets)
         return float(len(unique_words) / total_words) if total_words else 0.0
 
     def compute_topic_coverage(self, texts, cluster_assignments):
@@ -575,33 +524,36 @@ class SEMTGPU(nn.Module):
     def get_topic_assignments(self):
         return self.topic_mapping.copy()
 
-    # ─────────────────────────────────────────────────────────────────────────
-    # Integrated Gradients
-    # ─────────────────────────────────────────────────────────────────────────
+    # ── Integrated Gradients ──────────────────────────────────────────────────
     def compute_integrated_gradients(self, x, target_class=1, n_steps=50, batch_size=64):
+        \"\"\"Uses eval() to prevent BatchNorm running stat corruption (FIX 1).\"\"\"
         dev  = next(self.parameters()).device
         xt   = torch.as_tensor(x, dtype=torch.float32, device=dev)
         N, D = xt.shape
         base = torch.zeros_like(xt)
         all_attr = []
-        was_training = self.training; self.train()
 
-        for start in range(0, N, batch_size):
-            end = min(start + batch_size, N)
-            xb  = xt[start:end]; bb = base[start:end]; b = xb.shape[0]
-            alphas = torch.linspace(0, 1, n_steps, device=dev)
-            interp = (bb.unsqueeze(0) +
-                      alphas.view(-1, 1, 1) * (xb - bb).unsqueeze(0)
-                      ).view(n_steps * b, D).requires_grad_(True)
-            z = self.autoencoder.encode(interp)
-            s = self.sentiment(z)
-            grads = torch.autograd.grad(s[:, target_class].sum(), interp,
-                                         create_graph=False)[0]
-            grads = grads.view(n_steps, b, D)
-            avg   = (grads[:-1] + grads[1:]).mean(0) / 2.0
-            all_attr.append(((xb - bb) * avg.detach()).detach().cpu().numpy())
+        was_training = self.training
+        self.eval()
+        try:
+            for start in range(0, N, batch_size):
+                end = min(start + batch_size, N)
+                xb  = xt[start:end]; bb = base[start:end]; b = xb.shape[0]
+                alphas = torch.linspace(0, 1, n_steps, device=dev)
+                interp = (bb.unsqueeze(0) +
+                          alphas.view(-1, 1, 1) * (xb - bb).unsqueeze(0)
+                          ).view(n_steps * b, D).requires_grad_(True)
+                z = self.autoencoder.encode(interp)
+                s = self.sentiment(z)
+                grads = torch.autograd.grad(s[:, target_class].sum(), interp,
+                                             create_graph=False)[0]
+                grads = grads.view(n_steps, b, D)
+                avg   = (grads[:-1] + grads[1:]).mean(0) / 2.0
+                all_attr.append(((xb - bb) * avg.detach()).detach().cpu().numpy())
+        finally:
+            if was_training:
+                self.train()
 
-        if not was_training: self.eval()
         return np.concatenate(all_attr, 0)
 
     def plot_integrated_gradients(self, attributions, cluster_assignments, epoch,
@@ -610,17 +562,17 @@ class SEMTGPU(nn.Module):
                                    save_plot=True, show_plot=False):
         _apply_professional_style()
 
-        abs_attr    = np.abs(attributions)
-        global_imp  = abs_attr.mean(0)
-        top_idx     = np.argsort(global_imp)[-top_dims:][::-1]
-        uniq        = np.unique(cluster_assignments)
-        cl_ig       = np.array([
+        abs_attr   = np.abs(attributions)
+        global_imp = abs_attr.mean(0)
+        top_idx    = np.argsort(global_imp)[-top_dims:][::-1]
+        uniq       = np.unique(cluster_assignments)
+        cl_ig      = np.array([
             abs_attr[cluster_assignments == c][:, top_idx].mean(0)
             if (cluster_assignments == c).sum() > 0 else np.zeros(top_dims)
             for c in uniq
         ])
-        top_vals    = global_imp[top_idx]
-        vmax_hm     = cl_ig.max() if cl_ig.max() > 0 else 1.0
+        top_vals = global_imp[top_idx]
+        vmax_hm  = cl_ig.max() if cl_ig.max() > 0 else 1.0
 
         fig = plt.figure(figsize=figsize, facecolor="#FAFAFA")
         fig.suptitle(
@@ -628,10 +580,9 @@ class SEMTGPU(nn.Module):
             fontsize=13, fontweight="bold", color="#1C1C1C", y=1.01
         )
 
-        gs = gridspec.GridSpec(1, 2, figure=fig, width_ratios=[1, 2.0], wspace=0.35)
-
+        gs  = gridspec.GridSpec(1, 2, figure=fig, width_ratios=[1, 2.0], wspace=0.35)
         ax1 = fig.add_subplot(gs[0])
-        norm_vals = top_vals / (top_vals.max() + 1e-8)
+        norm_vals  = top_vals / (top_vals.max() + 1e-8)
         bar_colors = [plt.cm.YlOrRd(0.25 + 0.70 * v) for v in norm_vals]
         ypos = np.arange(top_dims)
         bars = ax1.barh(ypos, top_vals, color=bar_colors, edgecolor="#FFFFFF",
@@ -641,7 +592,7 @@ class SEMTGPU(nn.Module):
                              fontsize=7.5, fontfamily="monospace")
         ax1.invert_yaxis()
         ax1.set_xlabel("Mean |IG Attribution|", fontsize=9, color="#444")
-        ax1.set_title("Top Embedding Dimensions\n(Global Sentiment Influence)",
+        ax1.set_title("Top Embedding Dimensions\\n(Global Sentiment Influence)",
                       fontsize=10, fontweight="bold", pad=8)
         ax1.axvline(top_vals.mean(), color="#888", lw=0.8,
                     linestyle=":", label=f"mean={top_vals.mean():.4f}")
@@ -652,8 +603,8 @@ class SEMTGPU(nn.Module):
         ax1.set_facecolor("#FFFFFF")
 
         ax2 = fig.add_subplot(gs[1])
-        im = ax2.imshow(cl_ig, aspect="auto", cmap="YlOrRd", vmin=0, vmax=vmax_hm,
-                        interpolation="nearest")
+        im  = ax2.imshow(cl_ig, aspect="auto", cmap="YlOrRd", vmin=0, vmax=vmax_hm,
+                         interpolation="nearest")
         ax2.set_xticks(range(top_dims))
         ax2.set_xticklabels([f"d{i}" for i in top_idx], rotation=90,
                              fontsize=7, fontfamily="monospace")
@@ -691,48 +642,36 @@ class SEMTGPU(nn.Module):
         if show_plot: plt.show()
         else:         plt.close()
 
-    # ─────────────────────────────────────────────────────────────────────────
-    # Frequency-based representativeness scoring
-    # ─────────────────────────────────────────────────────────────────────────
+    # ── Frequency-based representativeness scoring ────────────────────────────
     def _rank_texts_by_vocab_coverage(
-        self,
-        texts: List[str],
-        vocab: List[str],
-        max_samples: int,
+        self, texts: List[str], vocab: List[str], max_samples: int,
     ) -> List[int]:
         if not vocab:
             return list(range(min(max_samples, len(texts))))
-
         vocab_set = set(w.lower() for w in vocab)
         scores = []
         for i, text in enumerate(texts):
-            words = set(re.findall(r'\b\w+\b', text.lower()))
+            words    = set(re.findall(r'\\b\\w+\\b', text.lower()))
             coverage = len(words & vocab_set)
             scores.append((i, coverage))
-
         scores.sort(key=lambda x: (-x[1], x[0]))
         return [idx for idx, _ in scores[:max_samples]]
 
     def _get_cluster_tfidf_vocab(
-        self,
-        all_texts: List[str],
-        cluster_mask: np.ndarray,
-        top_n: int = 30,
-        max_features: int = 5000,
+        self, all_texts: List[str], cluster_mask: np.ndarray,
+        top_n: int = 30, max_features: int = 5000,
     ) -> List[str]:
         c_texts = [all_texts[i] for i in np.where(cluster_mask)[0]]
         if not c_texts:
             return []
-
         try:
             vect = TfidfVectorizer(
                 max_features=max_features,
                 stop_words=list(self.stop_words) or None,
-                min_df=1,
-                ngram_range=(1, 1),
+                min_df=1, ngram_range=(1, 1),
             )
-            mat = vect.fit_transform(c_texts)
-            fn  = vect.get_feature_names_out()
+            mat  = vect.fit_transform(c_texts)
+            fn   = vect.get_feature_names_out()
             mean_scores = mat.toarray().mean(axis=0)
             top_idx = mean_scores.argsort()[-top_n:][::-1]
             return [fn[i] for i in top_idx if mean_scores[i] > 0]
@@ -741,18 +680,11 @@ class SEMTGPU(nn.Module):
                      if w not in self.stop_words and len(w) > 2]
             return [w for w, _ in Counter(words).most_common(top_n)]
 
-    # ─────────────────────────────────────────────────────────────────────────
-    # Longformer-aware CLS embedding helpers
-    # ─────────────────────────────────────────────────────────────────────────
+    # ── Longformer CLS helpers ────────────────────────────────────────────────
     def _longformer_cls_embedding(self, text, model, tokenizer, max_length=4096):
         dev = next(self.parameters()).device
-        enc = tokenizer(
-            text,
-            return_tensors="pt",
-            padding=True,
-            truncation=True,
-            max_length=max_length,
-        ).to(dev)
+        enc = tokenizer(text, return_tensors="pt", padding=True,
+                        truncation=True, max_length=max_length).to(dev)
         global_attention_mask = torch.zeros_like(enc["input_ids"])
         global_attention_mask[:, 0] = 1
         with torch.no_grad():
@@ -771,9 +703,7 @@ class SEMTGPU(nn.Module):
                 out = model(**enc)
             return out.last_hidden_state[:, 0, :], None, enc, None
 
-    # ─────────────────────────────────────────────────────────────────────────
-    # Bidirectional Occlusion Scoring (Longformer-aware)
-    # ─────────────────────────────────────────────────────────────────────────
+    # ── Bidirectional Occlusion Scoring ──────────────────────────────────────
     def _occlusion_scores_bidirectional(
         self, text, model, tokenizer, max_length=4096, is_longformer: bool = True
     ) -> Tuple[List[str], np.ndarray, np.ndarray, np.ndarray]:
@@ -789,7 +719,6 @@ class SEMTGPU(nn.Module):
         tokens  = tokenizer.convert_ids_to_tokens(enc["input_ids"][0].cpu().tolist())
         ids     = enc["input_ids"][0].cpu().tolist()
         n_tok   = len(ids)
-
         mask_id = tokenizer.mask_token_id
         if mask_id is None:
             mask_id = tokenizer.pad_token_id
@@ -797,38 +726,28 @@ class SEMTGPU(nn.Module):
         scores_pos = np.zeros(n_tok)
         scores_neg = np.zeros(n_tok)
 
-        _SKIP_TOKENS = {
-            "[CLS]", "[SEP]", "[PAD]",
-            "<s>", "</s>", "<pad>",
-            "<mask>",
-        }
+        _SKIP_TOKENS = {"[CLS]","[SEP]","[PAD]","<s>","</s>","<pad>","<mask>"}
 
         for i, tok in enumerate(tokens):
             if tok in _SKIP_TOKENS:
                 continue
-
-            masked_ids = ids.copy()
+            masked_ids    = ids.copy()
             masked_ids[i] = mask_id
-
             inp = {k: enc[k].clone() for k in enc}
             inp["input_ids"] = torch.tensor([masked_ids], device=dev)
-
             with torch.no_grad():
                 if is_longformer:
                     out = model(**inp, global_attention_mask=global_attn_mask)
                 else:
                     out = model(**inp)
                 _, sm = self(out.last_hidden_state[:, 0, :])
-
-            masked_prob = sm.squeeze(0).cpu().numpy()
-            scores_pos[i] = float(base_prob[1] - masked_prob[1])
-            scores_neg[i] = float(base_prob[0] - masked_prob[0])
+            masked_prob    = sm.squeeze(0).cpu().numpy()
+            scores_pos[i]  = float(base_prob[1] - masked_prob[1])
+            scores_neg[i]  = float(base_prob[0] - masked_prob[0])
 
         return tokens, scores_pos, scores_neg, base_prob
 
-    # ─────────────────────────────────────────────────────────────────────────
-    # compute_token_attribution_per_cluster_with_embeddings  (v3.6)
-    # ─────────────────────────────────────────────────────────────────────────
+    # ── compute_token_attribution_per_cluster_with_embeddings (v3.6) ─────────
     def compute_token_attribution_per_cluster_with_embeddings(
         self,
         texts: List[str],
@@ -841,10 +760,9 @@ class SEMTGPU(nn.Module):
         tfidf_vocab_size: int        = 30,
     ) -> Dict[int, Dict[str, Dict[str, float]]]:
         is_longformer = "longformer" in bert_model_name.lower()
+        pred_sent     = self.predict_sentiment(embeddings)
 
-        pred_sent = self.predict_sentiment(embeddings)
-
-        print(f"\n  Predicted sentiment distribution:")
+        print(f"\\n  Predicted sentiment distribution:")
         print(f"    Negative (0): {(pred_sent == 0).sum()}")
         print(f"    Positive (1): {(pred_sent == 1).sum()}")
 
@@ -860,7 +778,7 @@ class SEMTGPU(nn.Module):
         n_neg_quota  = max_samples_per_cluster // 2
         n_pos_quota  = max_samples_per_cluster - n_neg_quota
 
-        print(f"\n  Building sentiment-specific TF-IDF vocab "
+        print(f"\\n  Building sentiment-specific TF-IDF vocab "
               f"(top {tfidf_vocab_size} per pool) per cluster…")
 
         vocab_neg:     Dict[int, List[str]] = {}
@@ -871,13 +789,10 @@ class SEMTGPU(nn.Module):
         for cid in all_clusters:
             neg_indices = cl_idx_neg[cid]
             pos_indices = cl_idx_pos[cid]
-
-            neg_mask = np.zeros(len(texts), dtype=bool)
-            pos_mask = np.zeros(len(texts), dtype=bool)
-            if neg_indices:
-                neg_mask[neg_indices] = True
-            if pos_indices:
-                pos_mask[pos_indices] = True
+            neg_mask    = np.zeros(len(texts), dtype=bool)
+            pos_mask    = np.zeros(len(texts), dtype=bool)
+            if neg_indices: neg_mask[neg_indices] = True
+            if pos_indices: pos_mask[pos_indices] = True
 
             v_neg = self._get_cluster_tfidf_vocab(texts, neg_mask, top_n=tfidf_vocab_size)
             v_pos = self._get_cluster_tfidf_vocab(texts, pos_mask, top_n=tfidf_vocab_size)
@@ -897,19 +812,15 @@ class SEMTGPU(nn.Module):
             pool_pos = cl_idx_pos[cid]
 
             if pool_neg:
-                pool_neg_texts = [texts[i] for i in pool_neg]
                 ranked_neg = self._rank_texts_by_vocab_coverage(
-                    pool_neg_texts, vocab_neg[cid], n_neg_quota
-                )
+                    [texts[i] for i in pool_neg], vocab_neg[cid], n_neg_quota)
                 samp_neg = [pool_neg[r] for r in ranked_neg]
             else:
                 samp_neg = []
 
             if pool_pos:
-                pool_pos_texts = [texts[i] for i in pool_pos]
                 ranked_pos = self._rank_texts_by_vocab_coverage(
-                    pool_pos_texts, vocab_pos[cid], n_pos_quota
-                )
+                    [texts[i] for i in pool_pos], vocab_pos[cid], n_pos_quota)
                 samp_pos = [pool_pos[r] for r in ranked_pos]
             else:
                 samp_pos = []
@@ -917,7 +828,7 @@ class SEMTGPU(nn.Module):
             stratified[cid] = {"neg": samp_neg, "pos": samp_pos}
 
         dev = next(self.parameters()).device
-        print(f"\n  Loading model: {bert_model_name}")
+        print(f"\\n  Loading model: {bert_model_name}")
         print(f"  Mode: {'Longformer (global CLS attention)' if is_longformer else 'Standard BERT'}")
         tokenizer  = AutoTokenizer.from_pretrained(bert_model_name)
         lang_model = AutoModel.from_pretrained(bert_model_name).to(dev).eval()
@@ -925,11 +836,7 @@ class SEMTGPU(nn.Module):
         cl_neg_pool: Dict[int, Dict[str, List[float]]] = defaultdict(lambda: defaultdict(list))
         cl_pos_pool: Dict[int, Dict[str, List[float]]] = defaultdict(lambda: defaultdict(list))
 
-        _SKIP_TOKENS = {
-            "[CLS]", "[SEP]", "[PAD]",
-            "<s>", "</s>", "<pad>",
-            "<mask>",
-        }
+        _SKIP_TOKENS = {"[CLS]","[SEP]","[PAD]","<s>","</s>","<pad>","<mask>"}
 
         self.eval()
         for cid, pools in sorted(stratified.items()):
@@ -948,14 +855,11 @@ class SEMTGPU(nn.Module):
             for idx in neg_indices:
                 try:
                     toks, _sc_pos, sc_neg, _ = self._occlusion_scores_bidirectional(
-                        texts[idx], lang_model, tokenizer, max_length, is_longformer
-                    )
+                        texts[idx], lang_model, tokenizer, max_length, is_longformer)
                     for tok, sn in zip(toks, sc_neg):
-                        if tok in _SKIP_TOKENS:
-                            continue
+                        if tok in _SKIP_TOKENS: continue
                         clean = self._clean_token(tok)
-                        if clean.lower() not in vset_neg:
-                            continue
+                        if clean.lower() not in vset_neg: continue
                         cl_neg_pool[cid][clean].append(sn)
                     ok += 1
                 except Exception:
@@ -964,14 +868,11 @@ class SEMTGPU(nn.Module):
             for idx in pos_indices:
                 try:
                     toks, sc_pos, _sc_neg, _ = self._occlusion_scores_bidirectional(
-                        texts[idx], lang_model, tokenizer, max_length, is_longformer
-                    )
+                        texts[idx], lang_model, tokenizer, max_length, is_longformer)
                     for tok, sp in zip(toks, sc_pos):
-                        if tok in _SKIP_TOKENS:
-                            continue
+                        if tok in _SKIP_TOKENS: continue
                         clean = self._clean_token(tok)
-                        if clean.lower() not in vset_pos:
-                            continue
+                        if clean.lower() not in vset_pos: continue
                         cl_pos_pool[cid][clean].append(sp)
                     ok += 1
                 except Exception:
@@ -991,19 +892,14 @@ class SEMTGPU(nn.Module):
         for cid in all_clusters:
             neg_agg = _top(cl_neg_pool[cid])
             pos_agg = _top(cl_pos_pool[cid])
-            result[cid] = {
-                "neg_pool": neg_agg,
-                "pos_pool": pos_agg,
-            }
+            result[cid] = {"neg_pool": neg_agg, "pos_pool": pos_agg}
             print(f"  Cluster {cid:3d} → "
                   f"neg_pool ({len(neg_agg)}): {list(neg_agg.keys())[:6]}  |  "
                   f"pos_pool ({len(pos_agg)}): {list(pos_agg.keys())[:6]}")
 
         return result
 
-    # ─────────────────────────────────────────────────────────────────────────
-    # compute_token_attribution_per_cluster  (no embeddings, frequency-based)
-    # ─────────────────────────────────────────────────────────────────────────
+    # ── compute_token_attribution_per_cluster (no embeddings) ─────────────────
     def compute_token_attribution_per_cluster(
         self,
         texts,
@@ -1026,30 +922,23 @@ class SEMTGPU(nn.Module):
         for i, cid in enumerate(cluster_assignments):
             cl_idx[int(cid)].append(i)
 
-        print(f"\n  Precomputing TF-IDF vocab (top {tfidf_vocab_size}) per cluster…")
+        print(f"\\n  Precomputing TF-IDF vocab (top {tfidf_vocab_size}) per cluster…")
         cluster_vocab: Dict[int, List[str]] = {}
         for cid, indices in cl_idx.items():
-            mask = np.zeros(len(texts), dtype=bool)
+            mask       = np.zeros(len(texts), dtype=bool)
             mask[indices] = True
             cluster_vocab[cid] = self._get_cluster_tfidf_vocab(
-                texts, mask, top_n=tfidf_vocab_size
-            )
+                texts, mask, top_n=tfidf_vocab_size)
 
         cl_tok_pos: Dict[int, Dict[str, List[float]]] = defaultdict(lambda: defaultdict(list))
         cl_tok_neg: Dict[int, Dict[str, List[float]]] = defaultdict(lambda: defaultdict(list))
-
-        _SKIP_TOKENS = {
-            "[CLS]", "[SEP]", "[PAD]", "<s>", "</s>", "<pad>", "<mask>",
-        }
+        _SKIP_TOKENS = {"[CLS]","[SEP]","[PAD]","<s>","</s>","<pad>","<mask>"}
 
         self.eval()
         for cid, indices in sorted(cl_idx.items()):
-            vocab = cluster_vocab[cid]
-
-            pool_texts = [texts[i] for i in indices]
-            ranked = self._rank_texts_by_vocab_coverage(
-                pool_texts, vocab, max_samples_per_cluster
-            )
+            vocab   = cluster_vocab[cid]
+            ranked  = self._rank_texts_by_vocab_coverage(
+                [texts[i] for i in indices], vocab, max_samples_per_cluster)
             sampled = [indices[r] for r in ranked]
 
             print(f"  Cluster {cid:3d}  ({len(sampled)} freq-selected samples)...",
@@ -1058,14 +947,11 @@ class SEMTGPU(nn.Module):
             for idx in sampled:
                 try:
                     toks, sc_pos, sc_neg, _ = self._occlusion_scores_bidirectional(
-                        texts[idx], lang_model, tokenizer, max_length, is_longformer
-                    )
+                        texts[idx], lang_model, tokenizer, max_length, is_longformer)
                     for tok, sp, sn in zip(toks, sc_pos, sc_neg):
-                        if tok in _SKIP_TOKENS:
-                            continue
+                        if tok in _SKIP_TOKENS: continue
                         clean = self._clean_token(tok)
-                        if len(clean) < 2:
-                            continue
+                        if len(clean) < 2: continue
                         cl_tok_pos[cid][clean].append(sp)
                         cl_tok_neg[cid][clean].append(sn)
                     ok += 1
@@ -1085,12 +971,9 @@ class SEMTGPU(nn.Module):
                 "pos_pool": _top(cl_tok_pos[cid]),
                 "neg_pool": _top(cl_tok_neg[cid]),
             }
-
         return result
 
-    # ─────────────────────────────────────────────────────────────────────────
-    # _get_pos_neg  — key normaliser (shared by all plot methods)
-    # ─────────────────────────────────────────────────────────────────────────
+    # ── _get_pos_neg_pools ────────────────────────────────────────────────────
     @staticmethod
     def _get_pos_neg_pools(
         entry: Dict
@@ -1103,9 +986,7 @@ class SEMTGPU(nn.Module):
         neg = {t: abs(v) for t, v in entry.items() if isinstance(v, float) and v < 0}
         return pos, neg
 
-    # ─────────────────────────────────────────────────────────────────────────
-    # Plot: POSITIVE pool grid
-    # ─────────────────────────────────────────────────────────────────────────
+    # ── Plot: POSITIVE pool grid ──────────────────────────────────────────────
     def plot_token_attribution_pos_grid(
         self,
         cluster_token_scores: Dict[int, Dict[str, Dict[str, float]]],
@@ -1119,15 +1000,14 @@ class SEMTGPU(nn.Module):
     ):
         _apply_professional_style()
         cids = sorted(cluster_token_scores.keys())
-        if not cids:
-            return None
+        if not cids: return None
 
-        ncols  = min(max_clusters_per_row, len(cids))
-        nrows  = (len(cids) + ncols - 1) // ncols
-        fw     = figsize_per_cluster[0] * ncols
-        fh     = figsize_per_cluster[1] * nrows
-
-        fig, axes = plt.subplots(nrows, ncols, figsize=(fw, fh), facecolor="#FAFAFA")
+        ncols = min(max_clusters_per_row, len(cids))
+        nrows = (len(cids) + ncols - 1) // ncols
+        fig, axes = plt.subplots(nrows, ncols,
+                                  figsize=(figsize_per_cluster[0] * ncols,
+                                           figsize_per_cluster[1] * nrows),
+                                  facecolor="#FAFAFA")
         axes = np.array(axes).reshape(-1)
 
         for i, cid in enumerate(cids):
@@ -1135,26 +1015,19 @@ class SEMTGPU(nn.Module):
             pos_d, _ = self._get_pos_neg_pools(cluster_token_scores[cid])
 
             if not pos_d:
-                ax.text(0.5, 0.5, "No positive data",
-                        ha="center", va="center", transform=ax.transAxes,
-                        color="#AAAAAA", fontsize=9)
-                ax.axis("off")
-                continue
+                ax.text(0.5, 0.5, "No positive data", ha="center", va="center",
+                        transform=ax.transAxes, color="#AAAAAA", fontsize=9)
+                ax.axis("off"); continue
 
-            tokens = sorted(pos_d.keys(), key=lambda t: abs(pos_d[t]), reverse=True)[:top_k]
-            tokens = list(reversed(tokens))
+            tokens = list(reversed(
+                sorted(pos_d.keys(), key=lambda t: abs(pos_d[t]), reverse=True)[:top_k]))
             vals   = np.array([pos_d[t] for t in tokens])
             ypos   = np.arange(len(tokens))
-
             max_abs = max(np.abs(vals).max(), 1e-8)
-            bar_colors = [
-                plt.cm.Greens(0.35 + 0.55 * (abs(v) / max_abs))
-                for v in vals
-            ]
+            bar_colors = [plt.cm.Greens(0.35 + 0.55 * (abs(v) / max_abs)) for v in vals]
 
             bars = ax.barh(ypos, vals, color=bar_colors,
                            edgecolor="#FFFFFF", linewidth=0.5, height=0.72)
-
             ax.set_yticks(ypos)
             ax.set_yticklabels(tokens, fontsize=8, fontfamily="monospace")
             ax.axvline(0, color="#888888", linewidth=0.7, linestyle="--")
@@ -1166,25 +1039,19 @@ class SEMTGPU(nn.Module):
 
             for bar, v in zip(bars, vals):
                 if abs(v) > 1e-6:
-                    ax.text(
-                        v + max_abs * 0.02,
-                        bar.get_y() + bar.get_height() / 2,
-                        f"{v:+.4f}", va="center", ha="left",
-                        fontsize=6.5, color="#1A7A4A"
-                    )
+                    ax.text(v + max_abs * 0.02, bar.get_y() + bar.get_height() / 2,
+                            f"{v:+.4f}", va="center", ha="left",
+                            fontsize=6.5, color="#1A7A4A")
 
             cluster_label = self.topic_mapping.get(cid, f"Cluster {cid}")
-            n_samples_lbl = f"{len(pos_d)} tokens"
-            ax.set_title(
-                f"{cluster_label}\n({n_samples_lbl})",
-                fontsize=9, fontweight="bold", pad=5, color="#1C1C1C"
-            )
+            ax.set_title(f"{cluster_label}\\n({len(pos_d)} tokens)",
+                         fontsize=9, fontweight="bold", pad=5, color="#1C1C1C")
 
         for j in range(i + 1, len(axes)):
             axes[j].axis("off")
 
         fig.suptitle(
-            f"Token Attribution — POSITIVE Pool  ·  Epoch {epoch}\n"
+            f"Token Attribution — POSITIVE Pool  ·  Epoch {epoch}\\n"
             f"Tokens driving POSITIVE sentiment  ·  frequency-selected samples  ·  best model",
             fontsize=12, fontweight="bold", color="#1C1C1C", y=1.02
         )
@@ -1198,9 +1065,7 @@ class SEMTGPU(nn.Module):
         if show_plot: plt.show()
         else:         plt.close()
 
-    # ─────────────────────────────────────────────────────────────────────────
-    # Plot: NEGATIVE pool grid
-    # ─────────────────────────────────────────────────────────────────────────
+    # ── Plot: NEGATIVE pool grid ──────────────────────────────────────────────
     def plot_token_attribution_neg_grid(
         self,
         cluster_token_scores: Dict[int, Dict[str, Dict[str, float]]],
@@ -1214,15 +1079,14 @@ class SEMTGPU(nn.Module):
     ):
         _apply_professional_style()
         cids = sorted(cluster_token_scores.keys())
-        if not cids:
-            return None
+        if not cids: return None
 
-        ncols  = min(max_clusters_per_row, len(cids))
-        nrows  = (len(cids) + ncols - 1) // ncols
-        fw     = figsize_per_cluster[0] * ncols
-        fh     = figsize_per_cluster[1] * nrows
-
-        fig, axes = plt.subplots(nrows, ncols, figsize=(fw, fh), facecolor="#FAFAFA")
+        ncols = min(max_clusters_per_row, len(cids))
+        nrows = (len(cids) + ncols - 1) // ncols
+        fig, axes = plt.subplots(nrows, ncols,
+                                  figsize=(figsize_per_cluster[0] * ncols,
+                                           figsize_per_cluster[1] * nrows),
+                                  facecolor="#FAFAFA")
         axes = np.array(axes).reshape(-1)
 
         for i, cid in enumerate(cids):
@@ -1230,26 +1094,19 @@ class SEMTGPU(nn.Module):
             _, neg_d = self._get_pos_neg_pools(cluster_token_scores[cid])
 
             if not neg_d:
-                ax.text(0.5, 0.5, "No negative data",
-                        ha="center", va="center", transform=ax.transAxes,
-                        color="#AAAAAA", fontsize=9)
-                ax.axis("off")
-                continue
+                ax.text(0.5, 0.5, "No negative data", ha="center", va="center",
+                        transform=ax.transAxes, color="#AAAAAA", fontsize=9)
+                ax.axis("off"); continue
 
-            tokens = sorted(neg_d.keys(), key=lambda t: abs(neg_d[t]), reverse=True)[:top_k]
-            tokens = list(reversed(tokens))
+            tokens = list(reversed(
+                sorted(neg_d.keys(), key=lambda t: abs(neg_d[t]), reverse=True)[:top_k]))
             vals   = np.array([neg_d[t] for t in tokens])
             ypos   = np.arange(len(tokens))
-
             max_abs = max(np.abs(vals).max(), 1e-8)
-            bar_colors = [
-                plt.cm.Reds(0.35 + 0.55 * (abs(v) / max_abs))
-                for v in vals
-            ]
+            bar_colors = [plt.cm.Reds(0.35 + 0.55 * (abs(v) / max_abs)) for v in vals]
 
             bars = ax.barh(ypos, vals, color=bar_colors,
                            edgecolor="#FFFFFF", linewidth=0.5, height=0.72)
-
             ax.set_yticks(ypos)
             ax.set_yticklabels(tokens, fontsize=8, fontfamily="monospace")
             ax.axvline(0, color="#888888", linewidth=0.7, linestyle="--")
@@ -1261,25 +1118,19 @@ class SEMTGPU(nn.Module):
 
             for bar, v in zip(bars, vals):
                 if abs(v) > 1e-6:
-                    ax.text(
-                        v + max_abs * 0.02,
-                        bar.get_y() + bar.get_height() / 2,
-                        f"{v:+.4f}", va="center", ha="left",
-                        fontsize=6.5, color="#C0392B"
-                    )
+                    ax.text(v + max_abs * 0.02, bar.get_y() + bar.get_height() / 2,
+                            f"{v:+.4f}", va="center", ha="left",
+                            fontsize=6.5, color="#C0392B")
 
             cluster_label = self.topic_mapping.get(cid, f"Cluster {cid}")
-            n_samples_lbl = f"{len(neg_d)} tokens"
-            ax.set_title(
-                f"{cluster_label}\n({n_samples_lbl})",
-                fontsize=9, fontweight="bold", pad=5, color="#1C1C1C"
-            )
+            ax.set_title(f"{cluster_label}\\n({len(neg_d)} tokens)",
+                         fontsize=9, fontweight="bold", pad=5, color="#1C1C1C")
 
         for j in range(i + 1, len(axes)):
             axes[j].axis("off")
 
         fig.suptitle(
-            f"Token Attribution — NEGATIVE Pool  ·  Epoch {epoch}\n"
+            f"Token Attribution — NEGATIVE Pool  ·  Epoch {epoch}\\n"
             f"Tokens driving NEGATIVE sentiment  ·  frequency-selected samples  ·  best model",
             fontsize=12, fontweight="bold", color="#1C1C1C", y=1.02
         )
@@ -1293,9 +1144,7 @@ class SEMTGPU(nn.Module):
         if show_plot: plt.show()
         else:         plt.close()
 
-    # ─────────────────────────────────────────────────────────────────────────
-    # Plot: Per-Cluster Token Attribution (combined bidirectional)
-    # ─────────────────────────────────────────────────────────────────────────
+    # ── Plot: Combined bidirectional ──────────────────────────────────────────
     def plot_token_attribution_per_cluster(
         self,
         cluster_token_scores: Dict[int, Dict[str, Dict[str, float]]],
@@ -1308,10 +1157,8 @@ class SEMTGPU(nn.Module):
         show_plot: bool          = False,
     ):
         _apply_professional_style()
-
         cids = sorted(cluster_token_scores.keys())
-        if not cids:
-            return None
+        if not cids: return None
 
         ncols  = min(max_clusters_per_row, len(cids))
         nrows  = (len(cids) + ncols - 1) // ncols
@@ -1325,17 +1172,13 @@ class SEMTGPU(nn.Module):
             pos_d, neg_d = self._get_pos_neg_pools(cluster_token_scores[cid])
 
             if not pos_d and not neg_d:
-                ax.text(0.5, 0.5, "No attribution data",
-                        ha="center", va="center", transform=ax.transAxes,
-                        color="#AAAAAA", fontsize=9)
-                ax.axis("off")
-                continue
+                ax.text(0.5, 0.5, "No attribution data", ha="center", va="center",
+                        transform=ax.transAxes, color="#AAAAAA", fontsize=9)
+                ax.axis("off"); continue
 
             neg_tokens = sorted(neg_d.keys(), key=lambda t: abs(neg_d[t]), reverse=True)[:top_k]
             pos_tokens = sorted(pos_d.keys(), key=lambda t: abs(pos_d[t]), reverse=True)[:top_k]
-            all_tokens = list(dict.fromkeys(neg_tokens + pos_tokens))
-            all_tokens = list(reversed(all_tokens))
-
+            all_tokens = list(reversed(list(dict.fromkeys(neg_tokens + pos_tokens))))
             ypos  = np.arange(len(all_tokens))
             width = 0.35
 
@@ -1355,13 +1198,10 @@ class SEMTGPU(nn.Module):
             ax.set_xlabel("Mean Occlusion Attribution", fontsize=8, color="#555")
             ax.spines["left"].set_visible(False)
             ax.spines["bottom"].set_color("#CCCCCC")
-
             cluster_label = self.topic_mapping.get(cid, f"Cluster {cid}")
-            ax.set_title(
-                f"{cluster_label}\n"
-                f"neg: {len(neg_tokens)} tok  |  pos: {len(pos_tokens)} tok",
-                fontsize=8, fontweight="bold", pad=5, color="#1C1C1C"
-            )
+            ax.set_title(f"{cluster_label}\\n"
+                         f"neg: {len(neg_tokens)} tok  |  pos: {len(pos_tokens)} tok",
+                         fontsize=8, fontweight="bold", pad=5, color="#1C1C1C")
             ax.tick_params(axis="y", which="both", length=0)
             ax.set_facecolor("#FFFFFF")
 
@@ -1374,14 +1214,11 @@ class SEMTGPU(nn.Module):
             mpatches.Patch(facecolor=_COL_NEG, alpha=0.85,
                            label="neg_pool — Supports Negative Sentiment"),
         ]
-        fig.legend(
-            handles=legend_handles, loc="upper center",
-            bbox_to_anchor=(0.5, 1.01), ncol=2,
-            fontsize=9, framealpha=0.92, edgecolor="#CCCCCC",
-        )
-
+        fig.legend(handles=legend_handles, loc="upper center",
+                   bbox_to_anchor=(0.5, 1.01), ncol=2,
+                   fontsize=9, framealpha=0.92, edgecolor="#CCCCCC")
         fig.suptitle(
-            f"Bidirectional Token Sentiment Attribution  ·  Epoch {epoch}\n"
+            f"Bidirectional Token Sentiment Attribution  ·  Epoch {epoch}\\n"
             f"neg_pool from negative samples  ·  pos_pool from positive samples",
             fontsize=12, fontweight="bold", color="#1C1C1C", y=1.05
         )
@@ -1395,9 +1232,7 @@ class SEMTGPU(nn.Module):
         if show_plot: plt.show()
         else:         plt.close()
 
-    # ─────────────────────────────────────────────────────────────────────────
-    # Plot: Attribution Heatmap
-    # ─────────────────────────────────────────────────────────────────────────
+    # ── Plot: Attribution Heatmap ─────────────────────────────────────────────
     def plot_token_attribution_heatmap(
         self,
         cluster_token_scores: Dict[int, Dict[str, Dict[str, float]]],
@@ -1409,10 +1244,8 @@ class SEMTGPU(nn.Module):
         show_plot: bool        = False,
     ):
         _apply_professional_style()
-
         cids = sorted(cluster_token_scores.keys())
-        if not cids:
-            return None
+        if not cids: return None
 
         global_pos_sc: Dict[str, List[float]] = defaultdict(list)
         global_neg_sc: Dict[str, List[float]] = defaultdict(list)
@@ -1424,14 +1257,12 @@ class SEMTGPU(nn.Module):
         top_pos_tokens = [
             t for t, _ in sorted(
                 {t: float(np.mean(np.abs(s))) for t, s in global_pos_sc.items()}.items(),
-                key=lambda x: x[1], reverse=True
-            )[:top_k_global]
+                key=lambda x: x[1], reverse=True)[:top_k_global]
         ]
         top_neg_tokens = [
             t for t, _ in sorted(
                 {t: float(np.mean(np.abs(s))) for t, s in global_neg_sc.items()}.items(),
-                key=lambda x: x[1], reverse=True
-            )[:top_k_global]
+                key=lambda x: x[1], reverse=True)[:top_k_global]
         ]
 
         mat_pos = np.array([
@@ -1452,7 +1283,7 @@ class SEMTGPU(nn.Module):
             gridspec_kw={"wspace": 0.08}
         )
         fig.suptitle(
-            f"Per-Cluster Token Attribution Heatmap  ·  Epoch {epoch}\n"
+            f"Per-Cluster Token Attribution Heatmap  ·  Epoch {epoch}\\n"
             f"pos_pool (freq-selected positive samples)  ·  "
             f"neg_pool (freq-selected negative samples)",
             fontsize=12, fontweight="bold", color="#1C1C1C", y=1.02
@@ -1485,18 +1316,14 @@ class SEMTGPU(nn.Module):
             cb.set_label("Mean Attribution", fontsize=8, color="#444")
             cb.ax.tick_params(labelsize=7)
 
-        _draw_panel(
-            ax_pos, mat_pos, top_pos_tokens,
-            "pos_pool  →  Positive Sentiment Attribution\n"
-            "(tokens from freq-selected positive samples)",
-            vmax_pos, cmap="YlGn"
-        )
-        _draw_panel(
-            ax_neg, mat_neg, top_neg_tokens,
-            "neg_pool  →  Negative Sentiment Attribution\n"
-            "(tokens from freq-selected negative samples)",
-            vmax_neg, cmap="YlOrRd"
-        )
+        _draw_panel(ax_pos, mat_pos, top_pos_tokens,
+                    "pos_pool  →  Positive Sentiment Attribution\\n"
+                    "(tokens from freq-selected positive samples)",
+                    vmax_pos, cmap="YlGn")
+        _draw_panel(ax_neg, mat_neg, top_neg_tokens,
+                    "neg_pool  →  Negative Sentiment Attribution\\n"
+                    "(tokens from freq-selected negative samples)",
+                    vmax_neg, cmap="YlOrRd")
         ax_neg.set_ylabel("")
         ax_neg.set_yticklabels([])
 
@@ -1509,57 +1336,44 @@ class SEMTGPU(nn.Module):
         if show_plot: plt.show()
         else:         plt.close()
 
-    # ─────────────────────────────────────────────────────────────────────────
-    # Plot: Explain single text
-    # ─────────────────────────────────────────────────────────────────────────
+    # ── Plot: Explain single text ─────────────────────────────────────────────
     def explain_single_text(
         self, text,
         bert_model_name="allenai/longformer-base-4096",
-        max_length=4096,
-        figsize=(13, 5),
-        save_path=None,
-        show=False
+        max_length=4096, figsize=(13, 5),
+        save_path=None, show=False
     ):
         _apply_professional_style()
-
         is_longformer = "longformer" in bert_model_name.lower()
         dev = next(self.parameters()).device
         tokenizer  = AutoTokenizer.from_pretrained(bert_model_name)
         lang_model = AutoModel.from_pretrained(bert_model_name).to(dev).eval()
 
-        tokens, scores_pos, scores_neg, base_prob = \
+        tokens, scores_pos, scores_neg, base_prob = \\
             self._occlusion_scores_bidirectional(
-                text, lang_model, tokenizer, max_length, is_longformer
-            )
+                text, lang_model, tokenizer, max_length, is_longformer)
         del lang_model
 
         pred_class = int(base_prob.argmax())
         pred_label = {0: "Negative", 1: "Positive"}.get(pred_class, str(pred_class))
         pred_conf  = float(base_prob.max())
 
-        _SKIP_TOKENS = {
-            "[CLS]", "[SEP]", "[PAD]", "<s>", "</s>", "<pad>", "<mask>",
-        }
+        _SKIP_TOKENS = {"[CLS]","[SEP]","[PAD]","<s>","</s>","<pad>","<mask>"}
         dt, ds_pos, ds_neg = [], [], []
         for tok, sp, sn in zip(tokens, scores_pos, scores_neg):
             if tok in _SKIP_TOKENS: continue
             clean = self._clean_token(tok)
             if len(clean) < 1: continue
-            dt.append(clean)
-            ds_pos.append(sp)
-            ds_neg.append(sn)
+            dt.append(clean); ds_pos.append(sp); ds_neg.append(sn)
 
         dt     = np.array(dt)
         ds_pos = np.array(ds_pos)
         ds_neg = np.array(ds_neg)
-
-        order  = np.argsort(np.abs(ds_pos) + np.abs(ds_neg))[::-1][:20]
-        order  = order[::-1]
-        dt     = dt[order]; ds_pos = ds_pos[order]; ds_neg = ds_neg[order]
+        order  = np.argsort(np.abs(ds_pos) + np.abs(ds_neg))[::-1][:20][::-1]
+        dt = dt[order]; ds_pos = ds_pos[order]; ds_neg = ds_neg[order]
 
         ypos  = np.arange(len(dt))
         width = 0.35
-
         fig, ax = plt.subplots(figsize=figsize, facecolor="#FAFAFA")
         ax.barh(ypos + width / 2, ds_pos, height=width,
                 color=_COL_POS, alpha=0.85, label="→ Positive Sentiment",
@@ -1567,7 +1381,6 @@ class SEMTGPU(nn.Module):
         ax.barh(ypos - width / 2, ds_neg, height=width,
                 color=_COL_NEG, alpha=0.85, label="→ Negative Sentiment",
                 edgecolor="#FFFFFF", linewidth=0.4)
-
         ax.set_yticks(ypos)
         ax.set_yticklabels(dt, fontsize=9, fontfamily="monospace")
         ax.axvline(0, color="#888888", linewidth=0.8, linestyle="--")
@@ -1576,24 +1389,18 @@ class SEMTGPU(nn.Module):
         ax.spines["left"].set_visible(False)
 
         badge_col = _COL_POS if pred_class == 1 else _COL_NEG
-        ax.text(1.02, 0.5,
-                f"Prediction\n{pred_label}\n{pred_conf:.1%}",
+        ax.text(1.02, 0.5, f"Prediction\\n{pred_label}\\n{pred_conf:.1%}",
                 transform=ax.transAxes, fontsize=9, va="center", ha="left",
                 color="white", fontweight="bold",
                 bbox=dict(boxstyle="round,pad=0.5", facecolor=badge_col, alpha=0.9))
-
         ax.legend(loc="lower right", fontsize=8)
         ax.set_title(
-            f"Token Attribution Analysis  ·  Bidirectional Occlusion\n"
+            f"Token Attribution Analysis  ·  Bidirectional Occlusion\\n"
             f"Model: {bert_model_name}",
-            fontsize=11, fontweight="bold", pad=8
-        )
-        fig.suptitle(
-            f'"{text[:100]}{"..." if len(text) > 100 else ""}"',
-            fontsize=8, style="italic", color="#666666", y=1.01
-        )
+            fontsize=11, fontweight="bold", pad=8)
+        fig.suptitle(f'"{text[:100]}{"..." if len(text) > 100 else ""}"',
+                     fontsize=8, style="italic", color="#666666", y=1.01)
         plt.tight_layout()
-
         if save_path:
             os.makedirs(os.path.dirname(save_path) if os.path.dirname(save_path) else ".",
                         exist_ok=True)
@@ -1603,9 +1410,7 @@ class SEMTGPU(nn.Module):
         else:    plt.close()
         return fig
 
-    # ─────────────────────────────────────────────────────────────────────────
-    # Cluster evolution plot
-    # ─────────────────────────────────────────────────────────────────────────
+    # ── Cluster evolution plot ────────────────────────────────────────────────
     def plot_cluster_evolution(
         self, embeddings, cluster_assignments, epoch,
         texts=None, save_dir="./results/fnnjst", method="tsne",
@@ -1614,7 +1419,6 @@ class SEMTGPU(nn.Module):
         plot_tfidf_version=True, max_keywords_per_cluster=3, keyword_min_score=0.3,
     ):
         _apply_professional_style()
-
         emb = embeddings.detach().cpu().numpy() if isinstance(embeddings, torch.Tensor) else embeddings
         n   = emb.shape[0]
         if n < 3: return None
@@ -1643,19 +1447,17 @@ class SEMTGPU(nn.Module):
                 emb_2d = r.fit_transform(emb)
                 axis_label = "t-SNE (fallback)"
 
-        uniq = np.unique(cluster_assignments)
-        k    = len(uniq)
+        uniq   = np.unique(cluster_assignments)
+        k      = len(uniq)
         colors = [_CLUSTER_PALETTE[i % len(_CLUSTER_PALETTE)] for i in range(k)]
 
         fig, ax = plt.subplots(figsize=figsize, facecolor="#FAFAFA")
         for i, cid in enumerate(uniq):
-            mask = cluster_assignments == cid
+            mask  = cluster_assignments == cid
             label = self.topic_mapping.get(int(cid), f"C{cid}") + f"  (n={mask.sum()})"
-            ax.scatter(
-                emb_2d[mask, 0], emb_2d[mask, 1],
-                c=[colors[i]], marker="o", s=point_size,
-                alpha=alpha, label=label, edgecolors="white", linewidths=0.3
-            )
+            ax.scatter(emb_2d[mask, 0], emb_2d[mask, 1],
+                       c=[colors[i]], marker="o", s=point_size, alpha=alpha,
+                       label=label, edgecolors="white", linewidths=0.3)
 
         ax.set_title(f"Cluster Distribution  ·  Epoch {epoch}  ·  {axis_label}",
                      fontsize=11, fontweight="bold", pad=10)
@@ -1664,7 +1466,6 @@ class SEMTGPU(nn.Module):
         ax.set_facecolor("#FFFFFF")
         ax.tick_params(colors="#AAAAAA")
         ax.grid(True, color="#F0F0F0", linewidth=0.5)
-
         if k <= 15:
             ax.legend(fontsize=7, loc="best", framealpha=0.9, edgecolor="#CCCCCC",
                       markerscale=1.3, ncol=max(1, k // 8))
@@ -1672,17 +1473,13 @@ class SEMTGPU(nn.Module):
         plt.tight_layout()
         if save_plot:
             os.makedirs(save_dir, exist_ok=True)
-            plt.savefig(
-                os.path.join(save_dir, f"cluster_evolution_epoch_{epoch}.png"),
-                dpi=160, bbox_inches="tight", facecolor="#FAFAFA"
-            )
+            plt.savefig(os.path.join(save_dir, f"cluster_evolution_epoch_{epoch}.png"),
+                        dpi=160, bbox_inches="tight", facecolor="#FAFAFA")
         if show_plot: plt.show()
         else:         plt.close()
         return fig
 
-    # ─────────────────────────────────────────────────────────────────────────
-    # K-means init
-    # ─────────────────────────────────────────────────────────────────────────
+    # ── K-means init ──────────────────────────────────────────────────────────
     def _init_clusters_with_kmeans(self, all_embeddings, n_init=20, random_state=42):
         dev = next(self.parameters()).device
         if all_embeddings.size(0) < self.n_clusters:
@@ -1690,21 +1487,20 @@ class SEMTGPU(nn.Module):
         self.eval()
         with torch.no_grad():
             feats = self.extract_feature(all_embeddings).cpu().numpy()
-        km = KMeans(self.n_clusters, n_init=n_init, random_state=random_state)
+        km     = KMeans(self.n_clusters, n_init=n_init, random_state=random_state)
         y_pred = km.fit_predict(feats)
         self.clustering.clusters.data = torch.tensor(
             km.cluster_centers_, dtype=torch.float32, device=dev)
         return y_pred
 
     # ─────────────────────────────────────────────────────────────────────────
-    # fit()
+    # fit()  v3.7 — reconstruction loss removed
     # ─────────────────────────────────────────────────────────────────────────
     def fit(
         self,
         dataset,
-        alpha: float = 0.1,
-        gamma: float = 1.0,
-        eta:   float = 0.1,
+        gamma: float = 1.0,       # clustering KL-divergence weight
+        eta:   float = 0.1,       # sentiment cross-entropy weight
         optimizer_type: str   = "adam",
         learning_rate:  float = 1e-3,
         momentum:       float = 0.9,
@@ -1731,27 +1527,29 @@ class SEMTGPU(nn.Module):
         token_attr_max_length:     int  = 4096,
         token_attr_tfidf_vocab:    int  = 30,
     ):
-        """
-        Joint DEC + Sentiment + Reconstruction training.
+        \"\"\"
+        Joint DEC + Sentiment training  (v3.7 — no reconstruction loss).
 
-        v3.6.1 Fix — Loss logging:
-        ──────────────────────────
-        • Lr, Lc, Ls sekarang mencatat KONTRIBUSI AKTUAL ke total loss:
-            Lr += alpha * rl   (bukan raw rl)
-            Lc += gamma * cl   (bukan raw cl)
-            Ls += eta   * sl   (bukan raw sl)
+        The encoder is updated purely by:
+          γ · L_cluster   (KL divergence to target distribution, DEC-style)
+          η · L_sentiment  (cross-entropy, when labels are available)
 
-          Sehingga: avg_L ≈ avg_Lr + avg_Lc + avg_Ls (konsisten & mudah debug).
+        Reconstruction loss belongs in pretrain_autoencoder(), where it is the
+        sole signal.  During multi-task joint training it is redundant and has
+        been removed.
 
-        • Normalisasi menggunakan iter_count (jumlah batch aktual per interval)
-          bukan hardcode update_interval — lebih akurat di iter pertama dan
-          interval terakhir yang mungkin terpotong early stopping.
-        """
+        Fixes retained from v3.6.2:
+          FIX 1 — compute_integrated_gradients uses eval() → no BN stat corruption.
+          FIX 2 — final metrics computed BEFORE IG/token-attribution calls.
+          FIX 4 — early stop only after ite >= update_interval (no spurious stop at ite=0).
+        \"\"\"
         print("=" * 60)
-        print("SEMTGPU v3.6.1 — Joint Training: Clustering + Sentiment + Reconstruction")
-        print(f"Loss weights: α(recon)={alpha}, γ(cluster)={gamma}, η(sentiment)={eta}")
+        print("SEMTGPU v3.7 — Joint Training: Clustering + Sentiment")
+        print("  (reconstruction loss removed — lives in pretrain_autoencoder)")
+        print(f"Loss weights: γ(cluster)={gamma}, η(sentiment)={eta}")
         print(f"Update interval: {update_interval}  |  val_ratio: {val_ratio:.0%}")
         print(f"Best-model metric: {val_metric}")
+
         if plot_token_attribution:
             print(f"Token attribution model : {token_attr_bert_name}")
             print(f"Token attribution timing: FINAL BEST MODEL ONLY")
@@ -1759,7 +1557,7 @@ class SEMTGPU(nn.Module):
                   f"({token_attr_max_samples//2} neg + "
                   f"{token_attr_max_samples - token_attr_max_samples//2} pos per cluster)")
             print(f"  selection method = frequency-based (TF-IDF vocab top-{token_attr_tfidf_vocab})")
-            print(f"  token filter     = VOCAB-CONSTRAINED (only top-{token_attr_tfidf_vocab} TF-IDF words per cluster)")
+            print(f"  token filter     = VOCAB-CONSTRAINED")
             print(f"  top_k per pool   = {token_attr_top_k}")
         print("=" * 60)
 
@@ -1781,7 +1579,7 @@ class SEMTGPU(nn.Module):
                 if len(item) >= 3:
                     texts_list.append(item[2])
             else:
-                t = item.detach() if isinstance(item, torch.Tensor) else \
+                t = item.detach() if isinstance(item, torch.Tensor) else \\
                     torch.tensor(item, dtype=torch.float32)
                 embs.append(t.cpu())
 
@@ -1842,10 +1640,10 @@ class SEMTGPU(nn.Module):
             raise ValueError(f"Unknown optimizer: {optimizer_type}")
         optimizer = opt_map[optimizer_type.lower()]()
 
+        # Reconstruction loss (MSE) intentionally omitted — see pretrain_autoencoder()
         kld_loss = nn.KLDivLoss(reduction="batchmean")
-        ce_loss  = nn.CrossEntropyLoss(weight=class_w_t) if class_w_t is not None else \
+        ce_loss  = nn.CrossEntropyLoss(weight=class_w_t) if class_w_t is not None else \\
                    nn.CrossEntropyLoss()
-        mse_loss = nn.MSELoss()
 
         print("Initialising cluster centres with k-means (train split).")
         y_pred_last = self._init_clusters_with_kmeans(X_train)
@@ -1854,7 +1652,7 @@ class SEMTGPU(nn.Module):
         log_fields = [
             "iter", "split",
             "train_acc", "train_f1", "train_precision", "train_recall",
-            "L", "Lr", "Lc", "Ls",
+            "L", "Lc", "Ls",                               # Lr removed
             "ACC", "NMI", "ARI", "Homogeneity", "Completeness", "V-measure",
             "Train_Coherence", "Train_Diversity", "Train_Cluster_Score",
             "Cluster_Balance", "Min_Cluster_Size", "Max_Cluster_Size",
@@ -1872,12 +1670,8 @@ class SEMTGPU(nn.Module):
             save_interval = max(1, (max(1, n_train // batch_size)) * 5)
             train_loader: Optional[DataLoader] = None
             self.train()
-
-            # ── FIX: accumulate actual loss contributions ──────────────────
-            tot_L = Lr = Lc = Ls = 0.0
-            iter_count = 0   # jumlah batch aktual (bukan update_interval)
-            # ──────────────────────────────────────────────────────────────
-
+            iter_count = 0
+            tot_L = Lc = Ls = 0.0          # Lr removed
             last_ite = 0
 
             for ite in range(maxiter):
@@ -1909,7 +1703,7 @@ class SEMTGPU(nn.Module):
                         train_prec = float(precision_score(y_true, s_lab, average="binary", zero_division=0))
                         train_rec  = float(recall_score(y_true, s_lab, average="binary", zero_division=0))
 
-                    feats_tr = self.extract_feature(X_train).cpu().numpy()
+                    feats_tr  = self.extract_feature(X_train).cpu().numpy()
                     cl_sup_tr = {}
                     if has_labels:
                         yt = Y_train.cpu().numpy()
@@ -1926,12 +1720,9 @@ class SEMTGPU(nn.Module):
                         cov_tr     = self.compute_topic_coverage(texts_train, y_pred)
                     train_cluster_score = (train_coh + train_div) / 2.0
 
-                    # ── FIX: normalize by iter_count (actual batch count) ──
-                    avg_L  = tot_L / max(iter_count, 1)
-                    avg_Lr = Lr    / max(iter_count, 1)
-                    avg_Lc = Lc    / max(iter_count, 1)
-                    avg_Ls = Ls    / max(iter_count, 1)
-                    # ──────────────────────────────────────────────────────
+                    avg_L  = tot_L / update_interval if iter_count > 0 else 0.0
+                    avg_Lc = Lc    / update_interval if iter_count > 0 else 0.0
+                    avg_Ls = Ls    / update_interval if iter_count > 0 else 0.0
 
                     val_metrics = self._evaluate_val(X_val, Y_val, texts_val, batch_size)
                     vs      = val_metrics["val_primary_score"]
@@ -1943,10 +1734,7 @@ class SEMTGPU(nn.Module):
                         print(f"  ✓ New best model at iter {ite}: {_primary}={vs:.4f}")
                         self.save_weights(os.path.join(save_dir, "SEMTGPU_best.weights.pth"))
 
-                    print(f"\nIter {ite:5d} | L={avg_L:.5f}  "
-                          f"Lr(α·rl)={avg_Lr:.5f}  "
-                          f"Lc(γ·cl)={avg_Lc:.5f}  "
-                          f"Ls(η·sl)={avg_Ls:.5f}")
+                    print(f"\\nIter {ite:5d} | Lc={avg_Lc:.5f}  Ls={avg_Ls:.5f}  L={avg_L:.5f}")
                     print(f"  Sentiment  Train → Acc={train_acc:.4f}  F1={train_f1:.4f}  "
                           f"P={train_prec:.4f}  R={train_rec:.4f}")
                     print(f"  Sentiment  Val   → Acc={val_metrics.get('val_acc_sentiment',0):.4f}  "
@@ -1969,8 +1757,7 @@ class SEMTGPU(nn.Module):
                                 feats_tr, y_pred, ite,
                                 texts=texts_train if has_texts else None,
                                 save_dir=plot_dir, method=plot_method, show_plot=False,
-                                plot_tfidf_version=has_texts,
-                            )
+                                plot_tfidf_version=has_texts)
                         except Exception as e:
                             print(f"  Warning: plot failed at iter {ite}: {e}")
 
@@ -1997,8 +1784,9 @@ class SEMTGPU(nn.Module):
                         "train_f1":        round(train_f1,   5),
                         "train_precision": round(train_prec, 5),
                         "train_recall":    round(train_rec,  5),
-                        "L":  round(avg_L,  5), "Lr": round(avg_Lr, 5),
-                        "Lc": round(avg_Lc, 5), "Ls": round(avg_Ls, 5),
+                        "L":  round(avg_L,  5),
+                        "Lc": round(avg_Lc, 5),
+                        "Ls": round(avg_Ls, 5),
                         "ACC":          round(cl_sup_tr.get('ACC',          0.0), 5),
                         "NMI":          round(cl_sup_tr.get('NMI',          0.0), 5),
                         "ARI":          round(cl_sup_tr.get('ARI',          0.0), 5),
@@ -2028,12 +1816,11 @@ class SEMTGPU(nn.Module):
                         "IG_Mean_Attribution": round(ig_mean_attr,     6),
                     })
 
-                    # ── FIX: reset counters setelah reporting ──────────────
-                    tot_L = Lr = Lc = Ls = 0.0
+                    tot_L = Lc = Ls = 0.0   # Lr removed
                     iter_count = 0
-                    # ──────────────────────────────────────────────────────
 
-                    if ite > 0 and delta < tol:
+                    # FIX 4: only trigger early stop after at least one full update interval
+                    if ite >= update_interval and delta < tol:
                         print(f"  Δlabel={delta:.6f} < tol={tol} → early stop.")
                         break
 
@@ -2056,33 +1843,29 @@ class SEMTGPU(nn.Module):
                     else:
                         xb, pb = batch; yb = None
                     xb = xb.to(dev); pb = pb.to(dev)
-                    z       = self.autoencoder.encode(xb)
-                    x_recon = self.autoencoder.decode(z)
-                    q       = self.clustering(z)
-                    s       = torch.softmax(self.sentiment(z), 1)
-                    rl = mse_loss(x_recon, xb)
+
+                    # Forward: encoder only — no decode(), no reconstruction loss
+                    z  = self.autoencoder.encode(xb)
+                    q  = self.clustering(z)
+                    s  = torch.softmax(self.sentiment(z), 1)
+
                     cl = kld_loss((q + 1e-8).log(), pb)
-                    sl = ce_loss(s, yb) if yb is not None else \
+                    sl = ce_loss(s, yb) if yb is not None else \\
                          torch.zeros(1, device=dev).squeeze()
-                    loss = alpha*rl + gamma*cl + eta*sl
+
+                    loss = gamma * cl + eta * sl   # no alpha * rl
 
                     optimizer.zero_grad(); loss.backward(); optimizer.step()
-
-                    # ── FIX: catat kontribusi aktual, bukan raw component ──
                     tot_L += float(loss)
-                    Lr    += float(alpha * rl)   # α · reconstruction loss
-                    Lc    += float(gamma * cl)   # γ · clustering loss
-                    Ls    += float(eta   * sl)   # η · sentiment loss
+                    Lc    += float(cl)
+                    Ls    += float(sl)
                     iter_count += 1
-                    # ──────────────────────────────────────────────────────
 
                 if ite % save_interval == 0 and ite > 0:
                     self.save_weights(os.path.join(save_dir, f"SEMTGPU_{ite}.weights.pth"))
 
-        # ══════════════════════════════════════════════════════════════════════
-        # Post-training: restore best model & generate outputs
-        # ══════════════════════════════════════════════════════════════════════
-        print("\n" + "=" * 60)
+        # ── Post-training ─────────────────────────────────────────────────────
+        print("\\n" + "=" * 60)
         print("Training complete.  Restoring best model checkpoint…")
         self.load_best_weights()
 
@@ -2098,83 +1881,24 @@ class SEMTGPU(nn.Module):
             json.dump(best_summary, f, indent=2)
         print(f"✓ Best model info saved → {save_dir}/best_model.json")
         print(f"  Best iter={self._best_val_iter}, {_primary}={self._best_val_score:.4f}")
-
         self.save_weights(os.path.join(save_dir, "SEMTGPU_final.weights.pth"))
 
+        # ── Final cluster assignments ─────────────────────────────────────────
         self.eval()
         with torch.no_grad():
             q_all_f = torch.cat([self(X_train[i:i+batch_size])[0]
                                   for i in range(0, n_train, batch_size)], 0)
         y_final = q_all_f.argmax(1).cpu().numpy()
 
-        # ── Token attribution (final best model, frequency-based sampling) ─────
-        if plot_token_attribution and has_texts:
-            try:
-                print(f"\n[Token Attribution — Final Best Model  (v3.6 vocab-constrained)]")
-                print(f"  Model      : {token_attr_bert_name}")
-                print(f"  Vocab size : top-{token_attr_tfidf_vocab} TF-IDF words per cluster (token filter)")
-                print(f"  Sampling   : {token_attr_max_samples//2} neg + {token_attr_max_samples - token_attr_max_samples//2} pos texts per cluster (freq-based)")
-                ta_final = self.compute_token_attribution_per_cluster_with_embeddings(
-                    texts_train,
-                    X_train.cpu().numpy(),
-                    y_final,
-                    bert_model_name=token_attr_bert_name,
-                    top_k=token_attr_top_k,
-                    max_length=token_attr_max_length,
-                    max_samples_per_cluster=token_attr_max_samples,
-                    tfidf_vocab_size=token_attr_tfidf_vocab,
-                )
-                ta_dir = os.path.join(save_dir, "token_attribution")
-                os.makedirs(ta_dir, exist_ok=True)
-
-                self.plot_token_attribution_pos_grid(
-                    ta_final, epoch=last_ite, save_dir=ta_dir,
-                    top_k=token_attr_top_k, show_plot=False)
-                self.plot_token_attribution_neg_grid(
-                    ta_final, epoch=last_ite, save_dir=ta_dir,
-                    top_k=token_attr_top_k, show_plot=False)
-                self.plot_token_attribution_per_cluster(
-                    ta_final, epoch=last_ite, save_dir=ta_dir,
-                    top_k=token_attr_top_k, show_plot=False)
-                self.plot_token_attribution_heatmap(
-                    ta_final, epoch=last_ite, save_dir=ta_dir, show_plot=False)
-
-                ta_json_path = os.path.join(ta_dir, "token_attribution_final.json")
-                with open(ta_json_path, "w") as f:
-                    json.dump({str(k): v for k, v in ta_final.items()}, f, indent=2)
-                print(f"\n  ✓ Token attribution complete → {ta_dir}")
-                print(f"    · token_attr_POS_grid_epoch_{last_ite}.png")
-                print(f"    · token_attr_NEG_grid_epoch_{last_ite}.png")
-                print(f"    · token_attr_per_cluster_epoch_{last_ite}.png")
-                print(f"    · token_attr_heatmap_epoch_{last_ite}.png")
-                print(f"    · token_attribution_final.json")
-            except Exception as e:
-                import traceback
-                print(f"Warning: final token attribution failed: {e}")
-                traceback.print_exc()
-
-        # ── Integrated Gradients (final) ───────────────────────────────────────
-        if plot_integrated_gradients and has_labels:
-            try:
-                idx_ig = np.random.choice(n_train, min(ig_max_samples, n_train), replace=False)
-                ig_f = self.compute_integrated_gradients(
-                    X_train[idx_ig], target_class=ig_target_class, n_steps=ig_n_steps)
-                self.plot_integrated_gradients(
-                    ig_f, y_final[idx_ig], epoch=last_ite,
-                    save_dir=plot_dir, top_dims=ig_top_dims, show_plot=False)
-                print("✓ Final IG plot saved.")
-            except Exception as e:
-                print(f"Warning: final IG failed: {e}")
-
-        # ── Final metrics ──────────────────────────────────────────────────────
+        # ── FIX 2: Final metrics BEFORE IG / token-attribution ────────────────
         self.eval()
         with torch.no_grad():
             qs, ss = [], []
             for i in range(0, n_train, batch_size):
                 qb, sb = self(X_train[i:i+batch_size])
                 qs.append(qb); ss.append(sb)
-            q_all_f = torch.cat(qs, 0); s_all_f = torch.cat(ss, 0)
-        y_pred_cl   = q_all_f.argmax(1).cpu().numpy()
+            q_all_f2 = torch.cat(qs, 0); s_all_f = torch.cat(ss, 0)
+        y_pred_cl   = q_all_f2.argmax(1).cpu().numpy()
         y_pred_sent = s_all_f.argmax(1).cpu().numpy()
 
         metrics = {}
@@ -2190,7 +1914,7 @@ class SEMTGPU(nn.Module):
                 "f1_score":  float(f1_score(y_true, y_pred_sent,
                                             average="binary", zero_division=0)),
             }
-            print("\n" + "=" * 60)
+            print("\\n" + "=" * 60)
             print("FINAL (BEST MODEL) SENTIMENT METRICS — TRAIN SPLIT")
             print("=" * 60)
             for k, v in metrics["sentiment"].items():
@@ -2199,7 +1923,7 @@ class SEMTGPU(nn.Module):
 
         val_final = self._evaluate_val(X_val, Y_val, texts_val, batch_size)
         metrics["val_final"] = val_final
-        print("\nFINAL VAL METRICS (best model):")
+        print("\\nFINAL VAL METRICS (best model):")
         print(f"  Sentiment → Acc={val_final.get('val_acc_sentiment',0):.4f}  "
               f"F1={val_final.get('val_f1',0):.4f}  "
               f"P={val_final.get('val_precision',0):.4f}  "
@@ -2207,6 +1931,53 @@ class SEMTGPU(nn.Module):
         print(f"  Cluster   → Coh={val_final.get('val_coherence',0):.4f}  "
               f"Div={val_final.get('val_diversity',0):.4f}  "
               f"Score={val_final.get('val_cluster_score',0):.4f}")
+
+        # ── Token attribution (after metrics — FIX 2) ─────────────────────────
+        if plot_token_attribution and has_texts:
+            try:
+                print(f"\\n[Token Attribution — Final Best Model  (v3.7)]")
+                ta_final = self.compute_token_attribution_per_cluster_with_embeddings(
+                    texts_train, X_train.cpu().numpy(), y_final,
+                    bert_model_name=token_attr_bert_name,
+                    top_k=token_attr_top_k,
+                    max_length=token_attr_max_length,
+                    max_samples_per_cluster=token_attr_max_samples,
+                    tfidf_vocab_size=token_attr_tfidf_vocab,
+                )
+                ta_dir = os.path.join(save_dir, "token_attribution")
+                os.makedirs(ta_dir, exist_ok=True)
+                self.plot_token_attribution_pos_grid(
+                    ta_final, epoch=last_ite, save_dir=ta_dir,
+                    top_k=token_attr_top_k, show_plot=False)
+                self.plot_token_attribution_neg_grid(
+                    ta_final, epoch=last_ite, save_dir=ta_dir,
+                    top_k=token_attr_top_k, show_plot=False)
+                self.plot_token_attribution_per_cluster(
+                    ta_final, epoch=last_ite, save_dir=ta_dir,
+                    top_k=token_attr_top_k, show_plot=False)
+                self.plot_token_attribution_heatmap(
+                    ta_final, epoch=last_ite, save_dir=ta_dir, show_plot=False)
+                ta_json_path = os.path.join(ta_dir, "token_attribution_final.json")
+                with open(ta_json_path, "w") as f:
+                    json.dump({str(k): v for k, v in ta_final.items()}, f, indent=2)
+                print(f"\\n  ✓ Token attribution complete → {ta_dir}")
+            except Exception as e:
+                import traceback
+                print(f"Warning: final token attribution failed: {e}")
+                traceback.print_exc()
+
+        # ── Integrated Gradients (after metrics — FIX 2) ──────────────────────
+        if plot_integrated_gradients and has_labels:
+            try:
+                idx_ig = np.random.choice(n_train, min(ig_max_samples, n_train), replace=False)
+                ig_f = self.compute_integrated_gradients(
+                    X_train[idx_ig], target_class=ig_target_class, n_steps=ig_n_steps)
+                self.plot_integrated_gradients(
+                    ig_f, y_final[idx_ig], epoch=last_ite,
+                    save_dir=plot_dir, top_dims=ig_top_dims, show_plot=False)
+                print("✓ Final IG plot saved.")
+            except Exception as e:
+                print(f"Warning: final IG failed: {e}")
 
         if has_labels:
             return y_pred_cl, s_all_f.cpu().numpy(), metrics
