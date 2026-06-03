@@ -168,6 +168,27 @@ class Autoencoder(nn.Module):
 # SEMTGPU
 # ─────────────────────────────────────────────────────────────────────────────
 class SEMTGPU(nn.Module):
+    """
+    Joint Sentiment + Topic Clustering (DEC-style) with Autoencoder features.
+
+    v3.7 Changes (vs v3.6.2):
+      • Reconstruction loss REMOVED from fit().
+        The encoder already receives gradient signal from the clustering loss
+        (gamma) and the sentiment loss (eta) during multi-task joint training,
+        so reconstruction is redundant here.
+        Reconstruction loss is still used in pretrain_autoencoder() where it
+        is the sole training signal and remains essential.
+      • alpha parameter removed from fit() signature entirely.
+      • fit() log CSV: 'Lr' column removed (reconstruction loss no longer tracked).
+
+    v3.6.2 Fixes retained:
+      FIX 1 — compute_integrated_gradients uses eval() to prevent BatchNorm
+               running stat corruption from synthetic interpolated inputs.
+      FIX 2 — fit() computes final metrics BEFORE IG / token-attribution calls.
+      FIX 3 — (removed — was the alpha=0 warning, no longer applicable).
+      FIX 4 — Early-stop guard: delta < tol only checked after ite >= update_interval.
+    """
+
     def __init__(
         self,
         dims: List[int],
@@ -206,10 +227,10 @@ class SEMTGPU(nn.Module):
     # ── Token Cleaning ────────────────────────────────────────────────────────
     @staticmethod
     def _clean_token(tok: str) -> str:
-        tok = tok.lstrip('\\u0120')
-        tok = tok.lstrip('\\u2581')
+        tok = tok.lstrip('\u0120')
+        tok = tok.lstrip('\u2581')
         tok = tok.replace('##', '')
-        tok = tok.lstrip('\\u2047')
+        tok = tok.lstrip('\u2047')
         tok = tok.strip()
         return tok
 
@@ -526,6 +547,7 @@ class SEMTGPU(nn.Module):
 
     # ── Integrated Gradients ──────────────────────────────────────────────────
     def compute_integrated_gradients(self, x, target_class=1, n_steps=50, batch_size=64):
+        """Uses eval() to prevent BatchNorm running stat corruption (FIX 1)."""
         dev  = next(self.parameters()).device
         xt   = torch.as_tensor(x, dtype=torch.float32, device=dev)
         N, D = xt.shape
@@ -591,7 +613,7 @@ class SEMTGPU(nn.Module):
                              fontsize=7.5, fontfamily="monospace")
         ax1.invert_yaxis()
         ax1.set_xlabel("Mean |IG Attribution|", fontsize=9, color="#444")
-        ax1.set_title("Top Embedding Dimensions\\n(Global Sentiment Influence)",
+        ax1.set_title("Top Embedding Dimensions\n(Global Sentiment Influence)",
                       fontsize=10, fontweight="bold", pad=8)
         ax1.axvline(top_vals.mean(), color="#888", lw=0.8,
                     linestyle=":", label=f"mean={top_vals.mean():.4f}")
@@ -650,7 +672,7 @@ class SEMTGPU(nn.Module):
         vocab_set = set(w.lower() for w in vocab)
         scores = []
         for i, text in enumerate(texts):
-            words    = set(re.findall(r'\\b\\w+\\b', text.lower()))
+            words    = set(re.findall(r'\b\w+\b', text.lower()))
             coverage = len(words & vocab_set)
             scores.append((i, coverage))
         scores.sort(key=lambda x: (-x[1], x[0]))
@@ -761,7 +783,7 @@ class SEMTGPU(nn.Module):
         is_longformer = "longformer" in bert_model_name.lower()
         pred_sent     = self.predict_sentiment(embeddings)
 
-        print(f"\\n  Predicted sentiment distribution:")
+        print(f"\n  Predicted sentiment distribution:")
         print(f"    Negative (0): {(pred_sent == 0).sum()}")
         print(f"    Positive (1): {(pred_sent == 1).sum()}")
 
@@ -777,7 +799,7 @@ class SEMTGPU(nn.Module):
         n_neg_quota  = max_samples_per_cluster // 2
         n_pos_quota  = max_samples_per_cluster - n_neg_quota
 
-        print(f"\\n  Building sentiment-specific TF-IDF vocab "
+        print(f"\n  Building sentiment-specific TF-IDF vocab "
               f"(top {tfidf_vocab_size} per pool) per cluster…")
 
         vocab_neg:     Dict[int, List[str]] = {}
@@ -827,7 +849,7 @@ class SEMTGPU(nn.Module):
             stratified[cid] = {"neg": samp_neg, "pos": samp_pos}
 
         dev = next(self.parameters()).device
-        print(f"\\n  Loading model: {bert_model_name}")
+        print(f"\n  Loading model: {bert_model_name}")
         print(f"  Mode: {'Longformer (global CLS attention)' if is_longformer else 'Standard BERT'}")
         tokenizer  = AutoTokenizer.from_pretrained(bert_model_name)
         lang_model = AutoModel.from_pretrained(bert_model_name).to(dev).eval()
@@ -921,7 +943,7 @@ class SEMTGPU(nn.Module):
         for i, cid in enumerate(cluster_assignments):
             cl_idx[int(cid)].append(i)
 
-        print(f"\\n  Precomputing TF-IDF vocab (top {tfidf_vocab_size}) per cluster…")
+        print(f"\n  Precomputing TF-IDF vocab (top {tfidf_vocab_size}) per cluster…")
         cluster_vocab: Dict[int, List[str]] = {}
         for cid, indices in cl_idx.items():
             mask       = np.zeros(len(texts), dtype=bool)
@@ -1043,14 +1065,14 @@ class SEMTGPU(nn.Module):
                             fontsize=6.5, color="#1A7A4A")
 
             cluster_label = self.topic_mapping.get(cid, f"Cluster {cid}")
-            ax.set_title(f"{cluster_label}\\n({len(pos_d)} tokens)",
+            ax.set_title(f"{cluster_label}\n({len(pos_d)} tokens)",
                          fontsize=9, fontweight="bold", pad=5, color="#1C1C1C")
 
         for j in range(i + 1, len(axes)):
             axes[j].axis("off")
 
         fig.suptitle(
-            f"Token Attribution — POSITIVE Pool  ·  Epoch {epoch}\\n"
+            f"Token Attribution — POSITIVE Pool  ·  Epoch {epoch}\n"
             f"Tokens driving POSITIVE sentiment  ·  frequency-selected samples  ·  best model",
             fontsize=12, fontweight="bold", color="#1C1C1C", y=1.02
         )
@@ -1122,14 +1144,14 @@ class SEMTGPU(nn.Module):
                             fontsize=6.5, color="#C0392B")
 
             cluster_label = self.topic_mapping.get(cid, f"Cluster {cid}")
-            ax.set_title(f"{cluster_label}\\n({len(neg_d)} tokens)",
+            ax.set_title(f"{cluster_label}\n({len(neg_d)} tokens)",
                          fontsize=9, fontweight="bold", pad=5, color="#1C1C1C")
 
         for j in range(i + 1, len(axes)):
             axes[j].axis("off")
 
         fig.suptitle(
-            f"Token Attribution — NEGATIVE Pool  ·  Epoch {epoch}\\n"
+            f"Token Attribution — NEGATIVE Pool  ·  Epoch {epoch}\n"
             f"Tokens driving NEGATIVE sentiment  ·  frequency-selected samples  ·  best model",
             fontsize=12, fontweight="bold", color="#1C1C1C", y=1.02
         )
@@ -1198,7 +1220,7 @@ class SEMTGPU(nn.Module):
             ax.spines["left"].set_visible(False)
             ax.spines["bottom"].set_color("#CCCCCC")
             cluster_label = self.topic_mapping.get(cid, f"Cluster {cid}")
-            ax.set_title(f"{cluster_label}\\n"
+            ax.set_title(f"{cluster_label}\n"
                          f"neg: {len(neg_tokens)} tok  |  pos: {len(pos_tokens)} tok",
                          fontsize=8, fontweight="bold", pad=5, color="#1C1C1C")
             ax.tick_params(axis="y", which="both", length=0)
@@ -1217,7 +1239,7 @@ class SEMTGPU(nn.Module):
                    bbox_to_anchor=(0.5, 1.01), ncol=2,
                    fontsize=9, framealpha=0.92, edgecolor="#CCCCCC")
         fig.suptitle(
-            f"Bidirectional Token Sentiment Attribution  ·  Epoch {epoch}\\n"
+            f"Bidirectional Token Sentiment Attribution  ·  Epoch {epoch}\n"
             f"neg_pool from negative samples  ·  pos_pool from positive samples",
             fontsize=12, fontweight="bold", color="#1C1C1C", y=1.05
         )
@@ -1282,7 +1304,7 @@ class SEMTGPU(nn.Module):
             gridspec_kw={"wspace": 0.08}
         )
         fig.suptitle(
-            f"Per-Cluster Token Attribution Heatmap  ·  Epoch {epoch}\\n"
+            f"Per-Cluster Token Attribution Heatmap  ·  Epoch {epoch}\n"
             f"pos_pool (freq-selected positive samples)  ·  "
             f"neg_pool (freq-selected negative samples)",
             fontsize=12, fontweight="bold", color="#1C1C1C", y=1.02
@@ -1316,11 +1338,11 @@ class SEMTGPU(nn.Module):
             cb.ax.tick_params(labelsize=7)
 
         _draw_panel(ax_pos, mat_pos, top_pos_tokens,
-                    "pos_pool  →  Positive Sentiment Attribution\\n"
+                    "pos_pool  →  Positive Sentiment Attribution\n"
                     "(tokens from freq-selected positive samples)",
                     vmax_pos, cmap="YlGn")
         _draw_panel(ax_neg, mat_neg, top_neg_tokens,
-                    "neg_pool  →  Negative Sentiment Attribution\\n"
+                    "neg_pool  →  Negative Sentiment Attribution\n"
                     "(tokens from freq-selected negative samples)",
                     vmax_neg, cmap="YlOrRd")
         ax_neg.set_ylabel("")
@@ -1348,7 +1370,7 @@ class SEMTGPU(nn.Module):
         tokenizer  = AutoTokenizer.from_pretrained(bert_model_name)
         lang_model = AutoModel.from_pretrained(bert_model_name).to(dev).eval()
 
-        tokens, scores_pos, scores_neg, base_prob = 
+        tokens, scores_pos, scores_neg, base_prob = \
             self._occlusion_scores_bidirectional(
                 text, lang_model, tokenizer, max_length, is_longformer)
         del lang_model
@@ -1388,13 +1410,13 @@ class SEMTGPU(nn.Module):
         ax.spines["left"].set_visible(False)
 
         badge_col = _COL_POS if pred_class == 1 else _COL_NEG
-        ax.text(1.02, 0.5, f"Prediction\\n{pred_label}\\n{pred_conf:.1%}",
+        ax.text(1.02, 0.5, f"Prediction\n{pred_label}\n{pred_conf:.1%}",
                 transform=ax.transAxes, fontsize=9, va="center", ha="left",
                 color="white", fontweight="bold",
                 bbox=dict(boxstyle="round,pad=0.5", facecolor=badge_col, alpha=0.9))
         ax.legend(loc="lower right", fontsize=8)
         ax.set_title(
-            f"Token Attribution Analysis  ·  Bidirectional Occlusion\\n"
+            f"Token Attribution Analysis  ·  Bidirectional Occlusion\n"
             f"Model: {bert_model_name}",
             fontsize=11, fontweight="bold", pad=8)
         fig.suptitle(f'"{text[:100]}{"..." if len(text) > 100 else ""}"',
@@ -1526,6 +1548,22 @@ class SEMTGPU(nn.Module):
         token_attr_max_length:     int  = 4096,
         token_attr_tfidf_vocab:    int  = 30,
     ):
+        """
+        Joint DEC + Sentiment training  (v3.7 — no reconstruction loss).
+
+        The encoder is updated purely by:
+          γ · L_cluster   (KL divergence to target distribution, DEC-style)
+          η · L_sentiment  (cross-entropy, when labels are available)
+
+        Reconstruction loss belongs in pretrain_autoencoder(), where it is the
+        sole signal.  During multi-task joint training it is redundant and has
+        been removed.
+
+        Fixes retained from v3.6.2:
+          FIX 1 — compute_integrated_gradients uses eval() → no BN stat corruption.
+          FIX 2 — final metrics computed BEFORE IG/token-attribution calls.
+          FIX 4 — early stop only after ite >= update_interval (no spurious stop at ite=0).
+        """
         print("=" * 60)
         print("SEMTGPU v3.7 — Joint Training: Clustering + Sentiment")
         print("  (reconstruction loss removed — lives in pretrain_autoencoder)")
@@ -1562,7 +1600,7 @@ class SEMTGPU(nn.Module):
                 if len(item) >= 3:
                     texts_list.append(item[2])
             else:
-                t = item.detach() if isinstance(item, torch.Tensor) else \\
+                t = item.detach() if isinstance(item, torch.Tensor) else \
                     torch.tensor(item, dtype=torch.float32)
                 embs.append(t.cpu())
 
@@ -1625,7 +1663,7 @@ class SEMTGPU(nn.Module):
 
         # Reconstruction loss (MSE) intentionally omitted — see pretrain_autoencoder()
         kld_loss = nn.KLDivLoss(reduction="batchmean")
-        ce_loss  = nn.CrossEntropyLoss(weight=class_w_t) if class_w_t is not None else \\
+        ce_loss  = nn.CrossEntropyLoss(weight=class_w_t) if class_w_t is not None else \
                    nn.CrossEntropyLoss()
 
         print("Initialising cluster centres with k-means (train split).")
@@ -1717,7 +1755,7 @@ class SEMTGPU(nn.Module):
                         print(f"  ✓ New best model at iter {ite}: {_primary}={vs:.4f}")
                         self.save_weights(os.path.join(save_dir, "SEMTGPU_best.weights.pth"))
 
-                    print(f"\\nIter {ite:5d} | Lc={avg_Lc:.5f}  Ls={avg_Ls:.5f}  L={avg_L:.5f}")
+                    print(f"\nIter {ite:5d} | Lc={avg_Lc:.5f}  Ls={avg_Ls:.5f}  L={avg_L:.5f}")
                     print(f"  Sentiment  Train → Acc={train_acc:.4f}  F1={train_f1:.4f}  "
                           f"P={train_prec:.4f}  R={train_rec:.4f}")
                     print(f"  Sentiment  Val   → Acc={val_metrics.get('val_acc_sentiment',0):.4f}  "
@@ -1833,7 +1871,7 @@ class SEMTGPU(nn.Module):
                     s  = torch.softmax(self.sentiment(z), 1)
 
                     cl = kld_loss((q + 1e-8).log(), pb)
-                    sl = ce_loss(s, yb) if yb is not None else \\
+                    sl = ce_loss(s, yb) if yb is not None else \
                          torch.zeros(1, device=dev).squeeze()
 
                     loss = gamma * cl + eta * sl   # no alpha * rl
@@ -1848,7 +1886,7 @@ class SEMTGPU(nn.Module):
                     self.save_weights(os.path.join(save_dir, f"SEMTGPU_{ite}.weights.pth"))
 
         # ── Post-training ─────────────────────────────────────────────────────
-        print("\\n" + "=" * 60)
+        print("\n" + "=" * 60)
         print("Training complete.  Restoring best model checkpoint…")
         self.load_best_weights()
 
@@ -1897,7 +1935,7 @@ class SEMTGPU(nn.Module):
                 "f1_score":  float(f1_score(y_true, y_pred_sent,
                                             average="binary", zero_division=0)),
             }
-            print("\\n" + "=" * 60)
+            print("\n" + "=" * 60)
             print("FINAL (BEST MODEL) SENTIMENT METRICS — TRAIN SPLIT")
             print("=" * 60)
             for k, v in metrics["sentiment"].items():
@@ -1906,7 +1944,7 @@ class SEMTGPU(nn.Module):
 
         val_final = self._evaluate_val(X_val, Y_val, texts_val, batch_size)
         metrics["val_final"] = val_final
-        print("\\nFINAL VAL METRICS (best model):")
+        print("\nFINAL VAL METRICS (best model):")
         print(f"  Sentiment → Acc={val_final.get('val_acc_sentiment',0):.4f}  "
               f"F1={val_final.get('val_f1',0):.4f}  "
               f"P={val_final.get('val_precision',0):.4f}  "
@@ -1918,7 +1956,7 @@ class SEMTGPU(nn.Module):
         # ── Token attribution (after metrics — FIX 2) ─────────────────────────
         if plot_token_attribution and has_texts:
             try:
-                print(f"\\n[Token Attribution — Final Best Model  (v3.7)]")
+                print(f"\n[Token Attribution — Final Best Model  (v3.7)]")
                 ta_final = self.compute_token_attribution_per_cluster_with_embeddings(
                     texts_train, X_train.cpu().numpy(), y_final,
                     bert_model_name=token_attr_bert_name,
@@ -1943,7 +1981,7 @@ class SEMTGPU(nn.Module):
                 ta_json_path = os.path.join(ta_dir, "token_attribution_final.json")
                 with open(ta_json_path, "w") as f:
                     json.dump({str(k): v for k, v in ta_final.items()}, f, indent=2)
-                print(f"\\n  ✓ Token attribution complete → {ta_dir}")
+                print(f"\n  ✓ Token attribution complete → {ta_dir}")
             except Exception as e:
                 import traceback
                 print(f"Warning: final token attribution failed: {e}")
