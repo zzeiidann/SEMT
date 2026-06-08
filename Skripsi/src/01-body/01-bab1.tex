@@ -1,0 +1,152 @@
+%-----------------------------------------------------------------------------%
+\chapter{\babSatu}
+%-----------------------------------------------------------------------------%
+
+
+%-----------------------------------------------------------------------------%
+\section{Latar Belakang}
+%-----------------------------------------------------------------------------%
+
+Dunia kontemporer dibanjiri oleh arus deras informasi tekstual yang dihasilkan setiap saat, bersumber dari platform media sosial, ulasan daring, artikel berita, repositori ilmiah, dan banyak lagi. Kumpulan data tekstual masif ini, yang sebagian besar tidak terstruktur, mengandung potensi pengetahuan yang signifikan mengenai sentimen masyarakat, dinamika pasar, hingga tren diskursus publik. Akan tetapi, volume dan keragaman data tersebut menjadikan analisis manual suatu hal yang tidak praktis dan efisien. Menjawab tantangan ini, disiplin \textit{Natural Language Processing} (NLP), sebagai bagian dari kecerdasan artifisial yang menjembatani komunikasi antara mesin dan bahasa alami manusia, hadir menawarkan metodologi komputasional untuk mengolah dan memahami data linguistik dalam skala besar.
+
+\bigskip
+
+Dalam spektrum kapabilitas NLP, dua teknik yang memiliki relevansi tinggi untuk mengekstrak makna dari himpunan data tekstual adalah analisis sentimen (\textit{Sentiment Analysis}) dan pemodelan topik (\textit{Topic Modeling}) \parencite{blei2003latent}. Analisis sentimen secara khusus dirancang untuk menyelidiki dan menentukan muatan subjektif atau nada emosional yang terkandung dalam suatu teks, lalu menggolongkannya sebagai ekspresi positif, negatif, ataupun netral. Pengaplikasian teknik ini sangat berharga untuk melacak citra merek, menganalisis tanggapan konsumen, memetakan opini publik terkait isu tertentu, serta mengidentifikasi ujaran problematik. Kemampuan mengukur sentimen secara kolektif memberikan landasan bagi entitas bisnis maupun riset untuk memahami persepsi dan mengambil langkah strategis.
+
+\bigskip
+
+Di sisi lain, pemodelan topik menangani tugas komplementer, yakni mengungkap tema-tema atau pokok bahasan esensial yang tersembunyi (\textit{latent thematic structures}) di dalam koleksi dokumen berjumlah besar, atau sering disebut \textit{corpora} \parencite{blei2003latent}. Berbeda dengan fokus pada nuansa afektif per teks, tujuan utama pemodelan topik adalah menyajikan intisari tematik dari keseluruhan data. Kegunaannya terbentang luas, mulai dari fasilitasi eksplorasi dan pengorganisasian arsip digital, identifikasi pola baru dalam korpus literatur atau berita, hingga penyempurnaan sistem rekomendasi konten dan pemahaman struktur narasi dalam skala makro. Dengan mengabstraksikan topik-topik dominan, metode ini membantu mereduksi kompleksitas informasi dan menyajikan gambaran umum konten. Walaupun memiliki fokus yang berbeda, kedua pendekatan ini berpotensi menghasilkan pemahaman yang lebih komprehensif jika diintegrasikan, menyingkap \textit{apa} subjek pembicaraan sekaligus \textit{bagaimana} pandangan atau perasaan terhadap subjek tersebut.
+
+\bigskip
+
+Pendekatan tradisional dalam pemodelan topik, seperti \textit{Latent Dirichlet Allocation} (LDA), umumnya berbasis probabilistik dan mengandalkan metode faktorisasi matriks untuk mengidentifikasi distribusi kata dalam topik \parencite{blei2003latent, blei2012probabilistic}. Meskipun metode ini telah terbukti efektif dalam banyak kasus, keterbatasannya dalam menangkap hubungan semantik yang kompleks dalam teks membuatnya kurang optimal untuk tugas yang lebih kompleks, seperti klasifikasi sentimen yang dilakukan secara simultan dengan deteksi topik. Salah satu kelemahan utama pendekatan probabilistik seperti LDA adalah skalabilitasnya yang terbatas, terutama saat diaplikasikan pada \textit{dataset} berukuran besar dengan dimensi fitur tinggi \parencite{boydgraber2017synthetic}. Selain itu, model berbasis probabilistik sering kali memerlukan waktu komputasi yang signifikan dan sulit diadaptasi untuk menangani data teks modern yang bersifat dinamis dan tidak terstruktur \parencite{mcauliffe2008supervised}.
+
+\bigskip
+
+Dalam klasifikasi sentimen, pendekatan berbasis pembelajaran mendalam (\textit{deep learning}) telah menunjukkan keunggulan signifikan dibandingkan metode tradisional. Salah satu model yang paling efektif adalah \textit{Bidirectional Encoder Representations from Transformers} (BERT), yang mampu memahami konteks kata dalam teks dengan mempertimbangkan hubungan antar kata di kedua arah (\textit{bidirectional}) \parencite{devlin2018bert}. BERT telah banyak digunakan dalam tugas-tugas NLP dan terbukti unggul dalam klasifikasi sentimen, menghasilkan akurasi yang lebih tinggi dibandingkan pendekatan berbasis fitur atau metode statistik konvensional \parencite{sun2019fine}.
+
+\bigskip
+
+Seiring dengan berkembangnya model \textit{deep learning}, pendekatan berbasis jaringan saraf telah terbukti lebih unggul dalam menangani data teks yang tidak terstruktur dibandingkan metode berbasis probabilistik seperti LDA \parencite{mikolov2013efficient}. Model \textit{neural network} dapat mengekstrak representasi semantik yang lebih kaya dan menangkap hubungan kontekstual antar kata dalam teks dengan lebih baik \parencite{zhang2020neural}. Selain itu, pendekatan \textit{neural network} dapat mengatasi keterbatasan skalabilitas pada metode probabilistik karena dapat memanfaatkan arsitektur yang lebih efisien seperti \textit{transformers} dan teknik \textit{embedding} untuk mengurangi dimensi data \parencite{vaswani2017attention}.
+
+\bigskip
+
+Salah satu pendekatan berbasis \textit{neural network} yang semakin populer dalam pemodelan topik adalah \textit{BERTopic}. Berbeda dengan LDA yang hanya mengandalkan distribusi kata untuk menentukan topik, \textit{BERTopic} memanfaatkan representasi teks dari model \textit{transformer} seperti BERT untuk menangkap hubungan semantik yang lebih dalam antar kata \parencite{grootendorst2022bertopic}. Metode ini menggabungkan \textit{embedding} berbasis \textit{transformer} dengan teknik klasterisasi seperti \textit{UMAP} dan \textit{HDBSCAN} untuk mengidentifikasi topik secara lebih akurat dan stabil, bahkan dalam \textit{dataset} berukuran besar atau dengan struktur yang kompleks. Keunggulan utama \textit{BERTopic} dibandingkan LDA adalah kemampuannya dalam menangani variasi bahasa yang lebih luas, memahami sinonim dan kontekstualisasi kata, serta tidak bergantung pada asumsi distribusi kata seperti pada metode probabilistik \parencite{grootendorst2022bertopic}.
+
+\bigskip
+
+Namun demikian, sebagian besar metode pemodelan topik modern seperti \textit{BERTopic} masih berfokus pada pemisahan topik semata tanpa mempertimbangkan aspek lain seperti sentimen atau struktur laten yang lebih dalam secara eksplisit. Selain itu, integrasi antara pemodelan topik dan klasifikasi sentimen masih sering dilakukan secara terpisah, sehingga informasi semantik yang berharga dalam teks belum sepenuhnya dimanfaatkan secara terpadu. Pemisahan ini mengakibatkan redundansi komputasi dan hilangnya peluang untuk memanfaatkan sinergi antara kedua tugas dalam satu arsitektur model yang kohesif.
+
+\bigskip
+
+Dalam konteks pembelajaran representasi untuk data teks berdimensi tinggi, \textit{Autoencoder} telah menunjukkan kemampuannya sebagai teknik pembelajaran tanpa supervisi (\textit{unsupervised learning}) yang efektif untuk reduksi dimensi dan ekstraksi fitur \parencite{hinton2006reducing}. \textit{Autoencoder} bekerja dengan cara mempelajari representasi laten (\textit{latent representation}) yang lebih kompak dari data masukan melalui proses \textit{encoding} dan \textit{decoding}. Arsitektur ini memaksa model untuk mengekstrak informasi paling esensial dari data dengan mengompresi masukan ke dalam ruang dimensi yang lebih rendah, kemudian merekonstruksi kembali data asli dari representasi tersebut. Proses ini memungkinkan model untuk menangkap struktur intrinsik dan pola-pola penting dalam data teks, sekaligus mengurangi \textit{noise} dan redundansi fitur.
+
+\bigskip
+
+Berbeda dengan teknik reduksi dimensi tradisional seperti \textit{Principal Component Analysis} (PCA) yang bersifat linear, \textit{Autoencoder} mampu menangkap hubungan non-linear yang kompleks dalam data \parencite{hinton2006reducing}. Hal ini sangat penting dalam pemrosesan teks, di mana hubungan antar kata dan dokumen seringkali bersifat non-linear dan kontekstual. \textit{Autoencoder} juga memiliki fleksibilitas arsitektur yang memungkinkan penyesuaian kedalaman jaringan sesuai dengan kompleksitas data dan tugas yang dihadapi. Dalam konteks NLP, penggunaan \textit{Autoencoder} telah terbukti efektif untuk berbagai aplikasi, termasuk pembelajaran representasi dokumen, deteksi anomali dalam teks, dan ekstraksi fitur untuk tugas-tugas \textit{downstream} seperti klasifikasi dan klasterisasi \parencite{vincent2010stacked}.
+
+\bigskip
+
+Untuk menjawab keterbatasan integrasi antara pemodelan topik dan klasifikasi sentimen, penelitian ini bertujuan untuk mengembangkan pendekatan pemodelan topik yang lebih terintegrasi melalui kombinasi metode representasi laten berbasis \textit{Autoencoder} dan teknik \textit{Deep Embedded Clustering} (DEC). Dengan memanfaatkan \textit{Autoencoder} sebagai komponen \textit{encoder} untuk menghasilkan representasi teks yang lebih efisien dan bermakna, serta DEC untuk melakukan klasterisasi yang mempertahankan struktur semantik dalam ruang laten, model diharapkan mampu mengidentifikasi topik-topik secara lebih akurat dan representatif. \textit{Autoencoder} dalam penelitian ini berfungsi sebagai fondasi untuk pembelajaran representasi yang \textit{robust}, yang kemudian dioptimalkan lebih lanjut melalui proses klasterisasi DEC untuk menghasilkan pembagian topik yang lebih koheren dan terpisah dengan baik.
+
+\bigskip
+
+Lebih lanjut, penelitian ini mengusulkan pengembangan arsitektur \textit{multi-task learning} (MTL) yang memungkinkan integrasi klasifikasi sentimen dan pemodelan topik secara bersamaan dalam satu kerangka kerja. Pendekatan MTL memiliki keunggulan dalam memanfaatkan hubungan implisit antara tugas-tugas terkait untuk meningkatkan generalisasi model \parencite{caruana1997multitask}. Dalam konteks penelitian ini, klasifikasi sentimen dan pemodelan topik memiliki keterkaitan semantik yang kuat; sentimen suatu teks seringkali berkorelasi dengan topik yang dibahas, dan pemahaman topik dapat membantu dalam identifikasi sentimen yang lebih akurat. Dengan berbagi representasi laten yang sama melalui \textit{Autoencoder}, kedua tugas dapat saling memperkaya dan menghasilkan performa yang lebih baik dibandingkan jika dilatih secara terpisah.
+
+\bigskip
+
+Pendekatan ini diharapkan dapat meningkatkan efisiensi dan efektivitas analisis teks dengan memanfaatkan representasi laten yang sama untuk dua tugas sekaligus, mengurangi redundansi komputasi, serta memberikan kontribusi terhadap pengembangan model-model NLP yang lebih adaptif dan skalabel. Dengan mengintegrasikan \textit{Autoencoder} untuk pembelajaran representasi, DEC untuk klasterisasi topik, dan arsitektur MTL untuk klasifikasi sentimen simultan, penelitian ini berupaya menghadirkan solusi komprehensif yang mengatasi keterbatasan pendekatan-pendekatan sebelumnya dalam pemrosesan bahasa alami.
+
+
+
+%-----------------------------------------------------------------------------%
+\section{Rumusan Permasalahan}
+%-----------------------------------------------------------------------------%
+Dalam pemrosesan bahasa alami (\textit{Natural Language Processing}, NLP), klasifikasi sentimen dan pemodelan topik merupakan dua tugas utama yang sering dilakukan secara terpisah. Pendekatan tradisional seperti \textit{Latent Dirichlet Allocation} (LDA) berbasis probabilistik memiliki keterbatasan dalam menangkap hubungan semantik yang kompleks, sehingga kurang optimal untuk tugas yang membutuhkan pemahaman konteks yang lebih dalam.
+
+\bigskip
+
+Selain itu, pemisahan antara tugas klasifikasi sentimen dan pemodelan topik menyebabkan hilangnya potensi peningkatan performa yang bisa diperoleh dengan memanfaatkan hubungan alami antar tugas tersebut. Model berbasis \textit{deep learning}, seperti \textit{Bidirectional Encoder Representations from Transformers} (BERT), telah terbukti unggul dalam tugas klasifikasi sentimen, namun pendekatan ini belum sepenuhnya diintegrasikan dengan pemodelan topik dalam satu \textit{framework} yang efisien.
+
+\bigskip
+
+Beberapa permasalahan utama yang ingin dijawab dalam penelitian ini adalah:
+
+\begin{enumerate}
+    \item Bagaimana mengembangkan model berbasis \textit{Fully Neural Network} yang dapat menangani klasifikasi sentimen dan pemodelan topik secara simultan?
+    \item Bagaimana pengaruh pendekatan \textit{Multi-Task Learning} (MTL) terhadap performa model dibandingkan dengan model \textit{single-task}?
+    \item Bagaimana penerapan \textit{Autoencoder} dapat membantu mengatasi permasalahan dimensi tinggi dalam data teks?
+    \item Sejauh mana model yang dikembangkan dapat meningkatkan efisiensi dan akurasi dibandingkan dengan metode sebelumnya, seperti analisis sentimen menggunakan EFCM dan model sentimen BERT?
+\end{enumerate}
+
+\bigskip
+
+Melalui penelitian ini, diharapkan dapat diperoleh solusi yang lebih efisien dan akurat dalam menangani kedua tugas secara simultan dengan memanfaatkan pendekatan pembelajaran mendalam berbasis \textit{Fully Neural Network}.
+
+
+%-----------------------------------------------------------------------------%
+\section{Tujuan Penelitian}
+%-----------------------------------------------------------------------------%
+Penelitian ini bertujuan untuk mengembangkan dan mengevaluasi model berbasis \textit{Fully Neural Network} yang mampu melakukan klasifikasi sentimen dan pemodelan topik secara simultan menggunakan pendekatan \textit{Multi-Task Learning} (MTL). Dengan pendekatan ini, model diharapkan dapat memanfaatkan hubungan antara kedua tugas tersebut untuk meningkatkan performa keseluruhan dan efisiensi dalam pemrosesan bahasa alami (\textit{Natural Language Processing}, NLP).
+
+\bigskip
+
+Secara spesifik, penelitian ini memiliki beberapa tujuan utama sebagai berikut:
+
+\begin{enumerate}
+    \item Mengembangkan arsitektur berbasis \textit{Fully Neural Network} yang dapat secara bersamaan melakukan klasifikasi sentimen dan pemodelan topik dalam satu model terpadu. Dengan integrasi ini, model diharapkan mampu menangkap hubungan semantik yang lebih dalam dan menghasilkan representasi teks yang lebih bermakna.
+
+    \item Menganalisis pengaruh \textit{Multi-Task Learning} (MTL) terhadap efisiensi dan performa model dalam menangani kedua tugas secara simultan. Evaluasi akan dilakukan untuk memahami bagaimana strategi berbagi parameter antara dua tugas ini dapat meningkatkan akurasi, stabilitas, dan efisiensi model dibandingkan dengan pendekatan \textit{single-task}.
+
+    \item Menerapkan \textit{Autoencoder} untuk reduksi dimensi guna meningkatkan representasi fitur dan mengoptimalkan performa model \textit{Fully Neural Network}. \textit{Autoencoder} akan digunakan untuk mengekstraksi informasi laten dari teks secara lebih efektif, mengurangi redundansi fitur, dan membantu model dalam menangkap struktur data yang lebih informatif.
+\end{enumerate}
+
+\bigskip
+
+Melalui penelitian ini, diharapkan dapat diperoleh model yang lebih efisien, akurat, dan tangguh dalam menangani klasifikasi sentimen dan pemodelan topik secara simultan. Implementasi \textit{Fully Neural Network} dengan MTL dan \textit{Autoencoder} diharapkan dapat memberikan kontribusi dalam peningkatan teknik pemrosesan bahasa alami, terutama dalam konteks analisis teks skala besar dan kompleks.
+
+\section{Manfaat Penelitian}
+
+Penelitian ini diharapkan dapat memberikan manfaat baik secara teoretis maupun 
+praktis, yang diuraikan sebagai berikut:
+
+\begin{enumerate}
+    \item \textbf{Manfaat Teoretis}\\
+    Penelitian ini diharapkan mampu memperluas wawasan dalam bidang
+    \textit{Natural Language Processing} (NLP), terutama dalam hal perancangan
+    model yang menggabungkan analisis sentimen dan pemodelan topik dalam satu
+    arsitektur secara simultan. Penggunaan \textit{Deep Embedded Clustering}
+    (DEC) sebagai komponen pemodelan topik berbasis \textit{unsupervised learning}
+    dalam kerangka \textit{joint model} diharapkan dapat menambah khasanah
+    penelitian mengenai integrasi dua tugas yang berbeda dalam satu sistem
+    pembelajaran. Penelitian ini diharapkan dapat menjadi acuan bagi penelitian
+    berikutnya dalam membangun sistem analisis teks yang lebih terintegrasi
+    dan efisien.
+
+    \item \textbf{Manfaat Praktis}\\
+    Hasil penelitian ini diharapkan dapat digunakan sebagai alat bantu dalam
+    memahami isi ulasan teks secara lebih menyeluruh, baik dari sisi sentimen
+    maupun topik yang terkandung di dalamnya, dalam satu kali proses inferensi.
+    Sistem yang dikembangkan berpotensi diterapkan pada berbagai domain, seperti
+    pemantauan ulasan produk, evaluasi layanan pelanggan, hingga analisis tren
+    opini publik di platform digital. Pendekatan \textit{joint model} ini juga
+    diharapkan dapat mengurangi beban komputasi dibandingkan menjalankan kedua
+    analisis secara terpisah.
+\end{enumerate}
+
+\section{Ruang Lingkup Penelitian}
+
+Batasan dalam penelitian ini ditetapkan sebagai berikut:
+
+\begin{enumerate}
+    \item Penelitian ini menggunakan analisis sentimen biner yang terdiri atas
+    dua kelas, yaitu positif dan negatif.
+
+    \item Data yang digunakan merupakan \textit{dataset} IMDB dan Yelp yang
+    berupa kumpulan teks ulasan, yang diperoleh melalui platform Hugging Face,
+    masing-masing pada \textit{dataset} IMDB dan \textit{dataset} Yelp Polarity.
+
+    \item Jumlah data ulasan yang digunakan dalam penelitian ini dibatasi
+    sebanyak 30.000 ulasan untuk masing-masing \textit{dataset}, baik IMDB
+    maupun Yelp.
+\end{enumerate}
