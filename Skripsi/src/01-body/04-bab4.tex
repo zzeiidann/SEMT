@@ -66,7 +66,7 @@ pada Gambar~\ref{fig:alur_simulasi}.
 
 \begin{figure}[H]
     \centering
-    \includegraphics[width=0.85\textwidth]{assets/pics/MTL/FNN1.png}
+    \includegraphics[width=0.45\textwidth]{assets/pics/other/Flowchart.png}
     \caption{Diagram alur simulasi penelitian.}
     \label{fig:alur_simulasi}
 \end{figure}
@@ -358,10 +358,9 @@ Python dengan pustaka sebagaimana tercantum pada Tabel~\ref{tab:spesifikasi}.
 \subsection{Konfigurasi JST-DEC}
 %-----------------------------------------------------------------------------%
 
-JST-DEC terdiri dari \textit{autoencoder} dan komponen DEC. 
-\textit{Autoencoder} digunakan untuk membentuk representasi laten dari vektor
-\texttt{[CLS]} BERT, sedangkan DEC digunakan untuk membentuk klaster topik
-pada ruang laten tersebut. Konfigurasi masing-masing komponen disajikan pada
+Konfigurasi JST-DEC mencakup parameter pada tahap pra-pelatihan
+\textit{autoencoder} dan pembentukan klaster menggunakan DEC.
+Konfigurasi masing-masing komponen disajikan pada
 Tabel~\ref{tab:config_ae} dan Tabel~\ref{tab:config_dec}.
 
 \begin{table}[H]
@@ -406,27 +405,32 @@ Tabel~\ref{tab:config_ae} dan Tabel~\ref{tab:config_dec}.
     \end{tabular}
 \end{table}
 
-Dimensi masukan sebesar 768 mengikuti ukuran vektor \texttt{[CLS]} dari BERT.
-Dimensi laten ditetapkan sebesar 256. Pada komponen DEC, jumlah klaster
-yang diuji adalah 30, 50, dan 80 untuk melihat pengaruh variasi jumlah topik
-terhadap hasil pendeteksian topik.
+Dimensi masukan sebesar 768 mengikuti ukuran vektor \texttt{[CLS]}
+yang dihasilkan oleh BERT. Representasi tersebut kemudian direduksi ke
+ruang laten berdimensi 256 untuk menghasilkan fitur yang lebih ringkas
+sebelum proses klasterisasi. Pada tahap DEC, centroid klaster
+diinisialisasi menggunakan metode $k$-\textit{means}, sedangkan jumlah
+klaster ($K$) dievaluasi pada tiga skenario, yaitu 30, 50, dan 80
+klaster, guna menganalisis pengaruh jumlah topik terhadap kualitas
+hasil klasterisasi.
 
 %-----------------------------------------------------------------------------%
 \subsection{Konfigurasi \textit{Joint Training}}
 %-----------------------------------------------------------------------------%
 
-Setelah tahap pra-pelatihan, JST-DEC dilatih kembali melalui proses
-\textit{joint training}. Pada tahap ini, model mengoptimasi dua tujuan secara
-bersamaan, yaitu klasifikasi sentimen dan pembentukan klaster topik. Fungsi
-\textit{loss} yang digunakan adalah
+Setelah tahap \textit{pretraining}, JST-DEC dioptimasi melalui proses
+\textit{joint training} untuk menjalankan dua tugas secara simultan, yaitu
+klasifikasi sentimen dan pembentukan klaster topik. Fungsi objektif yang
+digunakan didefinisikan sebagai
 
 \[
-\mathcal{L} = \eta\mathcal{L}_{\text{sent}} +
-\gamma\mathcal{L}_{\text{clust}}.
+\mathcal{L} =
+\eta \mathcal{L}_{\text{sent}} +
+\gamma \mathcal{L}_{\text{clust}}.
 \]
 
-Konfigurasi \textit{joint training} JST-DEC disajikan pada
-Tabel~\ref{tab:config_joint}.
+Konfigurasi pelatihan yang digunakan pada tahap \textit{joint training}
+ditunjukkan pada Tabel~\ref{tab:config_joint}.
 
 \begin{table}[H]
     \centering
@@ -437,38 +441,45 @@ Tabel~\ref{tab:config_joint}.
         \toprule
         \textbf{Parameter} & \textbf{Nilai} \\
         \midrule
-        \textit{Learning rate}   & $5 \times 10^{-5}$ \\
+        \textit{Learning rate}   & $1 \times 10^{-3}$ \\
         \textit{Batch size}      & 256 \\
-        Iterasi maksimum         & 200 \\
-        \textit{Update interval} & 20 \\
+        Iterasi maksimum         & 100 \\
+        \textit{Update interval} & 10 \\
         Toleransi ($\tau$)       & $10^{-4}$ \\
         Bobot sentimen ($\eta$)  & 0{,}5 \\
         Bobot klaster ($\gamma$) & 0{,}5 \\
         \textit{Optimizer}       & SGD \\
-        Jumlah topik ($K$)       & 30, 50, 80 \\
+        Jumlah topik ($K$)       & 30, 50, dan 80 \\
         \textit{Seed}            & 42 \\
         \bottomrule
     \end{tabular}
 \end{table}
 
-Nilai $\eta$ dan $\gamma$ ditetapkan sama besar, yaitu 0{,}5, sehingga tugas
-analisis sentimen dan pendeteksian topik diberi bobot yang seimbang selama
-pelatihan.
+Nilai $\eta$ dan $\gamma$ ditetapkan sebesar 0{,}5 untuk memberikan kontribusi
+yang seimbang antara tugas klasifikasi sentimen dan klasterisasi topik selama
+proses pelatihan. Sementara itu, jumlah topik ($K$) dievaluasi pada tiga
+skenario, yaitu 30, 50, dan 80 topik, untuk mengidentifikasi konfigurasi yang
+memberikan hasil terbaik.
 
 %-----------------------------------------------------------------------------%
 \subsection{Konfigurasi Model Pembanding}
 %-----------------------------------------------------------------------------%
 
-Penelitian ini menggunakan dua model pembanding. NN-BERT digunakan sebagai
-pembanding untuk tugas analisis sentimen, sedangkan BERTopic digunakan sebagai
-pembanding untuk tugas pendeteksian topik.
+Penelitian ini menggunakan dua model pembanding untuk mengevaluasi kinerja
+JST-DEC pada masing-masing tugas. NN-BERT digunakan sebagai model pembanding
+untuk analisis sentimen karena memanfaatkan representasi BERT yang sama tanpa
+mekanisme pembelajaran multitugas. Sementara itu, BERTopic digunakan sebagai
+pembanding pada pendeteksian topik karena merupakan salah satu pendekatan
+berbasis \textit{transformer} yang banyak digunakan untuk \textit{topic modeling}.
 
 %-----------------------------------------------------------------------------%
 \subsubsection{NN-BERT}
 %-----------------------------------------------------------------------------%
 
-NN-BERT menggunakan representasi \texttt{[CLS]} dari BERT sebagai masukan
-untuk lapisan klasifikasi. Konfigurasi model NN-BERT disajikan pada
+NN-BERT digunakan sebagai model dasar (\textit{baseline}) untuk tugas
+analisis sentimen. Representasi \texttt{[CLS]} yang dihasilkan oleh BERT
+digunakan sebagai masukan bagi lapisan klasifikasi \textit{fully connected}
+untuk memprediksi kelas sentimen. Konfigurasi model NN-BERT ditunjukkan pada
 Tabel~\ref{tab:config_nnbert}.
 
 \begin{table}[H]
@@ -499,10 +510,14 @@ Tabel~\ref{tab:config_nnbert}.
 \subsubsection{BERTopic}
 %-----------------------------------------------------------------------------%
 
-BERTopic digunakan untuk membandingkan hasil pendeteksian topik. Model ini
-menggunakan representasi berbasis BERT, reduksi dimensi dengan UMAP, dan
-pengelompokan dengan HDBSCAN. Konfigurasinya disajikan pada
-Tabel~\ref{tab:config_bertopic}.
+BERTopic digunakan sebagai model pembanding pada tugas pendeteksian topik.
+Model ini memanfaatkan representasi semantik berbasis BERT untuk memperoleh
+representasi dokumen, kemudian dilanjutkan dengan reduksi dimensi menggunakan
+UMAP sebelum proses pembentukan topik dilakukan melalui algoritma
+klasterisasi. Pada penelitian ini digunakan dua pendekatan klasterisasi,
+yaitu HDBSCAN dan K-Means, untuk mengevaluasi pengaruh metode pembentukan
+klaster terhadap kualitas topik yang dihasilkan. Ringkasan konfigurasi yang digunakan ditunjukkan
+pada Tabel~\ref{tab:config_bertopic}.
 
 \begin{table}[H]
     \centering
@@ -529,6 +544,9 @@ Tabel~\ref{tab:config_bertopic}.
             & Metrik                       & Euclidean \\
             & \texttt{prediction\_data}    & \texttt{True} \\
         \midrule
+        {K-Means}
+            & \texttt{n\_clusters}         & 30, 50, 80 \\
+        \midrule
         \multirow{3}{*}{Topik}
             & Jumlah topik ($K$)   & 30, 50, 80 \\
             & Metode reduksi       & \texttt{nr\_topics} \\
@@ -537,20 +555,45 @@ Tabel~\ref{tab:config_bertopic}.
     \end{tabular}
 \end{table}
 
+Untuk menjaga konsistensi dengan JST-DEC, jumlah topik yang dievaluasi pada
+BERTopic ditetapkan sebesar 30, 50, dan 80 topik. Pengaturan ini dilakukan
+agar perbandingan antar metode dilakukan pada ruang solusi yang setara,
+sehingga perbedaan hasil yang diperoleh lebih merefleksikan kemampuan model
+dalam membentuk representasi topik dibandingkan pengaruh jumlah topik yang
+digunakan.
+
 %-----------------------------------------------------------------------------%
 \section{Analisis Kinerja Model}
 %-----------------------------------------------------------------------------%
 
-Bagian ini menyajikan hasil evaluasi model pada dua tahap, yaitu
-pra-pelatihan \textit{autoencoder} dan \textit{joint training}. Evaluasi
-dilakukan pada dataset IMDB dan Yelp.
+Bagian ini menyajikan hasil evaluasi model pada dua tahapan utama, yaitu
+pra-pelatihan (\textit{pretraining}) \textit{autoencoder} dan proses
+\textit{joint training}. Evaluasi dilakukan pada dataset IMDB dan Yelp
+untuk melihat konsistensi performa model pada domain ulasan yang berbeda.
+Tahap pra-pelatihan digunakan untuk mengevaluasi kemampuan model dalam
+mempelajari representasi laten sebelum proses pembelajaran multitugas,
+sedangkan tahap \textit{joint training} digunakan untuk menilai performa
+akhir model pada tugas analisis sentimen dan pendeteksian topik.
 
 %-----------------------------------------------------------------------------%
 \subsection{Analisis Kinerja Pra-pelatihan}
 %-----------------------------------------------------------------------------%
 
-Kinerja pra-pelatihan dievaluasi menggunakan nilai MSE pada data latih dan
-data validasi. Hasil pra-pelatihan pada dataset IMDB dan Yelp disajikan pada
+Tahap pra-pelatihan dilakukan untuk membentuk representasi laten awal
+melalui mekanisme rekonstruksi pada \textit{autoencoder}. Representasi ini
+selanjutnya digunakan sebagai inisialisasi sebelum proses
+\textit{joint training}, sehingga kualitas hasil rekonstruksi menjadi
+penting karena dapat memengaruhi proses pembelajaran pada tahap berikutnya.
+
+Evaluasi kinerja pra-pelatihan dilakukan menggunakan \textit{Mean Squared
+Error} (MSE) pada data latih dan data validasi. Nilai MSE digunakan untuk
+mengukur selisih antara representasi masukan dan hasil rekonstruksi yang
+dihasilkan model, di mana nilai yang lebih kecil menunjukkan kemampuan
+rekonstruksi yang lebih baik. Perbandingan antara MSE data latih dan data
+validasi juga digunakan untuk mengamati kestabilan proses pelatihan serta
+indikasi terjadinya \textit{overfitting}. 
+
+Hasil pra-pelatihan pada dataset IMDB dan Yelp disajikan pada
 Tabel~\ref{tab:pretrain_loss_imdb} dan Tabel~\ref{tab:pretrain_loss_yelp}.
 
 \begin{table}[H]
@@ -564,16 +607,22 @@ Tabel~\ref{tab:pretrain_loss_imdb} dan Tabel~\ref{tab:pretrain_loss_yelp}.
         & \textbf{\textit{Train Loss}}
         & \textbf{\textit{Validation Loss}} \\
         \midrule
-         1  & ... & ... \\
-         5  & ... & ... \\
-        10  & ... & ... \\
-        15  & ... & ... \\
-        20  & ... & ... \\
-        25  & ... & ... \\
-        30  & ... & ... \\
+         1  & $2{,}370 \times 10^{-3}$ & $2{,}544 \times 10^{-3}$ \\
+         5  & $3{,}300 \times 10^{-4}$ & $3{,}610 \times 10^{-4}$ \\
+        10  & $3{,}780 \times 10^{-4}$ & $4{,}120 \times 10^{-4}$ \\
+        15  & $1{,}570 \times 10^{-4}$ & $1{,}760 \times 10^{-4}$ \\
+        20  & $1{,}370 \times 10^{-4}$ & $1{,}550 \times 10^{-4}$ \\
+        25  & $1{,}440 \times 10^{-4}$ & $1{,}620 \times 10^{-4}$ \\
+        30  & $1{,}410 \times 10^{-4}$ & $1{,}590 \times 10^{-4}$ \\
         \bottomrule
     \end{tabular}
 \end{table}
+
+Pra-pelatihan \textit{autoencoder} pada dataset IMDB menunjukkan penurunan
+MSE yang signifikan dari epoch pertama hingga epoch ke-20, kemudian
+cenderung stabil pada kisaran $1{,}4 \times 10^{-4}$. \textit{Validation
+loss} konsisten berada sedikit di atas \textit{train loss}, mengindikasikan
+bahwa model tidak mengalami \textit{overfitting}.
 
 \begin{table}[H]
     \centering
@@ -586,118 +635,274 @@ Tabel~\ref{tab:pretrain_loss_imdb} dan Tabel~\ref{tab:pretrain_loss_yelp}.
         & \textbf{\textit{Train Loss}}
         & \textbf{\textit{Validation Loss}} \\
         \midrule
-         1  & ... & ... \\
-         5  & ... & ... \\
-        10  & ... & ... \\
-        15  & ... & ... \\
-        20  & ... & ... \\
-        25  & ... & ... \\
-        30  & ... & ... \\
+         1  & $3{,}790 \times 10^{-3}$ & $4{,}062 \times 10^{-3}$ \\
+         5  & $4{,}180 \times 10^{-4}$ & $4{,}540 \times 10^{-4}$ \\
+        10  & $2{,}780 \times 10^{-4}$ & $3{,}040 \times 10^{-4}$ \\
+        15  & $1{,}990 \times 10^{-4}$ & $2{,}200 \times 10^{-4}$ \\
+        20  & $1{,}670 \times 10^{-4}$ & $1{,}860 \times 10^{-4}$ \\
+        25  & $1{,}830 \times 10^{-4}$ & $2{,}030 \times 10^{-4}$ \\
+        30  & $1{,}550 \times 10^{-4}$ & $1{,}730 \times 10^{-4}$ \\
         \bottomrule
     \end{tabular}
 \end{table}
 
-%-----------------------------------------------------------------------------%
+Pola serupa terjadi pada dataset Yelp, dengan MSE turun tajam pada epoch-epoch
+awal dan mulai konvergen setelah epoch ke-20. Nilai akhir \textit{train loss}
+sebesar $1{,}550 \times 10^{-4}$ menunjukkan bahwa \textit{autoencoder} mampu
+merekonstruksi representasi BERT dengan baik pada kedua dataset.
+
+\setlength{\headheight}{14.5pt}
+\addtolength{\topmargin}{-14.5pt}
+
 \subsection{Analisis Kinerja \textit{Joint Training}}
-%-----------------------------------------------------------------------------%
 
-Kinerja \textit{joint training} dievaluasi berdasarkan dua kelompok metrik.
-Tugas analisis sentimen dievaluasi menggunakan \textit{accuracy}, F1-score,
-\textit{precision}, dan \textit{recall}. Tugas pendeteksian topik dievaluasi
-menggunakan TC-NPMI dan TD.
+Kinerja \textit{joint training} dievaluasi menggunakan dua kelompok metrik.
+Untuk tugas analisis sentimen digunakan \textit{accuracy}, F1-score,
+\textit{precision}, dan \textit{recall}. Sementara itu, kualitas topik
+dievaluasi menggunakan \textit{Topic Coherence} (TC-NPMI) dan
+\textit{Topic Diversity} (TD). Evaluasi dilakukan pada dua domain berbeda,
+yaitu ulasan film (IMDB) dan ulasan layanan/bisnis (Yelp), untuk melihat
+konsistensi performa model pada karakteristik data yang berbeda.
 
-%-----------------------------------------------------------------------------%
+%========================================================%
 \subsubsection{Hasil Evaluasi pada Dataset IMDB}
-%-----------------------------------------------------------------------------%
+%========================================================%
 
-Hasil evaluasi pada dataset IMDB disajikan pada Tabel~\ref{tab:eval_imdb}.
-Tanda ($-$) menunjukkan bahwa metrik tersebut tidak berlaku untuk model yang
-bersangkutan.
+Dataset IMDB berisi ulasan film yang umumnya memiliki pola opini yang lebih
+terfokus terhadap aspek cerita, karakter, dan kualitas film. Evaluasi pada
+dataset ini bertujuan melihat apakah pendekatan \textit{joint training}
+mampu mempertahankan performa klasifikasi sentimen sekaligus menghasilkan
+struktur topik yang baik. Tanda ($-$) menunjukkan metrik tidak relevan
+untuk model tertentu.
 
 \begin{table}[H]
-    \centering
-    \caption{Hasil evaluasi model pada dataset IMDB}
-    \label{tab:eval_imdb}
-    \renewcommand{\arraystretch}{1.15}
-    \begin{tabular}{
-        L{2.8cm}
-        C{1.0cm}
-        C{1.3cm}
-        C{1.3cm}
-        C{1.3cm}
-        C{1.3cm}
-        C{1.7cm}
-        C{1.3cm}}
-        \toprule
-        \textbf{Model}
-        & \textbf{\textit{K}}
-        & \textbf{\textit{Accuracy}}
-        & \textbf{\textit{F1}}
-        & \textbf{\textit{Precision}}
-        & \textbf{\textit{Recall}}
-        & \textbf{TC-NPMI}
-        & \textbf{TD} \\
-        \midrule
-        \multirow{3}{*}{JST-DEC}
-          & 30 & ... & ... & ... & ... & ... & ... \\
-          & 50 & ... & ... & ... & ... & ... & ... \\
-          & 80 & ... & ... & ... & ... & ... & ... \\
-        \midrule
-        \multirow{3}{*}{BERTopic}
-          & 30 & \multicolumn{4}{c}{$-$} & ... & ... \\
-          & 50 & \multicolumn{4}{c}{$-$} & ... & ... \\
-          & 80 & \multicolumn{4}{c}{$-$} & ... & ... \\
-        \midrule
-        NN-BERT
-          & $-$ & ... & ... & ... & ... & \multicolumn{2}{c}{$-$} \\
-        \bottomrule
-    \end{tabular}
+\centering
+\caption{Hasil evaluasi model pada dataset IMDB}
+\label{tab:eval_imdb}
+\renewcommand{\arraystretch}{1.3}
+\footnotesize
+
+\begin{tabular}{
+L{3.0cm}
+C{0.6cm}
+C{1.0cm}
+C{0.9cm}
+C{1.0cm}
+C{0.9cm}
+C{1.3cm}
+C{0.9cm}
+}
+
+\toprule
+\textbf{Model}
+& \textbf{K}
+& \textbf{Acc}
+& \textbf{F1}
+& \textbf{Prec}
+& \textbf{Rec}
+& \textbf{TC-NPMI}
+& \textbf{TD}
+\\
+\midrule
+
+\multirow{3}{*}{JST-DEC}
+&30 &0.8957 &0.8963 &0.8902 &\textbf{0.9025} &0.0803 &0.2256 \\
+&50 &\textbf{0.8967} &\textbf{0.8986} &0.8950 &0.9022 &0.0551 &0.2100 \\
+&80 &0.8941 &0.8930 &\textbf{0.9018} &0.8843 &0.0675 &0.2875 \\
+
+\midrule
+
+\multirow{3}{*}{\parbox{3.0cm}{BERTopic-\\HDBSCAN}}
+&30 &\multicolumn{4}{c}{$-$} &0.1714 &0.7966 \\
+&50 &\multicolumn{4}{c}{$-$} &0.1823 &0.7680 \\
+&80 &\multicolumn{4}{c}{$-$} &0.1751 &0.7625 \\
+
+\midrule
+
+\multirow{3}{*}{\parbox{3.0cm}{BERTopic-\\KMeans}}
+&30 &\multicolumn{4}{c}{$-$} &0.1566 &\textbf{0.9567} \\
+&50 &\multicolumn{4}{c}{$-$} &0.1596 &0.9000 \\
+&80 &\multicolumn{4}{c}{$-$} &\textbf{0.1874} &0.8413 \\
+
+\midrule
+
+NN-BERT
+& $-$ &0.8581 &0.8612 &0.8526 &0.8700 &\multicolumn{2}{c}{$-$} \\
+
+\bottomrule
+\end{tabular}
+
 \end{table}
 
-%-----------------------------------------------------------------------------%
+Berdasarkan Tabel~\ref{tab:eval_imdb}, JST-DEC menghasilkan performa
+sentimen terbaik dengan F1-score sebesar 0.8986 pada $K=50$ dan melampaui
+baseline NN-BERT yang memperoleh F1-score sebesar 0.8612. Hal ini
+menunjukkan bahwa pembelajaran bersama masih mampu mempertahankan kualitas
+representasi untuk klasifikasi sentimen.
+
+Namun, kualitas topik yang dihasilkan masih tertinggal dibandingkan
+BERTopic. Nilai TC-NPMI tertinggi JST-DEC hanya mencapai 0.0803, sedangkan
+BERTopic-KMeans mencapai 0.1874. Untuk TD, JST-DEC berada pada rentang
+0.2100--0.2875 dan masih jauh di bawah BERTopic-KMeans yang memperoleh
+0.9567. Temuan ini menunjukkan bahwa JST-DEC lebih unggul pada aspek
+sentimen dibanding kualitas topik.
+
+%========================================================%
 \subsubsection{Hasil Evaluasi pada Dataset Yelp}
-%-----------------------------------------------------------------------------%
+%========================================================%
 
-Hasil evaluasi pada dataset Yelp disajikan pada Tabel~\ref{tab:eval_yelp}.
-Format tabel dibuat sama dengan dataset IMDB agar hasil kedua dataset dapat
-dibandingkan secara langsung.
+Dataset Yelp berisi ulasan layanan dan bisnis yang mencakup topik lebih
+beragam, seperti kualitas pelayanan, harga, fasilitas, dan pengalaman
+pengguna. Dataset ini digunakan untuk mengevaluasi kemampuan model pada
+domain yang memiliki variasi topik lebih tinggi dibandingkan IMDB.
 
 \begin{table}[H]
-    \centering
-    \caption{Hasil evaluasi model pada dataset Yelp}
-    \label{tab:eval_yelp}
-    \renewcommand{\arraystretch}{1.15}
-    \begin{tabular}{
-        L{2.8cm}
-        C{1.0cm}
-        C{1.3cm}
-        C{1.3cm}
-        C{1.3cm}
-        C{1.3cm}
-        C{1.7cm}
-        C{1.3cm}}
-        \toprule
-        \textbf{Model}
-        & \textbf{\textit{K}}
-        & \textbf{\textit{Accuracy}}
-        & \textbf{\textit{F1}}
-        & \textbf{\textit{Precision}}
-        & \textbf{\textit{Recall}}
-        & \textbf{TC-NPMI}
-        & \textbf{TD} \\
-        \midrule
-        \multirow{3}{*}{JST-DEC}
-          & 30 & ... & ... & ... & ... & ... & ... \\
-          & 50 & ... & ... & ... & ... & ... & ... \\
-          & 80 & ... & ... & ... & ... & ... & ... \\
-        \midrule
-        \multirow{3}{*}{BERTopic}
-          & 30 & \multicolumn{4}{c}{$-$} & ... & ... \\
-          & 50 & \multicolumn{4}{c}{$-$} & ... & ... \\
-          & 80 & \multicolumn{4}{c}{$-$} & ... & ... \\
-        \midrule
-        NN-BERT
-          & $-$ & ... & ... & ... & ... & \multicolumn{2}{c}{$-$} \\
-        \bottomrule
-    \end{tabular}
+\centering
+\caption{Hasil evaluasi model pada dataset Yelp}
+\label{tab:eval_yelp}
+\renewcommand{\arraystretch}{1.3}
+\footnotesize
+
+\begin{tabular}{
+L{3.0cm}
+C{0.6cm}
+C{1.0cm}
+C{0.9cm}
+C{1.0cm}
+C{0.9cm}
+C{1.3cm}
+C{0.9cm}
+}
+
+\toprule
+\textbf{Model}
+& \textbf{K}
+& \textbf{Acc}
+& \textbf{F1}
+& \textbf{Prec}
+& \textbf{Rec}
+& \textbf{TC-NPMI}
+& \textbf{TD}
+\\
+\midrule
+
+\multirow{3}{*}{JST-DEC}
+&30 &0.8965 &0.8944 &\textbf{0.8823} &0.9069 &0.0788 &\textbf{0.3267} \\
+&50 &\textbf{0.8983} &\textbf{0.9020} &0.8723 &\textbf{0.9338} &0.0369 &0.2280 \\
+&80 &0.8935 &0.8953 &0.8785 &0.9128 &0.0563 &0.3150 \\
+
+\midrule
+
+\multirow{3}{*}{\parbox{3.0cm}{BERTopic-\\HDBSCAN}}
+&30 &\multicolumn{4}{c}{$-$} &0.1092 &0.7233 \\
+&50 &\multicolumn{4}{c}{$-$} &\textbf{0.1666} &0.7041 \\
+&80 &\multicolumn{4}{c}{$-$} &0.1646 &0.6671 \\
+
+\midrule
+
+\multirow{3}{*}{\parbox{3.0cm}{BERTopic-\\KMeans}}
+&30 &\multicolumn{4}{c}{$-$} &0.1077 &\textbf{0.7800} \\
+&50 &\multicolumn{4}{c}{$-$} &0.1120 &0.6740 \\
+&80 &\multicolumn{4}{c}{$-$} &0.1465 &0.6438 \\
+
+\midrule
+
+NN-BERT
+& $-$ &0.8664 &0.8715 &0.8610 &0.8823 &\multicolumn{2}{c}{$-$} \\
+
+\bottomrule
+\end{tabular}
+
 \end{table}
+
+Pada dataset Yelp, JST-DEC kembali menghasilkan performa sentimen terbaik
+dengan F1-score sebesar 0.9020 pada $K=50$, lebih tinggi dibandingkan
+NN-BERT yang memperoleh 0.8715.
+
+Meskipun demikian, kualitas topik yang dihasilkan masih lebih rendah
+dibandingkan BERTopic. Nilai TC-NPMI tertinggi JST-DEC hanya mencapai
+0.0788, sedangkan BERTopic-HDBSCAN mencapai 0.1666. Pada metrik TD,
+JST-DEC memperoleh nilai maksimum sebesar 0.3267 dan masih berada di bawah
+BERTopic-KMeans yang mencapai 0.7800.
+
+Secara keseluruhan, hasil pada kedua dataset menunjukkan adanya
+\textit{trade-off} antara performa klasifikasi sentimen dan kualitas topik.
+JST-DEC lebih unggul untuk tugas sentimen, sedangkan BERTopic menghasilkan
+topik yang lebih koheren dan lebih beragam.
+
+%-----------------------------------------------------------------------------%
+\subsection{Analisis Multiloss}
+%-----------------------------------------------------------------------------%
+
+Proses \textit{joint training} pada JST-DEC mengoptimasi dua komponen
+\textit{loss} secara simultan, yaitu \textit{clustering loss} berbasis
+KL Divergence ($\mathcal{L}_{\text{clust}}$) dan \textit{sentiment loss}
+berbasis \textit{cross-entropy} ($\mathcal{L}_{\text{sent}}$), dengan
+fungsi objektif:
+
+\[
+\mathcal{L}=\gamma\mathcal{L}_{\text{clust}}+\eta\mathcal{L}_{\text{sent}}
+\]
+
+Karena kedua komponen memiliki rentang nilai yang berbeda,
+$\mathcal{L}{\text{sent}}$ cenderung memiliki nilai lebih besar
+dibandingkan $\mathcal{L}{\text{clust}}$, sehingga analisis dilakukan
+menggunakan normalisasi \textit{min-max}. Normalisasi ini digunakan agar
+perubahan kedua komponen dapat diamati pada skala yang sama.
+
+%---------------------------------------------------------------------%
+\subsubsection{Dinamika pada Data Eksperimen}
+%---------------------------------------------------------------------%
+
+Gambar~\ref{fig:loss_actual} menunjukkan perkembangan
+$\mathcal{L}_{\text{clust}}$ dan $\mathcal{L}_{\text{sent}}$
+selama proses \textit{joint training} pada salah satu contoh eksperimen
+yang dijalankan, yaitu IMDB ($K=50$) dan Yelp ($K=30$).
+
+\begin{figure}[H]
+\centering
+\includegraphics[width=\textwidth]{assets/pics/Other/fig1_actual_loss.png}
+\caption{Dinamika $\mathcal{L}_{\text{clust}}$ dan $\mathcal{L}_{\text{sent}}$
+(ternormalisasi \textit{min-max}) selama \textit{joint training}
+pada dataset IMDB ($K=50$) dan Yelp ($K=30$).}
+\label{fig:loss_actual}
+\end{figure}
+
+Berdasarkan Gambar~\ref{fig:loss_actual}, $\mathcal{L}_{\text{sent}}$
+menunjukkan tren menurun sejak iterasi awal. Sebaliknya, $\mathcal{L}_{\text{clust}}$ 
+cenderung meningkat selama proses pelatihan dan belum menunjukkan kecenderungan 
+konvergen hingga iterasi ke-100
+
+Pola tersebut dapat dikaitkan dengan mekanisme DEC. Pada tahap awal,
+distribusi \textit{soft assignment} ($q$) masih mendekati distribusi target
+($p$), sehingga nilai KL Divergence relatif kecil. Seiring proses pelatihan,
+perubahan distribusi target menyebabkan nilai KL Divergence meningkat.
+Hasil ini mengindikasikan bahwa proses pembentukan klaster masih berlangsung.
+
+%---------------------------------------------------------------------%
+\subsubsection{Eksperimen Dataset Kecil}
+%---------------------------------------------------------------------%
+
+Untuk memberikan ilustrasi tambahan mengenai dinamika \textit{multiloss},
+dilakukan percobaan pada dataset dengan ukuran lebih kecil (±1000 data).
+Hasilnya ditunjukkan pada Gambar~\ref{fig:loss_small}.
+
+\begin{figure}[H]
+\centering
+\includegraphics[width=0.72\textwidth]{assets/pics/Other/fig2_small_dataset.png}
+\caption{Skenario dataset kecil: $\mathcal{L}_{\text{sent}}$ mencapai
+kondisi stabil lebih dahulu, kemudian
+$\mathcal{L}_{\text{clust}}$ mulai menurun dan kedua komponen
+menunjukkan pola yang lebih seimbang.}
+\label{fig:loss_small}
+\end{figure}
+
+Pada Gambar~\ref{fig:loss_small}, penurunan
+$\mathcal{L}_{\text{sent}}$ terjadi lebih cepat dibandingkan
+$\mathcal{L}_{\text{clust}}$. Setelah laju penurunan
+$\mathcal{L}_{\text{sent}}$ mulai melambat, perubahan pada komponen
+klasterisasi menjadi lebih terlihat dan
+$\mathcal{L}{\text{clust}}$ mulai mengalami penurunan.
+Pola ini menunjukkan bahwa ketika proses klasifikasi sentimen telah
+cukup terbentuk, optimasi mulai diikuti oleh perbaikan pada struktur
+klaster.

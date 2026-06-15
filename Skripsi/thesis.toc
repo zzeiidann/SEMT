@@ -1,0 +1,88 @@
+\contentsline {chapter}{HALAMAN JUDUL}{i}{section*.2}%
+\contentsline {chapter}{LEMBAR PERSETUJUAN}{ii}{section*.4}%
+\contentsline {chapter}{LEMBAR PERNYATAAN ORISINALITAS}{iii}{section*.5}%
+\contentsline {chapter}{LEMBAR PENGESAHAN}{iv}{section*.6}%
+\contentsline {chapter}{\uppercase {Kata Pengantar}}{v}{section*.7}%
+\contentsline {chapter}{LEMBAR PERSETUJUAN PUBLIKASI ILMIAH}{vi}{section*.10}%
+\contentsline {chapter}{ABSTRAK}{viii}{section*.11}%
+\contentsline {chapter}{\uppercase {Daftar Isi}}{x}{section*.12}%
+\contentsline {chapter}{\uppercase {Daftar Gambar}}{xiii}{section*.13}%
+\contentsline {chapter}{\uppercase {Daftar Tabel}}{xv}{section*.14}%
+\contentsline {chapter}{\numberline {1}\uppercase {Pendahuluan}}{1}{chapter.1}%
+\contentsline {section}{\numberline {1.1}Latar Belakang}{1}{section.1.1}%
+\contentsline {section}{\numberline {1.2}Rumusan Permasalahan}{5}{section.1.2}%
+\contentsline {section}{\numberline {1.3}Tujuan Penelitian}{6}{section.1.3}%
+\contentsline {section}{\numberline {1.4}Manfaat Penelitian}{6}{section.1.4}%
+\contentsline {section}{\numberline {1.5}Ruang Lingkup Penelitian}{7}{section.1.5}%
+\contentsline {chapter}{\numberline {2}\uppercase {Landasan Teori}}{8}{chapter.2}%
+\contentsline {section}{\numberline {2.1}Analisis Sentimen}{8}{section.2.1}%
+\contentsline {section}{\numberline {2.2}Pendeteksian Topik}{9}{section.2.2}%
+\contentsline {section}{\numberline {2.3}Neural Network}{9}{section.2.3}%
+\contentsline {subsection}{\numberline {2.3.1}Fungsi Aktivasi}{11}{subsection.2.3.1}%
+\contentsline {subsubsection}{\numberline {2.3.1.1}\textit {Softmax}}{11}{subsubsection.2.3.1.1}%
+\contentsline {subsubsection}{\numberline {2.3.1.2}\textit {Rectified Linear Unit} (ReLU)}{12}{subsubsection.2.3.1.2}%
+\contentsline {subsubsection}{\numberline {2.3.1.3}\textit {Gaussian Error Linear Unit} (GELU)}{12}{subsubsection.2.3.1.3}%
+\contentsline {subsection}{\numberline {2.3.2}Fungsi \textit {Loss}}{13}{subsection.2.3.2}%
+\contentsline {subsection}{\numberline {2.3.3}Backpropagation}{13}{subsection.2.3.3}%
+\contentsline {subsection}{\numberline {2.3.4}Teknik Optimasi}{15}{subsection.2.3.4}%
+\contentsline {subsubsection}{\numberline {2.3.4.1}\textit {Stochastic Gradient Descent} (SGD)}{15}{subsubsection.2.3.4.1}%
+\contentsline {subsubsection}{\numberline {2.3.4.2}\textit {Adaptive Moment Estimation} (Adam)}{15}{subsubsection.2.3.4.2}%
+\contentsline {subsection}{\numberline {2.3.5}Regularisasi}{16}{subsection.2.3.5}%
+\contentsline {subsection}{\numberline {2.3.6}Metrik Evaluasi}{17}{subsection.2.3.6}%
+\contentsline {section}{\numberline {2.4}Autoencoder}{18}{section.2.4}%
+\contentsline {subsection}{\numberline {2.4.1}Encoder dan Decoder}{18}{subsection.2.4.1}%
+\contentsline {subsection}{\numberline {2.4.2}Fungsi Objektif}{19}{subsection.2.4.2}%
+\contentsline {section}{\numberline {2.5}Bidirectional Encoder Representations from Transformers (BERT)}{19}{section.2.5}%
+\contentsline {subsection}{\numberline {2.5.1}Arsitektur BERT}{20}{subsection.2.5.1}%
+\contentsline {subsection}{\numberline {2.5.2}Mekanisme \textit {Self-Attention}}{20}{subsection.2.5.2}%
+\contentsline {subsection}{\numberline {2.5.3}Representasi Input BERT}{21}{subsection.2.5.3}%
+\contentsline {section}{\numberline {2.6}Multi-Task Learning}{22}{section.2.6}%
+\contentsline {subsection}{\numberline {2.6.1}Formulasi MTL}{23}{subsection.2.6.1}%
+\contentsline {subsection}{\numberline {2.6.2}Hard Parameter Sharing}{24}{subsection.2.6.2}%
+\contentsline {subsection}{\numberline {2.6.3}Soft Parameter Sharing}{25}{subsection.2.6.3}%
+\contentsline {section}{\numberline {2.7}Clustering}{25}{section.2.7}%
+\contentsline {subsection}{\numberline {2.7.1}K-Means Clustering}{26}{subsection.2.7.1}%
+\contentsline {section}{\numberline {2.8}Interpretabilitas Model \textit {Deep Learning}}{27}{section.2.8}%
+\contentsline {subsection}{\numberline {2.8.1}\textit {Occlusion-based Token Attribution}}{28}{subsection.2.8.1}%
+\contentsline {subsection}{\numberline {2.8.2}\textit {Integrated Gradients}}{29}{subsection.2.8.2}%
+\contentsline {chapter}{\numberline {3}\uppercase {METODE MODEL JOINT SENTIMENT-TOPIC BERBASIS MULTITASK LEARNING}}{30}{chapter.3}%
+\contentsline {section}{\numberline {3.1}\textit {Bidirectional Encoder Representations from Transformers} (BERT) Sebagai Model Representasi Teks}{30}{section.3.1}%
+\contentsline {section}{\numberline {3.2}Alur Pelatihan Model \textit {Multitask}}{33}{section.3.2}%
+\contentsline {subsection}{\numberline {3.2.1}Implementasi \textit {Autoencoder}}{33}{subsection.3.2.1}%
+\contentsline {subsection}{\numberline {3.2.2}\textit {Deep Embedded Clustering} (DEC)}{34}{subsection.3.2.2}%
+\contentsline {subsection}{\numberline {3.2.3}Pelatihan \textit {Multitask}: JST-DEC}{36}{subsection.3.2.3}%
+\contentsline {subsubsection}{\numberline {3.2.3.1}\textit {Clustering Head}}{36}{subsubsection.3.2.3.1}%
+\contentsline {subsubsection}{\numberline {3.2.3.2}Analisis Sentimen Menggunakan \textit {Sentiment Head}}{37}{subsubsection.3.2.3.2}%
+\contentsline {subsubsection}{\numberline {3.2.3.3}Pelatihan \textit {Joint} dengan \textit {Multitask Loss}}{38}{subsubsection.3.2.3.3}%
+\contentsline {subsubsection}{\numberline {3.2.3.4}Algoritma JST-DEC}{38}{subsubsection.3.2.3.4}%
+\contentsline {section}{\numberline {3.3}Interpretasi Model dengan Analisis Atribusi Token}{39}{section.3.3}%
+\contentsline {subsection}{\numberline {3.3.1}Implementasi \textit {Occlusion-based Token Attribution} dan Agregasi per Klaster}{39}{subsection.3.3.1}%
+\contentsline {subsection}{\numberline {3.3.2}Implementasi \textit {Integrated Gradients}}{40}{subsection.3.3.2}%
+\contentsline {section}{\numberline {3.4}Evaluasi Topik}{41}{section.3.4}%
+\contentsline {subsection}{\numberline {3.4.1}\textit {Topic Coherence} Berbasis NPMI}{41}{subsection.3.4.1}%
+\contentsline {subsection}{\numberline {3.4.2}\textit {Topic Diversity}}{42}{subsection.3.4.2}%
+\contentsline {chapter}{\numberline {4}\uppercase {HASIL DAN SIMULASI DAN PEMBAHASAN}}{44}{chapter.4}%
+\contentsline {section}{\numberline {4.1}Spesifikasi Mesin dan Perangkat Lunak}{44}{section.4.1}%
+\contentsline {section}{\numberline {4.2}Tahapan Umum Simulasi}{44}{section.4.2}%
+\contentsline {section}{\numberline {4.3}Data}{46}{section.4.3}%
+\contentsline {subsection}{\numberline {4.3.1}Pengumpulan Data}{46}{subsection.4.3.1}%
+\contentsline {subsection}{\numberline {4.3.2}Prapengolahan Data}{47}{subsection.4.3.2}%
+\contentsline {subsection}{\numberline {4.3.3}Representasi Teks}{49}{subsection.4.3.3}%
+\contentsline {subsection}{\numberline {4.3.4}Pembagian Data}{49}{subsection.4.3.4}%
+\contentsline {section}{\numberline {4.4}Implementasi Model}{50}{section.4.4}%
+\contentsline {subsection}{\numberline {4.4.1}Konfigurasi JST-DEC}{50}{subsection.4.4.1}%
+\contentsline {subsection}{\numberline {4.4.2}Konfigurasi \textit {Joint Training}}{51}{subsection.4.4.2}%
+\contentsline {subsection}{\numberline {4.4.3}Konfigurasi Model Pembanding}{52}{subsection.4.4.3}%
+\contentsline {subsubsection}{\numberline {4.4.3.1}NN-BERT}{52}{subsubsection.4.4.3.1}%
+\contentsline {subsubsection}{\numberline {4.4.3.2}BERTopic}{53}{subsubsection.4.4.3.2}%
+\contentsline {section}{\numberline {4.5}Analisis Kinerja Model}{54}{section.4.5}%
+\contentsline {subsection}{\numberline {4.5.1}Analisis Kinerja Pra-pelatihan}{54}{subsection.4.5.1}%
+\contentsline {subsection}{\numberline {4.5.2}Analisis Kinerja \textit {Joint Training}}{56}{subsection.4.5.2}%
+\contentsline {subsubsection}{\numberline {4.5.2.1}Hasil Evaluasi pada Dataset IMDB}{56}{subsubsection.4.5.2.1}%
+\contentsline {subsubsection}{\numberline {4.5.2.2}Hasil Evaluasi pada Dataset Yelp}{57}{subsubsection.4.5.2.2}%
+\contentsline {subsection}{\numberline {4.5.3}Analisis Multiloss}{58}{subsection.4.5.3}%
+\contentsline {subsubsection}{\numberline {4.5.3.1}Dinamika pada Data Eksperimen}{58}{subsubsection.4.5.3.1}%
+\contentsline {subsubsection}{\numberline {4.5.3.2}Eksperimen Dataset Kecil}{59}{subsubsection.4.5.3.2}%
+\contentsline {chapter}{\numberline {5}\uppercase {Kesimpulan}}{60}{chapter.5}%
+\contentsline {section}{\numberline {5.1}Kesimpulan}{60}{section.5.1}%
+\contentsline {section}{\numberline {5.2}Saran}{60}{section.5.2}%
