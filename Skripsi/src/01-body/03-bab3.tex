@@ -125,6 +125,13 @@ Karena proses \textit{clustering} memerlukan representasi berbentuk vektor, digu
 \section{Alur Pelatihan Model \textit{Multitask}}
 %-----------------------------------------------------------------------------%
 
+Pelatihan model \textit{multitask} pada penelitian ini dilakukan dalam tiga tahap yang saling terhubung. 
+Tahap pertama adalah melatih \textit{autoencoder} secara \textit{unsupervised} untuk memperoleh representasi 
+laten yang digunakan sebagai bobot awal model. Tahap kedua, algoritma \textit{Deep Embedded Clustering} (DEC) 
+diterapkan pada representasi laten tersebut untuk menentukan inisialisasi \textit{centroid} klaster. Setelah 
+itu, tahap ketiga dilakukan pelatihan JST-DEC secara \textit{joint}, dengan menggabungkan informasi dari 
+\textit{clustering head} dan \textit{sentiment head} ke dalam satu fungsi \textit{loss} selama proses optimasi.
+
 %-----------------------------------------------------------------------------%
 \subsection{Implementasi \textit{Autoencoder}}
 %-----------------------------------------------------------------------------%

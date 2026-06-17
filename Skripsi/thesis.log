@@ -1,4 +1,4 @@
-This is pdfTeX, Version 3.141592653-2.6-1.40.28 (MiKTeX 25.12) (preloaded format=pdflatex 2026.6.8)  17 JUN 2026 21:24
+This is pdfTeX, Version 3.141592653-2.6-1.40.28 (MiKTeX 25.12) (preloaded format=pdflatex 2026.6.8)  17 JUN 2026 21:35
 entering extended mode
  restricted \write18 enabled.
  %&-line parsing enabled.
@@ -2380,19 +2380,6 @@ Package fancyhdr Warning: \headheight is too small (0.0pt):
 (fancyhdr)                \addtolength{\topmargin}{-14.49998pt}.
 
 [32]
-<assets/pics/Autoencoder/Autoencoder0.png, id=1144, 287.57437pt x 268.75406pt>
-File: assets/pics/Autoencoder/Autoencoder0.png Graphic file (type png)
-<use assets/pics/Autoencoder/Autoencoder0.png>
-Package pdftex.def Info: assets/pics/Autoencoder/Autoencoder0.png  used on inpu
-t line 146.
-(pdftex.def)             Requested size: 152.225pt x 142.26378pt.
-<assets/pics/Autoencoder/Autoencoder1.png, id=1145, 165.61874pt x 267.24844pt>
-File: assets/pics/Autoencoder/Autoencoder1.png Graphic file (type png)
-<use assets/pics/Autoencoder/Autoencoder1.png>
-Package pdftex.def Info: assets/pics/Autoencoder/Autoencoder1.png  used on inpu
-t line 153.
-(pdftex.def)             Requested size: 88.16669pt x 142.26378pt.
-
 
 Package fancyhdr Warning: \headheight is too small (0.0pt): 
 (fancyhdr)                Make it at least 14.49998pt, for example:
@@ -2401,6 +2388,19 @@ Package fancyhdr Warning: \headheight is too small (0.0pt):
 (fancyhdr)                \addtolength{\topmargin}{-14.49998pt}.
 
 [33]
+<assets/pics/Autoencoder/Autoencoder0.png, id=1150, 287.57437pt x 268.75406pt>
+File: assets/pics/Autoencoder/Autoencoder0.png Graphic file (type png)
+<use assets/pics/Autoencoder/Autoencoder0.png>
+Package pdftex.def Info: assets/pics/Autoencoder/Autoencoder0.png  used on inpu
+t line 153.
+(pdftex.def)             Requested size: 152.225pt x 142.26378pt.
+<assets/pics/Autoencoder/Autoencoder1.png, id=1151, 165.61874pt x 267.24844pt>
+File: assets/pics/Autoencoder/Autoencoder1.png Graphic file (type png)
+<use assets/pics/Autoencoder/Autoencoder1.png>
+Package pdftex.def Info: assets/pics/Autoencoder/Autoencoder1.png  used on inpu
+t line 160.
+(pdftex.def)             Requested size: 88.16669pt x 142.26378pt.
+
 
 Package fancyhdr Warning: \headheight is too small (0.0pt): 
 (fancyhdr)                Make it at least 14.49998pt, for example:
@@ -2418,17 +2418,17 @@ Package fancyhdr Warning: \headheight is too small (0.0pt):
 (fancyhdr)                \addtolength{\topmargin}{-14.49998pt}.
 
 [35]
-Underfull \hbox (badness 2744) in paragraph at lines 304--313
+Underfull \hbox (badness 2744) in paragraph at lines 311--320
 []\OT1/ptm/m/n/12 Pendekatan \OT1/ptm/m/it/12 mul-ti-task \OT1/ptm/m/n/12 me-mu
 ng-kin-kan rep-re-sen-tasi laten dipela-jari se-cara
  []
 
 LaTeX Font Info:    Font shape `OT1/ptm/bx/n' in size <10.95> not available
-(Font)              Font shape `OT1/ptm/b/n' tried instead on input line 366.
+(Font)              Font shape `OT1/ptm/b/n' tried instead on input line 373.
 LaTeX Font Info:    Font shape `OT1/ptm/bx/n' in size <8> not available
-(Font)              Font shape `OT1/ptm/b/n' tried instead on input line 366.
+(Font)              Font shape `OT1/ptm/b/n' tried instead on input line 373.
 LaTeX Font Info:    Font shape `OT1/ptm/bx/n' in size <5> not available
-(Font)              Font shape `OT1/ptm/b/n' tried instead on input line 366.
+(Font)              Font shape `OT1/ptm/b/n' tried instead on input line 373.
 
 Package fancyhdr Warning: \headheight is too small (0.0pt): 
 (fancyhdr)                Make it at least 14.49998pt, for example:
@@ -2445,14 +2445,14 @@ Package fancyhdr Warning: \headheight is too small (0.0pt):
 (fancyhdr)                \addtolength{\topmargin}{-14.49998pt}.
 
 [37]
-Underfull \hbox (badness 2478) in paragraph at lines 528--529
+Underfull \hbox (badness 2478) in paragraph at lines 535--536
 []|\OT1/ptm/m/n/12 Hitung $\OML/ptmcm/m/it/12 q[]$ \OT1/ptm/m/n/12 dari \OT1/pt
 m/m/it/12 cen-troid \OT1/ptm/m/n/12 in-isial-isasi DEC; tetap-kan $\OML/ptmcm/m
 /it/12 y[] \OMS/pzccm/m/n/12  
  []
 
 
-Overfull \hbox (37.93073pt too wide) in paragraph at lines 509--575
+Overfull \hbox (37.93073pt too wide) in paragraph at lines 516--582
  [][] 
  []
 
@@ -2464,7 +2464,7 @@ Package fancyhdr Warning: \headheight is too small (0.0pt):
 (fancyhdr)                \addtolength{\topmargin}{-14.49998pt}.
 
 [38]
-Underfull \hbox (badness 6078) in paragraph at lines 585--585
+Underfull \hbox (badness 6078) in paragraph at lines 592--592
 []\OT1/ptm/b/n/14.4 Implementasi \OT1/ptm/b/it/14.4 Occlusion-based To-ken At-t
 ri-bu-tion \OT1/ptm/b/n/14.4 dan
  []
@@ -2892,7 +2892,7 @@ T1/ptm/m/it/12 arXiv preprint
  []
 
 [70]
-runsystem(latexminted cleantemp  --timestamp 20260617212411 2EF71E68B4AD97F6304
+runsystem(latexminted cleantemp  --timestamp 20260617213556 2EF71E68B4AD97F6304
 80BCEBC1842FB)...disabled (restricted).
 
  (thesis.aux)
@@ -2937,7 +2937,7 @@ mes/utmbi8a.pfb><C:/Users/raffy/AppData/Local/Programs/MiKTeX/fonts/type1/urw/t
 imes/utmr8a.pfb><C:/Users/raffy/AppData/Local/Programs/MiKTeX/fonts/type1/urw/t
 imes/utmri8a.pfb><C:/Users/raffy/AppData/Local/Programs/MiKTeX/fonts/type1/urw/
 zapfchan/uzcmi8a.pfb>
-Output written on thesis.pdf (87 pages, 1550118 bytes).
+Output written on thesis.pdf (87 pages, 1550523 bytes).
 PDF statistics:
  1623 PDF objects out of 1728 (max. 8388607)
  406 named destinations out of 1000 (max. 500000)
