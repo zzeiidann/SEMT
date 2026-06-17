@@ -1,0 +1,8 @@
+{
+  "best_iter": 80,
+  "best_val_score": 0.89997,
+  "primary_metric": "val_f1",
+  "val_ratio": 0.2,
+  "n_train": 24000,
+  "n_val": 6000
+}

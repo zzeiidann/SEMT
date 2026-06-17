@@ -104,18 +104,18 @@ Movie Reviews dan Yelp Review Dataset. Kedua dataset dipilih karena umum
 digunakan sebagai \textit{benchmark} pada penelitian analisis sentimen dan
 pendeteksian topik, serta keduanya memiliki label sentimen biner.
 
-Dataset IMDB Movie Reviews terdiri dari 30.000 ulasan film yang diunggah oleh
+Dataset IMDB Movie Reviews terdiri dari 50.000 ulasan film yang diunggah oleh
 \parencite{maas2011} dan tersedia secara publik melalui platform Hugging Face
 dalam format Apache Arrow. Distribusi label sentimen pada dataset ini relatif
 seimbang antara kelas positif dan negatif, sehingga cocok untuk tugas
 klasifikasi biner.
 
-Yelp Review Dataset memuat 50.000 ulasan pengguna terhadap berbagai jenis
-layanan dan bisnis, termasuk restoran dan usaha ritel. Dataset ini tersedia
-secara publik melalui platform Hugging Face yang diunggah oleh
-\parencite{zhang2015} dalam format Apache Arrow dengan distribusi label
-sentimen yang seimbang. Dalam penelitian ini, jumlah data Yelp dibatasi
-hingga 30.000 sampel agar proporsional dengan jumlah data IMDB.
+Yelp Review Dataset yang digunakan dalam penelitian ini terdiri atas 30.000
+ulasan pengguna terhadap berbagai jenis layanan dan bisnis, termasuk
+restoran dan usaha ritel. Dataset ini tersedia secara publik melalui
+platform Hugging Face \parencite{zhang2015} dalam format Apache Arrow dengan
+distribusi label sentimen yang seimbang. Jumlah data dipilih agar sebanding
+dengan dataset IMDB yang digunakan pada penelitian ini.
 
 Kedua dataset memiliki label sentimen biner, dengan nilai 1 untuk sentimen
 positif dan nilai 0 untuk sentimen negatif. Beberapa cuplikan ulasan dari
@@ -142,7 +142,7 @@ Tabel~\ref{tab:yelp_sample}.
         \hline
         $\vdots$ & $\vdots$ & $\vdots$ \\
         \hline
-        30.000 &
+        50.000 &
         The film captures a quiet kind of grief beautifully. Not much
         happens on the surface, but every scene carries emotional weight.
         A slow burn that rewards patient viewers. & 1 \\
@@ -787,7 +787,7 @@ C{0.9cm}
 \midrule
 
 \multirow{3}{*}{JST-DEC}
-&30 &0.8965 &0.8944 &\textbf{0.8823} &0.9069 &0.0788 &\textbf{0.3267} \\
+&30 &0.8965 &0.8944 &\textbf{0.8823} &0.9069 &0.0788 &0.3267 \\
 &50 &\textbf{0.8983} &\textbf{0.9020} &0.8723 &\textbf{0.9338} &0.0369 &0.2280 \\
 &80 &0.8935 &0.8953 &0.8785 &0.9128 &0.0563 &0.3150 \\
 
@@ -906,3 +906,63 @@ $\mathcal{L}{\text{clust}}$ mulai mengalami penurunan.
 Pola ini menunjukkan bahwa ketika proses klasifikasi sentimen telah
 cukup terbentuk, optimasi mulai diikuti oleh perbaikan pada struktur
 klaster.
+
+\section{Analisis Interpretabilitas Model}
+
+Analisis interpretabilitas dilakukan menggunakan metode
+\textit{occlusion-based token attribution} sebagaimana dirumuskan pada
+Persamaan~\ref{eq:occlusion_bab3}--\ref{eq:top_tokens}. Evaluasi dilakukan
+menggunakan model hasil \textit{joint training} pada epoch terakhir
+(epoch ke-99), bukan model dengan performa evaluasi terbaik. Pemilihan
+epoch terakhir bertujuan untuk mengamati representasi dan pola atribusi
+yang terbentuk setelah seluruh proses pelatihan selesai.
+
+Analisis dilakukan pada konfigurasi jumlah klaster sebesar 30
+(\(K=30\)) menggunakan dataset Yelp. Konfigurasi ini dipilih dari beberapa
+percobaan jumlah klaster yang digunakan pada penelitian, yaitu \(K=30\),
+\(K=50\), dan \(K=80\). Analisis interpretabilitas dibatasi pada konfigurasi
+ini sebagai studi kasus untuk memberikan gambaran perilaku model secara
+kualitatif. Untuk setiap klaster, dihitung skor atribusi rata-rata token
+terhadap masing-masing kelas sentimen, yaitu \textit{pos\_pool} dan
+\textit{neg\_pool}. Gambar~\ref{fig:token_attribution_summary} memperlihatkan ringkasan
+atribusi token pada seluruh 30 klaster.
+
+\begin{figure}[H]
+\centering
+\includegraphics[width=\textwidth]{assets/pics/Other/fig_token_attribution_summary.png}
+\caption{Ringkasan hasil atribusi token pada 30 klaster.
+Panel~(a) menunjukkan nilai atribusi tertinggi pada setiap klaster,
+sedangkan panel~(b)--(g) menampilkan token dengan kontribusi terbesar pada
+beberapa klaster terpilih berdasarkan skor atribusi rata-rata.}
+\label{fig:token_attribution_summary}
+\end{figure}
+
+Pada kelompok klaster dengan dominansi positif, beberapa token yang sering
+muncul sebagai kontributor utama antara lain \textit{``super''},
+\textit{``hot''}, \textit{``sandwich''}, dan \textit{``amazing''}. Token-token
+tersebut menunjukkan bahwa model cenderung memanfaatkan kata yang bersifat
+evaluatif serta kata yang berkaitan dengan konteks makanan dalam menghasilkan
+prediksi positif. Namun, temuan ini hanya menunjukkan pola kontribusi token
+dan belum cukup untuk digunakan sebagai dasar dalam menentukan tema klaster
+secara pasti.
+
+Pada klaster dengan dominansi negatif, token seperti \textit{``staff''},
+\textit{``average''}, dan \textit{``atmosphere''} memiliki kontribusi yang
+cukup besar terhadap prediksi negatif. Selain itu, ditemukan beberapa token
+dengan skor negatif pada \textit{neg\_pool}, seperti \textit{``unless''} dan
+\textit{``english''}, yang menunjukkan bahwa pengaruh token terhadap prediksi
+model tidak selalu sesuai dengan polaritas kata secara umum. Hal ini
+menunjukkan bahwa model juga mempertimbangkan konteks kemunculan token, bukan
+hanya keberadaan kata secara terpisah.
+
+Pada klaster dengan distribusi sentimen yang lebih seimbang, ditemukan token
+positif dan negatif yang muncul secara bersamaan, seperti
+\textit{``recommend''} dan \textit{``worst''}. Kondisi ini menunjukkan bahwa
+beberapa klaster masih memiliki variasi sentimen yang cukup tinggi dan belum
+sepenuhnya terpisah berdasarkan kecenderungan sentimennya.
+
+Secara keseluruhan, hasil atribusi menunjukkan bahwa model telah menangkap
+pola penggunaan kata yang relevan terhadap tugas analisis sentimen. Namun,
+interpretasi pada tingkat klaster masih memiliki keterbatasan karena
+kontribusi token yang ditemukan belum selalu menghasilkan pemisahan topik
+maupun sentimen secara konsisten.

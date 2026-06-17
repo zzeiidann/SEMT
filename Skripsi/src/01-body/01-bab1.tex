@@ -76,7 +76,7 @@ Beberapa permasalahan utama yang ingin dijawab dalam penelitian ini adalah:
     \item Bagaimana mengembangkan model berbasis \textit{Fully Neural Network} yang dapat menangani klasifikasi sentimen dan pemodelan topik secara simultan?
     \item Bagaimana pengaruh pendekatan \textit{Multi-Task Learning} (MTL) terhadap performa model dibandingkan dengan model \textit{single-task}?
     \item Bagaimana penerapan \textit{Autoencoder} dapat membantu mengatasi permasalahan dimensi tinggi dalam data teks?
-    \item Sejauh mana model yang dikembangkan dapat meningkatkan efisiensi dan akurasi dibandingkan dengan metode sebelumnya, seperti analisis sentimen menggunakan EFCM dan model sentimen BERT?
+    \item Sejauh mana model yang dikembangkan dapat meningkatkan efisiensi dan akurasi dibandingkan dengan metode sebelumnya, seperti analisis sentimen menggunakan BERTopic dan model sentimen BERT?
 \end{enumerate}
 
 \bigskip
@@ -142,11 +142,12 @@ Batasan dalam penelitian ini ditetapkan sebagai berikut:
     \item Penelitian ini menggunakan analisis sentimen biner yang terdiri atas
     dua kelas, yaitu positif dan negatif.
 
-    \item Data yang digunakan merupakan \textit{dataset} IMDB dan Yelp yang
-    berupa kumpulan teks ulasan, yang diperoleh melalui platform Hugging Face,
-    masing-masing pada \textit{dataset} IMDB dan \textit{dataset} Yelp Polarity.
+    \item Data yang digunakan merupakan \textit{dataset} IMDB dan Yelp berupa
+    kumpulan teks ulasan yang diperoleh melalui platform Hugging Face, yaitu
+    \textit{dataset} IMDB dan \textit{dataset} Yelp Polarity.
 
-    \item Jumlah data ulasan yang digunakan dalam penelitian ini dibatasi
-    sebanyak 30.000 ulasan untuk masing-masing \textit{dataset}, baik IMDB
-    maupun Yelp.
+    \item Jumlah data yang digunakan terdiri atas 50.000 ulasan pada
+    \textit{dataset} IMDB dan 30.000 ulasan pada \textit{dataset} Yelp.
+    Kedua \textit{dataset} disusun dengan distribusi kelas yang seimbang
+    antara sentimen positif dan negatif.
 \end{enumerate}

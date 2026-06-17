@@ -23,4 +23,5 @@
 \contentsline {figure}{\numberline {4.1}{\ignorespaces Diagram alur simulasi penelitian.}}{45}{figure.caption.35}%
 \contentsline {figure}{\numberline {4.2}{\ignorespaces Dinamika $\mathcal {L}_{\text {clust}}$ dan $\mathcal {L}_{\text {sent}}$ (ternormalisasi \textit {min-max}) selama \textit {joint training} pada dataset IMDB ($K=50$) dan Yelp ($K=30$).}}{58}{figure.caption.50}%
 \contentsline {figure}{\numberline {4.3}{\ignorespaces Skenario dataset kecil: $\mathcal {L}_{\text {sent}}$ mencapai kondisi stabil lebih dahulu, kemudian $\mathcal {L}_{\text {clust}}$ mulai menurun dan kedua komponen menunjukkan pola yang lebih seimbang.}}{59}{figure.caption.51}%
+\contentsline {figure}{\numberline {4.4}{\ignorespaces Ringkasan hasil atribusi token pada 30 klaster. Panel~(a) menunjukkan nilai atribusi tertinggi pada setiap klaster, sedangkan panel~(b)--(g) menampilkan token dengan kontribusi terbesar pada beberapa klaster terpilih berdasarkan skor atribusi rata-rata.}}{60}{figure.caption.52}%
 \addvspace {10\p@ }
