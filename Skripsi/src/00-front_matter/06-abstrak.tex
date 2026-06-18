@@ -1,39 +1,48 @@
-%
-% Halaman Abstrak
-%
-% @author  Andreas Febrian
-% @version 1.00
-%
-
 \chapter*{Abstrak}
-
 \vspace*{0.2cm}
+
 {
-	\setlength{\parindent}{0pt}
-	
-	\begin{tabular}{@{}l l p{10cm}}
-		Nama&: & \penulis \\
-		Program Studi&: & \program \\
-		Judul&: & \judul \\
-		Pembimbing&: & \pembimbing \\
-	\end{tabular}
+\setlength{\parindent}{0pt}
 
-	\bigskip
-	\bigskip
+\noindent
+Nama: \penulis\par
+Program Studi: \program\par
+Judul: \judul\par
 
-	Tesis ini membahas kemampuan mahasiswa Fakultas Psikologi UI dalam mencari dan
-	menggunakan informasi secara efektif dalam konteks \textit{active learning} dan \textit{self regulated
-	learning} selama mereka mengikuti Program Pendidikan Dasar Pendidikan Tinggi.
-	Penelitian ini adalah penelitian kualitatif dengan desain deskriptif. Hasil penelitian
-	menyarankan bahwa perpustakaan perlu dilibatkan dalam pengembangan kurikulum;
-	materi pendidikan pemakai perpustakaan harus dikembangkan sesuai dengan komponen-
-	komponen yang ada dalam \textit{information literacy}; perpustakaan juga harus menyediakan
-	sarana dan fasilitas yang mendukung peningkatan \textit{literacy} mahasiswa.
+\bigskip
 
-	\bigskip
+Pertumbuhan data teks dari platform digital seperti ulasan produk dan media sosial
+mendorong kebutuhan metode otomatis yang mampu menganalisis sentimen dan
+mengidentifikasi topik secara bersamaan. Pendekatan analisis sentimen konvensional
+umumnya mengasumsikan satu sentimen per dokumen sehingga belum dapat merepresentasikan
+ulasan yang membahas lebih dari satu topik. Penelitian ini mengembangkan model
+\textit{Joint Document-level Sentiment--Topic} berbasis \textit{Deep Embedded
+Clustering} (JDST-DEC) yang mengintegrasikan DEC sebagai komponen pendeteksian topik
+ke dalam kerangka \textit{Multi-Task Learning} (MTL) dengan encoder BERT yang
+dibekukan. Pelatihan dilakukan dalam dua tahap, yaitu pra-pelatihan \textit{autoencoder}
+untuk membentuk representasi laten dari \textit{embedding} \texttt{[CLS]} BERT,
+kemudian dilanjutkan dengan optimasi gabungan fungsi \textit{loss} sentimen
+berbasis \textit{cross-entropy} dan \textit{loss} klasterisasi berbasis KL
+\textit{divergence}. Evaluasi dilakukan pada dataset IMDB dan Yelp dengan variasi
+jumlah topik $K=30$, $50$, dan $80$. Pada tugas klasifikasi sentimen, JDST-DEC memperoleh F1-\textit{score} sebesar
+0{,}8986 (IMDB) dan 0{,}9020 (Yelp) pada $K=50$, lebih tinggi dibandingkan
+NN-BERT yang memperoleh 0{,}8612 dan 0{,}8715. Pada tugas pendeteksian topik,
+BERTopic menghasilkan kualitas topik yang lebih baik berdasarkan metrik
+\textit{Topic Coherence} dan \textit{Topic Diversity}, sedangkan JDST-DEC
+menunjukkan adanya \textit{trade-off} antara objektif sentimen dan topik selama
+pelatihan multitugas. Analisis tambahan menunjukkan bahwa objektif sentimen mencapai kondisi stabil
+lebih awal dibandingkan objektif klasterisasi, serta model telah mampu mengenali
+token yang relevan pada masing-masing klaster meskipun pemisahan sentimen
+antarklaster belum sepenuhnya konsisten. Secara keseluruhan, JDST-DEC mampu
+mempertahankan performa klasifikasi sentimen dalam kerangka pembelajaran
+multitugas, namun keseimbangan antara objektif sentimen dan topik masih menjadi
+tantangan dalam proses optimasi.
 
-	Kata kunci:\\
-	Informasi, \textit{information literacy}, \textit{information skills}
+\bigskip
+
+\textbf{Kata kunci}: \textit{Deep Embedded Clustering},
+\textit{Joint Document-level Sentiment--Topic Modeling},
+\textit{Multi-Task Learning}, \textit{Natural Language Processing}, \textit{BERT}.
 }
 
 \newpage

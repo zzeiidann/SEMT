@@ -2,11 +2,11 @@
 \chapter{\babTiga}
 %-----------------------------------------------------------------------------%
 
-Bab ini menjelaskan rancangan metode yang digunakan dalam penelitian, mencakup pembentukan representasi teks menggunakan BERT, perancangan arsitektur JST-DEC berbasis multitask learning, proses pelatihan model, interpretasi hasil menggunakan metode atribusi, serta evaluasi kualitas topik yang dihasilkan.
+Bab ini menjelaskan arsitektur dan metode yang digunakan dalam pengembangan model \textit{Joint Document-Level Sentiment-Topic} (JDST-DEC) berbasis \textit{multitask learning}. Sebelum membahas model JDST-DEC, terlebih dahulu dijelaskan komponen representasi teks menggunakan BERT pada Subbab~\ref{sec:bert}. Selanjutnya, alur pelatihan model \textit{multitask} dijelaskan pada Subbab~\ref{sec:alur_multitask}, yang mencakup implementasi \textit{autoencoder}, \textit{Deep Embedded Clustering} (DEC), serta arsitektur JDST-DEC secara keseluruhan. Interpretasi model menggunakan metode atribusi dibahas pada Subbab~\ref{sec:atribusi}, sedangkan evaluasi kualitas topik dijelaskan pada Subbab~\ref{sec:topic_eval}. Alur umum proses model dalam melakukan analisis sentimen dan pendeteksian topik secara simultan ditunjukkan pada Gambar~\ref{fig:alur_metode}.
 
 \begin{figure}[H]
     \centering
-    \includegraphics[width=0.9\textwidth]{assets/pics/MTL/FNN1.png}
+    \includegraphics[width=0.9\textwidth]{assets/pics/MTL/Alur2(Model).png}
     \caption{Alur metode analisis sentimen dan pendeteksian topik}
     \label{fig:alur_metode}
 \end{figure}
@@ -123,13 +123,14 @@ Karena proses \textit{clustering} memerlukan representasi berbentuk vektor, digu
 
 %-----------------------------------------------------------------------------%
 \section{Alur Pelatihan Model \textit{Multitask}}
+\label{sec:alur_multitask}
 %-----------------------------------------------------------------------------%
 
 Pelatihan model \textit{multitask} pada penelitian ini dilakukan dalam tiga tahap yang saling terhubung. 
 Tahap pertama adalah melatih \textit{autoencoder} secara \textit{unsupervised} untuk memperoleh representasi 
 laten yang digunakan sebagai bobot awal model. Tahap kedua, algoritma \textit{Deep Embedded Clustering} (DEC) 
 diterapkan pada representasi laten tersebut untuk menentukan inisialisasi \textit{centroid} klaster. Setelah 
-itu, tahap ketiga dilakukan pelatihan JST-DEC secara \textit{joint}, dengan menggabungkan informasi dari 
+itu, tahap ketiga dilakukan pelatihan JDST-DEC secara \textit{joint}, dengan menggabungkan informasi dari 
 \textit{clustering head} dan \textit{sentiment head} ke dalam satu fungsi \textit{loss} selama proses optimasi.
 
 %-----------------------------------------------------------------------------%
@@ -305,7 +306,7 @@ Tabel~\ref{tab:alg_dec} menyajikan prosedur lengkap DEC.
 \end{table}
 
 %-----------------------------------------------------------------------------%
-\subsection{Pelatihan \textit{Multitask}: JST-DEC}
+\subsection{Pelatihan \textit{Multitask}: JDST-DEC}
 %-----------------------------------------------------------------------------%
 
 Pendekatan \textit{multitask} memungkinkan representasi laten dipelajari
@@ -315,8 +316,7 @@ representasi mempertimbangkan informasi sentimen dan struktur topik
 secara simultan dalam satu ruang laten, berbeda dengan pendekatan yang
 mengoptimalkan kedua tugas secara terpisah. Kombinasi DEC dengan
 \textit{sentiment head} dalam kerangka \textit{multitask} ini
-selanjutnya disebut JST-DEC (\textit{Joint Sentiment-Topic Deep Embedded
-Clustering}).
+selanjutnya disebut JDST-DEC (\textit{Joint Document-level Sentiment-Topic}).
 
 %------- Clustering Head -------%
 \subsubsection{\textit{Clustering Head}}
@@ -500,22 +500,22 @@ pada data validasi. Jika $\gamma \gg \eta$, model cenderung mengutamakan
 struktur klaster; sebaliknya jika $\eta \gg \gamma$, representasi laten
 lebih diarahkan oleh informasi sentimen.
 
-%------- Algoritma JST-DEC -------%
-\subsubsection{Algoritma JST-DEC}
+%------- Algoritma JDST-DEC -------%
+\subsubsection{Algoritma JDST-DEC}
 
 Tabel~\ref{tab:alg_jstdec} menyajikan prosedur lengkap pelatihan
-JST-DEC. Algoritma ini mengasumsikan \textit{encoder} telah
+JDST-DEC. Algoritma ini mengasumsikan \textit{encoder} telah
 diinisialisasi melalui \textit{pretraining autoencoder} dan
 \textit{centroid} telah diinisialisasi menggunakan K-Means sebagaimana
 dijelaskan pada Subseksi~\ref{sec:dec}.
 
 \begin{table}[H]
 \centering
-\caption{Algoritma JST-DEC (\textit{Joint Sentiment-Topic Deep Embedded Clustering})}
+\caption{Algoritma JDST-DEC (\textit{Joint Document-level Sentiment-Topic})}
 \label{tab:alg_jstdec}
 \begin{tabular}{p{0.05\textwidth} p{0.85\textwidth}}
 \hline
-\multicolumn{2}{l}{\textbf{Algoritma} JST-DEC} \\
+\multicolumn{2}{l}{\textbf{Algoritma} JDST-DEC} \\
 \hline
 \multicolumn{2}{l}{\textbf{INPUT} \hspace{1.2em}
     Himpunan vektor BERT $\{\mathbf{f}_i\}_{i=1}^{N} \in \mathbb{R}^{768}$;
@@ -583,6 +583,7 @@ dijelaskan pada Subseksi~\ref{sec:dec}.
 
 %-----------------------------------------------------------------------------%
 \section{Interpretasi Model dengan Analisis Atribusi Token}
+\label{sec:atribusi}
 %-----------------------------------------------------------------------------%
 
 Penelitian ini menerapkan dua metode interpretasi \textit{post-hoc}, yaitu \textit{occlusion-based token attribution} pada level token dan \textit{Integrated Gradients} pada level dimensi \textit{embedding}. Keduanya diterapkan setelah pelatihan selesai menggunakan bobot model terbaik.

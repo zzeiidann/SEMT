@@ -1,13 +1,14 @@
 \contentsline {chapter}{HALAMAN JUDUL}{i}{section*.2}%
 \contentsline {chapter}{LEMBAR PERSETUJUAN}{ii}{section*.4}%
-\contentsline {chapter}{LEMBAR PERNYATAAN ORISINALITAS}{iii}{section*.5}%
-\contentsline {chapter}{LEMBAR PENGESAHAN}{iv}{section*.6}%
-\contentsline {chapter}{\uppercase {Kata Pengantar}}{v}{section*.7}%
-\contentsline {chapter}{LEMBAR PERSETUJUAN PUBLIKASI ILMIAH}{vi}{section*.10}%
-\contentsline {chapter}{ABSTRAK}{viii}{section*.11}%
-\contentsline {chapter}{\uppercase {Daftar Isi}}{x}{section*.12}%
-\contentsline {chapter}{\uppercase {Daftar Gambar}}{xiii}{section*.13}%
-\contentsline {chapter}{\uppercase {Daftar Tabel}}{xv}{section*.14}%
+\contentsline {chapter}{LEMBAR PERNYATAAN ORISINALITAS}{ii}{section*.5}%
+\contentsline {chapter}{LEMBAR PERNYATAAN PENGGUNAAN KECERDASAN ARTIFISIAL}{iii}{section*.6}%
+\contentsline {chapter}{LEMBAR PENGESAHAN}{iv}{section*.7}%
+\contentsline {chapter}{\uppercase {Kata Pengantar}}{v}{section*.8}%
+\contentsline {chapter}{LEMBAR PERSETUJUAN PUBLIKASI ILMIAH}{vi}{section*.9}%
+\contentsline {chapter}{ABSTRAK}{viii}{section*.10}%
+\contentsline {chapter}{\uppercase {Daftar Isi}}{x}{section*.11}%
+\contentsline {chapter}{\uppercase {Daftar Gambar}}{xiii}{section*.12}%
+\contentsline {chapter}{\uppercase {Daftar Tabel}}{xv}{section*.13}%
 \contentsline {chapter}{\numberline {1}\uppercase {Pendahuluan}}{1}{chapter.1}%
 \contentsline {section}{\numberline {1.1}Latar Belakang}{1}{section.1.1}%
 \contentsline {section}{\numberline {1.2}Rumusan Permasalahan}{5}{section.1.2}%
@@ -45,16 +46,16 @@
 \contentsline {section}{\numberline {2.8}Interpretabilitas Model \textit {Deep Learning}}{27}{section.2.8}%
 \contentsline {subsection}{\numberline {2.8.1}\textit {Occlusion-based Token Attribution}}{28}{subsection.2.8.1}%
 \contentsline {subsection}{\numberline {2.8.2}\textit {Integrated Gradients}}{29}{subsection.2.8.2}%
-\contentsline {chapter}{\numberline {3}\uppercase {METODE MODEL JOINT SENTIMENT-TOPIC BERBASIS MULTITASK LEARNING}}{30}{chapter.3}%
+\contentsline {chapter}{\numberline {3}\uppercase {METODE MODEL \textit {JOINT DOCUMENT-LEVEL SENTIMENT-TOPIC} (JDST) BERBASIS \textit {DEEP EMBEDDED CLUSTERING} UNTUK ANALISIS SENTIMEN}}{30}{chapter.3}%
 \contentsline {section}{\numberline {3.1}\textit {Bidirectional Encoder Representations from Transformers} (BERT) Sebagai Model Representasi Teks}{30}{section.3.1}%
 \contentsline {section}{\numberline {3.2}Alur Pelatihan Model \textit {Multitask}}{33}{section.3.2}%
-\contentsline {subsection}{\numberline {3.2.1}Implementasi \textit {Autoencoder}}{33}{subsection.3.2.1}%
-\contentsline {subsection}{\numberline {3.2.2}\textit {Deep Embedded Clustering} (DEC)}{34}{subsection.3.2.2}%
-\contentsline {subsection}{\numberline {3.2.3}Pelatihan \textit {Multitask}: JST-DEC}{36}{subsection.3.2.3}%
+\contentsline {subsection}{\numberline {3.2.1}Implementasi \textit {Autoencoder}}{34}{subsection.3.2.1}%
+\contentsline {subsection}{\numberline {3.2.2}\textit {Deep Embedded Clustering} (DEC)}{35}{subsection.3.2.2}%
+\contentsline {subsection}{\numberline {3.2.3}Pelatihan \textit {Multitask}: JDST-DEC}{36}{subsection.3.2.3}%
 \contentsline {subsubsection}{\numberline {3.2.3.1}\textit {Clustering Head}}{36}{subsubsection.3.2.3.1}%
 \contentsline {subsubsection}{\numberline {3.2.3.2}Analisis Sentimen Menggunakan \textit {Sentiment Head}}{37}{subsubsection.3.2.3.2}%
 \contentsline {subsubsection}{\numberline {3.2.3.3}Pelatihan \textit {Joint} dengan \textit {Multitask Loss}}{38}{subsubsection.3.2.3.3}%
-\contentsline {subsubsection}{\numberline {3.2.3.4}Algoritma JST-DEC}{38}{subsubsection.3.2.3.4}%
+\contentsline {subsubsection}{\numberline {3.2.3.4}Algoritma JDST-DEC}{38}{subsubsection.3.2.3.4}%
 \contentsline {section}{\numberline {3.3}Interpretasi Model dengan Analisis Atribusi Token}{39}{section.3.3}%
 \contentsline {subsection}{\numberline {3.3.1}Implementasi \textit {Occlusion-based Token Attribution} dan Agregasi per Klaster}{39}{subsection.3.3.1}%
 \contentsline {subsection}{\numberline {3.3.2}Implementasi \textit {Integrated Gradients}}{40}{subsection.3.3.2}%
@@ -70,7 +71,7 @@
 \contentsline {subsection}{\numberline {4.3.3}Representasi Teks}{49}{subsection.4.3.3}%
 \contentsline {subsection}{\numberline {4.3.4}Pembagian Data}{49}{subsection.4.3.4}%
 \contentsline {section}{\numberline {4.4}Implementasi Model}{50}{section.4.4}%
-\contentsline {subsection}{\numberline {4.4.1}Konfigurasi JST-DEC}{50}{subsection.4.4.1}%
+\contentsline {subsection}{\numberline {4.4.1}Konfigurasi JDST-DEC}{50}{subsection.4.4.1}%
 \contentsline {subsection}{\numberline {4.4.2}Konfigurasi \textit {Joint Training}}{51}{subsection.4.4.2}%
 \contentsline {subsection}{\numberline {4.4.3}Konfigurasi Model Pembanding}{52}{subsection.4.4.3}%
 \contentsline {subsubsection}{\numberline {4.4.3.1}NN-BERT}{52}{subsubsection.4.4.3.1}%

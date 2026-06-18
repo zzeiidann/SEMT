@@ -66,7 +66,7 @@ pada Gambar~\ref{fig:alur_simulasi}.
 
 \begin{figure}[H]
     \centering
-    \includegraphics[width=0.45\textwidth]{assets/pics/other/Flowchart.png}
+    \includegraphics[width=0.85\textwidth]{assets/pics/other/Flowchart.png}
     \caption{Diagram alur simulasi penelitian.}
     \label{fig:alur_simulasi}
 \end{figure}
@@ -347,18 +347,18 @@ selama pelatihan.
 \section{Implementasi Model}
 %-----------------------------------------------------------------------------%
 
-Implementasi pada penelitian ini mencakup tiga model, yaitu JST-DEC sebagai
+Implementasi pada penelitian ini mencakup tiga model, yaitu JDST-DEC sebagai
 model yang diusulkan, NN-BERT sebagai model pembanding untuk analisis
 sentimen, dan BERTopic sebagai model pembanding untuk pendeteksian topik.
-JST-DEC dilatih melalui dua tahap, yaitu pra-pelatihan \textit{autoencoder}
+JDST-DEC dilatih melalui dua tahap, yaitu pra-pelatihan \textit{autoencoder}
 dan \textit{joint training}. Seluruh model diimplementasikan menggunakan
 Python dengan pustaka sebagaimana tercantum pada Tabel~\ref{tab:spesifikasi}.
 
 %-----------------------------------------------------------------------------%
-\subsection{Konfigurasi JST-DEC}
+\subsection{Konfigurasi JDST-DEC}
 %-----------------------------------------------------------------------------%
 
-Konfigurasi JST-DEC mencakup parameter pada tahap pra-pelatihan
+Konfigurasi JDST-DEC mencakup parameter pada tahap pra-pelatihan
 \textit{autoencoder} dan pembentukan klaster menggunakan DEC.
 Konfigurasi masing-masing komponen disajikan pada
 Tabel~\ref{tab:config_ae} dan Tabel~\ref{tab:config_dec}.
@@ -418,7 +418,7 @@ hasil klasterisasi.
 \subsection{Konfigurasi \textit{Joint Training}}
 %-----------------------------------------------------------------------------%
 
-Setelah tahap \textit{pretraining}, JST-DEC dioptimasi melalui proses
+Setelah tahap \textit{pretraining}, JDST-DEC dioptimasi melalui proses
 \textit{joint training} untuk menjalankan dua tugas secara simultan, yaitu
 klasifikasi sentimen dan pembentukan klaster topik. Fungsi objektif yang
 digunakan didefinisikan sebagai
@@ -434,7 +434,7 @@ ditunjukkan pada Tabel~\ref{tab:config_joint}.
 
 \begin{table}[H]
     \centering
-    \caption{Konfigurasi \textit{joint training} JST-DEC}
+    \caption{Konfigurasi \textit{joint training} JDST-DEC}
     \label{tab:config_joint}
     \renewcommand{\arraystretch}{1.15}
     \begin{tabular}{L{5.0cm} L{6.5cm}}
@@ -466,7 +466,7 @@ memberikan hasil terbaik.
 %-----------------------------------------------------------------------------%
 
 Penelitian ini menggunakan dua model pembanding untuk mengevaluasi kinerja
-JST-DEC pada masing-masing tugas. NN-BERT digunakan sebagai model pembanding
+JDST-DEC pada masing-masing tugas. NN-BERT digunakan sebagai model pembanding
 untuk analisis sentimen karena memanfaatkan representasi BERT yang sama tanpa
 mekanisme pembelajaran multitugas. Sementara itu, BERTopic digunakan sebagai
 pembanding pada pendeteksian topik karena merupakan salah satu pendekatan
@@ -555,7 +555,7 @@ pada Tabel~\ref{tab:config_bertopic}.
     \end{tabular}
 \end{table}
 
-Untuk menjaga konsistensi dengan JST-DEC, jumlah topik yang dievaluasi pada
+Untuk menjaga konsistensi dengan JDST-DEC, jumlah topik yang dievaluasi pada
 BERTopic ditetapkan sebesar 30, 50, dan 80 topik. Pengaturan ini dilakukan
 agar perbandingan antar metode dilakukan pada ruang solusi yang setara,
 sehingga perbedaan hasil yang diperoleh lebih merefleksikan kemampuan model
@@ -705,7 +705,7 @@ C{0.9cm}
 \\
 \midrule
 
-\multirow{3}{*}{JST-DEC}
+\multirow{3}{*}{JDST-DEC}
 &30 &0.8957 &0.8963 &0.8902 &\textbf{0.9025} &0.0803 &0.2256 \\
 &50 &\textbf{0.8967} &\textbf{0.8986} &0.8950 &0.9022 &0.0551 &0.2100 \\
 &80 &0.8941 &0.8930 &\textbf{0.9018} &0.8843 &0.0675 &0.2875 \\
@@ -734,17 +734,17 @@ NN-BERT
 
 \end{table}
 
-Berdasarkan Tabel~\ref{tab:eval_imdb}, JST-DEC menghasilkan performa
+Berdasarkan Tabel~\ref{tab:eval_imdb}, JDST-DEC menghasilkan performa
 sentimen terbaik dengan F1-score sebesar 0.8986 pada $K=50$ dan melampaui
 baseline NN-BERT yang memperoleh F1-score sebesar 0.8612. Hal ini
 menunjukkan bahwa pembelajaran bersama masih mampu mempertahankan kualitas
 representasi untuk klasifikasi sentimen.
 
 Namun, kualitas topik yang dihasilkan masih tertinggal dibandingkan
-BERTopic. Nilai TC-NPMI tertinggi JST-DEC hanya mencapai 0.0803, sedangkan
-BERTopic-KMeans mencapai 0.1874. Untuk TD, JST-DEC berada pada rentang
+BERTopic. Nilai TC-NPMI tertinggi JDST-DEC hanya mencapai 0.0803, sedangkan
+BERTopic-KMeans mencapai 0.1874. Untuk TD, JDST-DEC berada pada rentang
 0.2100--0.2875 dan masih jauh di bawah BERTopic-KMeans yang memperoleh
-0.9567. Temuan ini menunjukkan bahwa JST-DEC lebih unggul pada aspek
+0.9567. Temuan ini menunjukkan bahwa JDST-DEC lebih unggul pada aspek
 sentimen dibanding kualitas topik.
 
 %========================================================%
@@ -786,7 +786,7 @@ C{0.9cm}
 \\
 \midrule
 
-\multirow{3}{*}{JST-DEC}
+\multirow{3}{*}{JDST-DEC}
 &30 &0.8965 &0.8944 &\textbf{0.8823} &0.9069 &0.0788 &0.3267 \\
 &50 &\textbf{0.8983} &\textbf{0.9020} &0.8723 &\textbf{0.9338} &0.0369 &0.2280 \\
 &80 &0.8935 &0.8953 &0.8785 &0.9128 &0.0563 &0.3150 \\
@@ -815,26 +815,26 @@ NN-BERT
 
 \end{table}
 
-Pada dataset Yelp, JST-DEC kembali menghasilkan performa sentimen terbaik
+Pada dataset Yelp, JDST-DEC kembali menghasilkan performa sentimen terbaik
 dengan F1-score sebesar 0.9020 pada $K=50$, lebih tinggi dibandingkan
 NN-BERT yang memperoleh 0.8715.
 
 Meskipun demikian, kualitas topik yang dihasilkan masih lebih rendah
-dibandingkan BERTopic. Nilai TC-NPMI tertinggi JST-DEC hanya mencapai
+dibandingkan BERTopic. Nilai TC-NPMI tertinggi JDST-DEC hanya mencapai
 0.0788, sedangkan BERTopic-HDBSCAN mencapai 0.1666. Pada metrik TD,
-JST-DEC memperoleh nilai maksimum sebesar 0.3267 dan masih berada di bawah
+JDST-DEC memperoleh nilai maksimum sebesar 0.3267 dan masih berada di bawah
 BERTopic-KMeans yang mencapai 0.7800.
 
 Secara keseluruhan, hasil pada kedua dataset menunjukkan adanya
 \textit{trade-off} antara performa klasifikasi sentimen dan kualitas topik.
-JST-DEC lebih unggul untuk tugas sentimen, sedangkan BERTopic menghasilkan
+JDST-DEC lebih unggul untuk tugas sentimen, sedangkan BERTopic menghasilkan
 topik yang lebih koheren dan lebih beragam.
 
 %-----------------------------------------------------------------------------%
 \subsection{Analisis Multiloss}
 %-----------------------------------------------------------------------------%
 
-Proses \textit{joint training} pada JST-DEC mengoptimasi dua komponen
+Proses \textit{joint training} pada JDST-DEC mengoptimasi dua komponen
 \textit{loss} secara simultan, yaitu \textit{clustering loss} berbasis
 KL Divergence ($\mathcal{L}_{\text{clust}}$) dan \textit{sentiment loss}
 berbasis \textit{cross-entropy} ($\mathcal{L}_{\text{sent}}$), dengan

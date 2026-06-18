@@ -1,23 +1,23 @@
 \addvspace {10\p@ }
 \addvspace {10\p@ }
-\contentsline {table}{\numberline {2.1}{\ignorespaces Algoritma K-Means \textit {Clustering}}}{27}{table.caption.26}%
+\contentsline {table}{\numberline {2.1}{\ignorespaces Algoritma K-Means \textit {Clustering}}}{27}{table.caption.24}%
 \addvspace {10\p@ }
-\contentsline {table}{\numberline {3.1}{\ignorespaces Algoritma \textit {Deep Embedded Clustering} (DEC)}}{36}{table.caption.30}%
-\contentsline {table}{\numberline {3.2}{\ignorespaces Algoritma JST-DEC (\textit {Joint Sentiment-Topic Deep Embedded Clustering})}}{39}{table.caption.33}%
+\contentsline {table}{\numberline {3.1}{\ignorespaces Algoritma \textit {Deep Embedded Clustering} (DEC)}}{36}{table.caption.28}%
+\contentsline {table}{\numberline {3.2}{\ignorespaces Algoritma JDST-DEC (\textit {Joint Document-level Sentiment-Topic})}}{39}{table.caption.31}%
 \addvspace {10\p@ }
-\contentsline {table}{\numberline {4.1}{\ignorespaces Spesifikasi mesin dan perangkat lunak}}{44}{table.caption.34}%
-\contentsline {table}{\numberline {4.2}{\ignorespaces Cuplikan data ulasan IMDB \blx@tocontentsinit {0}\parencite {maas2011}.}}{47}{table.caption.36}%
-\contentsline {table}{\numberline {4.3}{\ignorespaces Cuplikan data ulasan Yelp \blx@tocontentsinit {0}\parencite {zhang2015}.}}{47}{table.caption.37}%
-\contentsline {table}{\numberline {4.4}{\ignorespaces Contoh hasil prapengolahan pada dataset IMDB dan Yelp.}}{48}{table.caption.38}%
-\contentsline {table}{\numberline {4.5}{\ignorespaces Contoh proses tokenisasi menggunakan WordPiece BERT.}}{49}{table.caption.39}%
-\contentsline {table}{\numberline {4.6}{\ignorespaces Contoh representasi vektor \texttt {[CLS]} hasil ekstraksi BERT.}}{49}{table.caption.40}%
-\contentsline {table}{\numberline {4.7}{\ignorespaces Konfigurasi pra-pelatihan \textit {autoencoder}}}{50}{table.caption.41}%
-\contentsline {table}{\numberline {4.8}{\ignorespaces Konfigurasi komponen DEC}}{51}{table.caption.42}%
-\contentsline {table}{\numberline {4.9}{\ignorespaces Konfigurasi \textit {joint training} JST-DEC}}{52}{table.caption.43}%
-\contentsline {table}{\numberline {4.10}{\ignorespaces Konfigurasi model NN-BERT}}{53}{table.caption.44}%
-\contentsline {table}{\numberline {4.11}{\ignorespaces Konfigurasi model BERTopic}}{54}{table.caption.45}%
-\contentsline {table}{\numberline {4.12}{\ignorespaces Perkembangan \textit {loss} pra-pelatihan pada dataset IMDB}}{55}{table.caption.46}%
-\contentsline {table}{\numberline {4.13}{\ignorespaces Perkembangan \textit {loss} pra-pelatihan pada dataset Yelp}}{55}{table.caption.47}%
-\contentsline {table}{\numberline {4.14}{\ignorespaces Hasil evaluasi model pada dataset IMDB}}{56}{table.caption.48}%
-\contentsline {table}{\numberline {4.15}{\ignorespaces Hasil evaluasi model pada dataset Yelp}}{57}{table.caption.49}%
+\contentsline {table}{\numberline {4.1}{\ignorespaces Spesifikasi mesin dan perangkat lunak}}{44}{table.caption.32}%
+\contentsline {table}{\numberline {4.2}{\ignorespaces Cuplikan data ulasan IMDB \blx@tocontentsinit {0}\parencite {maas2011}.}}{47}{table.caption.34}%
+\contentsline {table}{\numberline {4.3}{\ignorespaces Cuplikan data ulasan Yelp \blx@tocontentsinit {0}\parencite {zhang2015}.}}{47}{table.caption.35}%
+\contentsline {table}{\numberline {4.4}{\ignorespaces Contoh hasil prapengolahan pada dataset IMDB dan Yelp.}}{48}{table.caption.36}%
+\contentsline {table}{\numberline {4.5}{\ignorespaces Contoh proses tokenisasi menggunakan WordPiece BERT.}}{49}{table.caption.37}%
+\contentsline {table}{\numberline {4.6}{\ignorespaces Contoh representasi vektor \texttt {[CLS]} hasil ekstraksi BERT.}}{49}{table.caption.38}%
+\contentsline {table}{\numberline {4.7}{\ignorespaces Konfigurasi pra-pelatihan \textit {autoencoder}}}{50}{table.caption.39}%
+\contentsline {table}{\numberline {4.8}{\ignorespaces Konfigurasi komponen DEC}}{51}{table.caption.40}%
+\contentsline {table}{\numberline {4.9}{\ignorespaces Konfigurasi \textit {joint training} JDST-DEC}}{52}{table.caption.41}%
+\contentsline {table}{\numberline {4.10}{\ignorespaces Konfigurasi model NN-BERT}}{53}{table.caption.42}%
+\contentsline {table}{\numberline {4.11}{\ignorespaces Konfigurasi model BERTopic}}{54}{table.caption.43}%
+\contentsline {table}{\numberline {4.12}{\ignorespaces Perkembangan \textit {loss} pra-pelatihan pada dataset IMDB}}{55}{table.caption.44}%
+\contentsline {table}{\numberline {4.13}{\ignorespaces Perkembangan \textit {loss} pra-pelatihan pada dataset Yelp}}{55}{table.caption.45}%
+\contentsline {table}{\numberline {4.14}{\ignorespaces Hasil evaluasi model pada dataset IMDB}}{56}{table.caption.46}%
+\contentsline {table}{\numberline {4.15}{\ignorespaces Hasil evaluasi model pada dataset Yelp}}{57}{table.caption.47}%
 \addvspace {10\p@ }

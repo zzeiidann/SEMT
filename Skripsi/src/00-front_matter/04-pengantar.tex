@@ -1,79 +1,64 @@
 %-----------------------------------------------------------------------------%
 \chapter*{Kata Pengantar}
 %-----------------------------------------------------------------------------%
-Template ini disediakan untuk orang-orang yang berencana menggunakan 
-\latex~untuk membuat dokumen tugas akhirnya. 
-Mengapa \latex? 
-Ada banyak hal mengapa menggunakan \latex, diantaranya:
-
+Puji syukur penulis panjatkan kepada Tuhan Yang Maha Esa atas segala berkat 
+dan rahmat-Nya sehingga penulis dapat menyelesaikan skripsi ini dengan 
+sebaik-baiknya. 
+Selama masa penulisan skripsi ini, penulis telah mendapat banyak dukungan, 
+doa, bantuan, inspirasi, dan motivasi dari berbagai pihak. 
+Untuk itu, penulis ingin mengucapkan terima kasih kepada:
 \begin{enumerate}
-	\item \latex~membuat kita jadi lebih fokus terhadap isi dokumen, bukan 
-		tampilan atau halaman. 
-	\item \latex~memudahkan dalam penulisan persamaan matematis. 
-	\item Adanya automatis dalam penomoran caption, bab, subbab, subsubbab, 
-		referensi, dan rumus. 
-	\item Adanya automatisasi dalam pembuatan daftar isi, daftar gambar, dan
-		daftar tabel. 
-	\item Adanya kemudahan dalam memberikan referensi dalam tulisan dengan 
-		menggunakan label. Cara ini dapat meminimalkan kesalahan pemberian 
-		referensi. 
+    \item Bapak Prof.\ Dr.\ rer.\ nat.\ Hendri Murfi, S.Si., M.Kom.\ selaku 
+        Dosen Pembimbing I yang telah membimbing penulis dengan penuh 
+        kesabaran dan ketulusan. Arahan dan ilmu yang beliau berikan tidak 
+        hanya membantu penulis menyelesaikan penelitian ini, tetapi juga 
+        membentuk cara penulis berpikir dalam menghadapi permasalahan 
+        secara lebih mendalam.
+    \item Ibu Dra.\ Nora Hariadi, M.Si.\ selaku Dosen Pembimbing II yang 
+        dengan teliti telah memberikan arahan terkait tata cara penulisan 
+        skripsi. Perhatian beliau terhadap setiap detail penulisan sangat 
+        membantu penulis dalam menyusun karya ilmiah yang sistematis dan 
+        sesuai kaidah akademik.
+    \item Bapak Prof.\ Alhadi B., S.Si., M.Kom., Ph.D.\ selaku Dosen Penguji 
+        I yang telah memberikan kritik dan saran yang tajam dan membangun, 
+        sehingga mendorong penulis untuk berpikir lebih kritis dalam 
+        menyempurnakan skripsi ini.
+    \item Ibu Gianinna Ardaneswari, S.Si., M.Si.\ selaku Dosen Penguji II 
+        yang telah memberikan masukan dan perspektif yang memperkaya 
+        pembahasan dalam skripsi ini.
+    \item Ibu Prof.\ Dr.\ Titin Siswantining, D.E.A.\ selaku Dosen 
+        Pembimbing Akademis yang senantiasa memberikan arahan, nasihat, 
+        dan dukungan selama penulis menjalani masa perkuliahan.
+    \item Orang tua penulis, Bapak Timu dan Ibu Yuyun Dharmayanti, yang 
+        telah memberikan segalanya. Doa, dukungan, dan kesediaan untuk 
+        selalu ada baik di saat semangat maupun di saat lelah menjadi 
+        kekuatan terbesar yang menopang penulis hingga sampai di titik ini.
+    \item Teman-teman Group DKM (Bagja College) yang telah menjadi bagian 
+        dari perjalanan penulis sejak masa SMA dan kebersamaannya terus 
+        berlanjut hingga saat ini.
+    \item Farhan, Dafa, Nicholas, dan Aditya, teman sepersemesteran yang 
+        hadir dari hari-hari pertama kuliah hingga akhir. Kehadiran mereka 
+        membuat perjalanan yang panjang ini terasa lebih ringan.
+    \item RISTEK Fasilkom UI yang melalui kompetisi \textit{data science}-nya 
+        telah membuka jalan bagi penulis menuju dunia yang kini menjadi 
+        bagian besar dari kehidupan akademik dan karier penulis.
+    \item PT Profina Edvisor yang telah memberikan kepercayaan dan ruang 
+        bagi penulis untuk tumbuh sebagai seorang \textit{data scientist}, 
+        serta dukungan yang tidak pernah surut selama proses penyelesaian 
+        skripsi ini.
+    \item Seluruh pihak yang tidak dapat disebutkan satu per satu, yang 
+        dengan caranya masing-masing telah turut mengambil peran dalam 
+        perjalanan panjang ini.
 \end{enumerate}
 
-Template ini bebas digunakan dan 
-didistribusikan sesuai dengan aturan \license, yang secara sederhana berisi: 
+Penulis menyadari bahwa skripsi ini masih memiliki keterbatasan dan 
+kekurangan, baik dari segi penulisan maupun substansi keilmuan. 
+Oleh karena itu, kritik dan saran yang membangun sangat penulis harapkan 
+sebagai bahan perbaikan ke depan. 
+Penulis berharap skripsi ini dapat bermanfaat bagi pembaca dan menjadi 
+bagian dari kontribusi nyata dalam pengembangan ilmu pengetahuan, 
+khususnya di bidang yang dikaji dalam penelitian ini.
 
-\begin{figure}
-	\centering
-	\includegraphics[width=0.74\textwidth]
-		{assets/pics/creative_common.png}
-	\caption{\license}
-	\label{fig:lisensi}
-\end{figure}
-
-\pic~\ref{fig:lisensi} diambil dari 
-\url{http://creativecommons.org/licenses/by-nc-sa/1.0/deed.en_CA}. 
-Jika ingin mengentahui lebih lengkap mengenai \license, silahkan buka 
-\url{http://creativecommons.org/licenses/by-nc-sa/1.0/legalcode}. 
-Seluruh dokumen yang dibuat dengan menggunakan template ini sepenuhnya 
-menjadi hak milik pembuat dokumen dan bebas didistribusikan sesuai dengan 
-keperluan masing-masing. 
-Lisensi hanya berlaku jika ada orang yang membuat template baru dengan 
-menggunakan template ini sebagai dasarnya. 
-
-Dokumen ini dibuat dengan \latex~juga. Untuk meyakinkan Anda, coba lihat 
-properti dari dokumen ini dan Anda akan menemukan bagian seperti 
-\pic~\ref{fig:pdflatex}. 
-Dokumen ini dimaksudkan untuk memberikan gambaran kepada Anda seperti apa 
-mudahnya menggunakan \latex~dan juga memperlihatkan betapa bagus dokumen 
-yang dihasilkan. 
-Seluruh url yang Anda temukan dapat Anda klik. 
-Seluruh referensi yang ada juga dapat diklik. 
-Untuk mengerti template yang disediakan, Anda tetap harus membuka kode 
-\latex~dan bermain-main dengannya. 
-Penjelasan dalam PDF ini masih bersifat gambaran dan tidak begitu 
-mendetail, dapat dianggap sebagai pengantar singkat. 
-Jika Anda merasa kesulitan dengan template ini, mungkin ada baiknya 
-Anda belajar sedikit dasar-dasar \latex. 
-
-\begin{figure}
-	\centering
-	\includegraphics[width=0.54\textwidth]
-		{assets/pics/mark.png}
-	\caption{Dokumen Dibuat dengan PDFLatex}
-	\label{fig:pdflatex}
-\end{figure}
-
-Semoga template ini dapat membantu orang-orang yang ingin mencoba menggunakan 
-\latex. Semoga template ini juga tidak berhenti disini dengan ada kontribusi 
-dari para penggunanya. 
-Kami juga ingin berterima kasih kepada Andreas Febrian, Lia Sadita, Fahrurrozi 
-Rahman, Andre Tampubolon, dan Erik Dominikus atas kontribusinya dalam template 
-ini. 
-
-\vspace*{0.1cm}
-\begin{flushright}
-Depok, 27 Februari 2019\\[0.1cm]
-\vspace*{1cm}
+\vspace*{0.5cm}
+\noindent Depok, 30 Juni 2026\\[0.1cm]
 \penulis
-
-\end{flushright}
