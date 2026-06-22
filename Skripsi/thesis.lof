@@ -4,11 +4,11 @@
 \contentsline {figure}{\numberline {2.2}{\ignorespaces \textit {Artificial Neural Network} dengan representasi bobot sinapsis \blx@tocontentsinit {0}\parencite {aggarwal2018neural}}}{10}{figure.caption.14}%
 \contentsline {figure}{\numberline {2.3}{\ignorespaces Arsitektur \textit {feed-forward neural network} \blx@tocontentsinit {0}\parencite {aggarwal2018neural}}}{11}{figure.caption.15}%
 \contentsline {figure}{\numberline {2.4}{\ignorespaces Grafik fungsi aktivasi: \textit {Softmax}, ReLU, dan GELU}}{13}{figure.caption.16}%
-\contentsline {figure}{\numberline {2.5}{\ignorespaces Ilustrasi graf komputasi \textit {multi-layer perceptron} \blx@tocontentsinit {0}\parencite {aggarwal2018neural}}}{14}{figure.caption.17}%
+\contentsline {figure}{\numberline {2.5}{\ignorespaces Ilustrasi graf komputasi pada proses \textit {backpropagation} \blx@tocontentsinit {0}\parencite {aggarwal2018neural}}}{14}{figure.caption.17}%
 \contentsline {figure}{\numberline {2.6}{\ignorespaces Ilustrasi \textit {bias-variance tradeoff} terhadap kompleksitas model (\blx@tocontentsinit {0}\cite {aggarwal2018neural}, telah diolah kembali)}}{16}{figure.caption.18}%
 \contentsline {figure}{\numberline {2.7}{\ignorespaces Arsitektur \textit {autoencoder} menunjukkan proses \textit {encoding} dan \textit {decoding} \blx@tocontentsinit {0}\parencite {aggarwal2018neural}}}{18}{figure.caption.19}%
 \contentsline {figure}{\numberline {2.8}{\ignorespaces Arsitektur BERT dengan beberapa lapisan \textit {Transformer Encoder} \blx@tocontentsinit {0}\parencite {devlin2018bert}}}{20}{figure.caption.20}%
-\contentsline {figure}{\numberline {2.9}{\ignorespaces Representasi \textit {input} BERT yang terdiri dari \textit {token}, \textit {segment}, dan \textit {position embedding} \blx@tocontentsinit {0}\parencite {devlin2018bert}}}{22}{figure.caption.21}%
+\contentsline {figure}{\numberline {2.9}{\ignorespaces Representasi \textit {input} BERT yang terdiri dari \textit {token}, \textit {segment}, dan \textit {position embedding} \blx@tocontentsinit {0}\parencite {devlin2018bert}}}{21}{figure.caption.21}%
 \contentsline {figure}{\numberline {2.10}{\ignorespaces Ilustrasi arsitektur \textit {hard parameter sharing} dalam \textit {Multi-Task Learning} (\blx@tocontentsinit {0}\cite {ruder2017overview}, telah diolah kembali)}}{24}{figure.caption.22}%
 \contentsline {figure}{\numberline {2.11}{\ignorespaces Ilustrasi arsitektur \textit {soft parameter sharing} (\blx@tocontentsinit {0}\cite {ruder2017overview}, telah diolah kembali)}}{25}{figure.caption.23}%
 \addvspace {10\p@ }

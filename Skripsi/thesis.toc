@@ -25,22 +25,22 @@
 \contentsline {subsubsection}{\numberline {2.3.1.3}\textit {Gaussian Error Linear Unit} (GELU)}{12}{subsubsection.2.3.1.3}%
 \contentsline {subsection}{\numberline {2.3.2}Fungsi \textit {Loss}}{13}{subsection.2.3.2}%
 \contentsline {subsection}{\numberline {2.3.3}Backpropagation}{13}{subsection.2.3.3}%
-\contentsline {subsection}{\numberline {2.3.4}Teknik Optimasi}{15}{subsection.2.3.4}%
-\contentsline {subsubsection}{\numberline {2.3.4.1}\textit {Stochastic Gradient Descent} (SGD)}{15}{subsubsection.2.3.4.1}%
+\contentsline {subsection}{\numberline {2.3.4}Teknik Optimasi}{14}{subsection.2.3.4}%
+\contentsline {subsubsection}{\numberline {2.3.4.1}\textit {Stochastic Gradient Descent} (SGD)}{14}{subsubsection.2.3.4.1}%
 \contentsline {subsubsection}{\numberline {2.3.4.2}\textit {Adaptive Moment Estimation} (Adam)}{15}{subsubsection.2.3.4.2}%
 \contentsline {subsection}{\numberline {2.3.5}Regularisasi}{16}{subsection.2.3.5}%
-\contentsline {subsection}{\numberline {2.3.6}Metrik Evaluasi}{17}{subsection.2.3.6}%
-\contentsline {section}{\numberline {2.4}Autoencoder}{18}{section.2.4}%
+\contentsline {subsection}{\numberline {2.3.6}Metrik Evaluasi}{16}{subsection.2.3.6}%
+\contentsline {section}{\numberline {2.4}Autoencoder}{17}{section.2.4}%
 \contentsline {subsection}{\numberline {2.4.1}Encoder dan Decoder}{18}{subsection.2.4.1}%
 \contentsline {subsection}{\numberline {2.4.2}Fungsi Objektif}{19}{subsection.2.4.2}%
 \contentsline {section}{\numberline {2.5}Bidirectional Encoder Representations from Transformers (BERT)}{19}{section.2.5}%
-\contentsline {subsection}{\numberline {2.5.1}Arsitektur BERT}{20}{subsection.2.5.1}%
+\contentsline {subsection}{\numberline {2.5.1}Arsitektur BERT}{19}{subsection.2.5.1}%
 \contentsline {subsection}{\numberline {2.5.2}Mekanisme \textit {Self-Attention}}{20}{subsection.2.5.2}%
 \contentsline {subsection}{\numberline {2.5.3}Representasi Input BERT}{21}{subsection.2.5.3}%
 \contentsline {section}{\numberline {2.6}Multi-Task Learning}{22}{section.2.6}%
-\contentsline {subsection}{\numberline {2.6.1}Formulasi MTL}{23}{subsection.2.6.1}%
-\contentsline {subsection}{\numberline {2.6.2}Hard Parameter Sharing}{24}{subsection.2.6.2}%
-\contentsline {subsection}{\numberline {2.6.3}Soft Parameter Sharing}{25}{subsection.2.6.3}%
+\contentsline {subsection}{\numberline {2.6.1}Formulasi MTL}{22}{subsection.2.6.1}%
+\contentsline {subsection}{\numberline {2.6.2}Hard Parameter Sharing}{23}{subsection.2.6.2}%
+\contentsline {subsection}{\numberline {2.6.3}Soft Parameter Sharing}{24}{subsection.2.6.3}%
 \contentsline {section}{\numberline {2.7}Clustering}{25}{section.2.7}%
 \contentsline {subsection}{\numberline {2.7.1}K-Means Clustering}{26}{subsection.2.7.1}%
 \contentsline {section}{\numberline {2.8}Interpretabilitas Model \textit {Deep Learning}}{27}{section.2.8}%

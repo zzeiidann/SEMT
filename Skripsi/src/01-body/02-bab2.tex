@@ -305,104 +305,81 @@ pada kelas ke-$j$.
 \subsection{Backpropagation}
 %-------------------------------------------------------------------------%
 
-\textit{Backpropagation} adalah algoritma untuk menghitung gradien fungsi
-\textit{loss} terhadap setiap bobot jaringan \parencite{aggarwal2018neural},
-dengan merambatkan kesalahan dari \textit{output} ke lapisan-lapisan
-sebelumnya menggunakan aturan rantai. Nilai gradien menunjukkan seberapa
-besar dan ke arah mana bobot perlu diubah agar nilai \textit{loss}
-berkurang.
+Setelah nilai \textit{loss} diperoleh, langkah berikutnya dalam proses
+pelatihan adalah menghitung gradien terhadap parameter model untuk
+menentukan arah pembaruan bobot. Proses tersebut dilakukan menggunakan
+algoritma \textit{backpropagation}
+\parencite{aggarwal2018neural}.
 
-Aturan rantai memungkinkan penghitungan dampak perubahan kecil pada suatu
-bobot terhadap nilai \textit{loss} akhir, meskipun terdapat banyak lapisan
-komputasi di antaranya. Misalkan terdapat jaringan sederhana seperti pada
-Gambar~\ref{fig:backprop_structure}, di mana bobot $w$ memengaruhi
-\textit{output} $o$ melalui dua jalur. Gradien fungsi \textit{loss}
-terhadap $w$ diperoleh dengan menjumlahkan kontribusi dari seluruh jalur:
+\textit{Backpropagation} bekerja dengan merambatkan informasi kesalahan
+dari lapisan keluaran menuju lapisan sebelumnya untuk menghitung seberapa
+besar kontribusi masing-masing parameter terhadap nilai
+\textit{loss}. Perhitungan tersebut dilakukan menggunakan aturan rantai
+(\textit{chain rule}), karena keluaran model umumnya diperoleh melalui
+serangkaian fungsi yang saling bergantung.
+
+Hubungan tersebut dapat dijelaskan menggunakan graf komputasi pada
+Gambar~\ref{fig:backprop_structure}.
 
 \begin{figure}[H]
-    \centering
-    \includegraphics[width=0.6\textwidth]{assets/pics/Aggarwal/NN Backprop.png}
-    \caption{Ilustrasi graf komputasi \textit{multi-layer perceptron}
-    \parencite{aggarwal2018neural}}
-    \label{fig:backprop_structure}
+\centering
+\includegraphics[width=0.6\textwidth]
+{assets/pics/Aggarwal/NN Backprop.png}
+\caption{Ilustrasi graf komputasi pada proses
+\textit{backpropagation}
+\parencite{aggarwal2018neural}}
+\label{fig:backprop_structure}
 \end{figure}
 
-\begin{equation}
-    \frac{\partial L}{\partial w} = \frac{\partial L}{\partial o}
-    \left(
-    \frac{\partial o}{\partial p} \cdot \frac{\partial p}{\partial y}
-    \cdot \frac{\partial y}{\partial w}
-    +
-    \frac{\partial o}{\partial q} \cdot \frac{\partial q}{\partial z}
-    \cdot \frac{\partial z}{\partial w}
-    \right),
-    \label{eq:backprop_chain_rule}
-\end{equation}
-
-\noindent dengan $p$ dan $q$ adalah skalar nilai antara dari dua jalur menuju
-$o$, dan $y$, $z$ adalah skalar nilai pra-aktivasi pada masing-masing
-jalur. Setiap suku dalam tanda kurung merepresentasikan satu jalur dari
-$w$ ke $o$.
-
-Pola penjumlahan atas semua jalur berlaku umum. Untuk jaringan dengan
-\textit{hidden unit} $\mathbf{h}_1, \mathbf{h}_2, \ldots, \mathbf{h}_k$
-dan bobot $w_r$ yang menghubungkan lapisan ke-$(r-1)$ ke lapisan ke-$r$,
-gradien \textit{loss} terhadap $w_r$ dirumuskan sebagai:
+Pada Gambar~\ref{fig:backprop_structure}, parameter $w$ diproses melalui
+beberapa tahapan transformasi hingga menghasilkan keluaran akhir $o$.
+Keluaran tersebut diperoleh dari dua jalur komputasi yang digabungkan
+melalui fungsi:
 
 \begin{equation}
-    \frac{\partial L}{\partial w_r} = \frac{\partial L}{\partial o}
-    \left[
-    \sum_{[\mathbf{h}_r, \ldots, \mathbf{h}_k, o] \in \mathcal{P}}
-    \frac{\partial o}{\partial \mathbf{h}_k}
-    \prod_{i=r}^{k-1} \frac{\partial \mathbf{h}_{i+1}}{\partial \mathbf{h}_i}
-    \right]
-    \frac{\partial \mathbf{h}_r}{\partial w_r},
-    \quad r \in \{1, \ldots, k\},
-    \label{eq:backprop_multi_path}
+o
+=
+K(g(f(w)),h(f(w)))
+\label{eq:output_composite}
 \end{equation}
 
-\noindent dengan $\mathcal{P}$ adalah himpunan semua jalur yang mungkin dari
-$\mathbf{h}_r$ menuju $o$. Menghitung ekspresi dalam kurung siku secara
-langsung untuk setiap bobot sangat tidak efisien karena jumlah jalur
-dapat tumbuh eksponensial seiring bertambahnya lapisan. Untuk itu,
-ekspresi tersebut didefinisikan sebagai sinyal kesalahan:
+Persamaan~\ref{eq:output_composite} menunjukkan bahwa keluaran merupakan
+fungsi komposit terhadap parameter $w$. Oleh karena itu, pengaruh perubahan
+parameter terhadap nilai \textit{loss} dihitung menggunakan aturan rantai
+sebagai berikut:
 
 \begin{equation}
-    \delta_r = \frac{\partial L}{\partial \mathbf{h}_r},
-    \label{eq:delta_def}
+\frac{\partial L}{\partial w}
+=
+\frac{\partial L}{\partial o}
+\left(
+\frac{\partial o}{\partial p}
+\cdot
+\frac{\partial p}{\partial y}
+\cdot
+\frac{\partial y}{\partial w}
++
+\frac{\partial o}{\partial q}
+\cdot
+\frac{\partial q}{\partial z}
+\cdot
+\frac{\partial z}{\partial w}
+\right)
+\label{eq:backprop_chain_rule}
 \end{equation}
 
-\noindent sehingga gradien terhadap $w_r$ dapat ditulis lebih ringkas sebagai:
+Pada Persamaan~\ref{eq:backprop_chain_rule},
+$\partial L/\partial o$ menyatakan perubahan nilai
+\textit{loss} terhadap perubahan keluaran model, sedangkan suku di dalam
+tanda kurung menyatakan pengaruh parameter terhadap keluaran melalui
+masing-masing jalur komputasi. Gradien diperoleh dengan mengalikan turunan
+lokal pada setiap tahapan transformasi dan menjumlahkan kontribusi dari
+seluruh jalur yang memengaruhi keluaran.
 
-\begin{equation}
-    \frac{\partial L}{\partial w_r} = \delta_r \cdot f'(z_r) \cdot \mathbf{h}_{r-1},
-    \label{eq:backprop_compact}
-\end{equation}
+Proses penyebaran gradien dari keluaran menuju parameter pada tahapan
+komputasi sebelumnya inilah yang disebut sebagai
+\textit{backpropagation}.
 
-\noindent dengan $f'(z_r)$ adalah skalar turunan fungsi aktivasi pada nilai
-pra-aktivasi $z_r = \mathbf{w}_r^\top \mathbf{h}_{r-1}$, dan
-$\mathbf{h}_{r-1}$ adalah vektor keluaran lapisan sebelumnya. Untuk
-memperbarui setiap bobot, yang diperlukan hanyalah nilai $\delta_r$ pada
-lapisan yang bersangkutan.
-
-Nilai $\delta_r$ tidak dihitung dari nol untuk setiap lapisan, melainkan
-diwariskan secara rekursif dari lapisan yang lebih dekat ke \textit{output}.
-Rekursi dimulai dari lapisan \textit{output}, di mana $\delta_o =
-\frac{\partial L}{\partial o}$ sudah diketahui langsung dari fungsi
-\textit{loss}. Dari sana, $\delta_r$ pada setiap lapisan tersembunyi
-dihitung dengan menjumlahkan kontribusi dari seluruh neuron pada lapisan
-di atasnya:
-
-\begin{equation}
-    \delta_r = \sum_{h_{r+1} \in \mathbf{h}_{r+1}}
-    f'(z_{r+1})\, \mathbf{w}_{r+1}\, \delta_{r+1}.
-    \label{eq:delta_rekursi}
-\end{equation}
-
-\noindent Proses penyebaran mundur inilah yang menjadi asal nama
-\textit{backpropagation}. Gradien yang diperoleh dari
-persamaan~\eqref{eq:backprop_compact} kemudian digunakan untuk memperbarui
-parameter melalui teknik optimasi.
 
 %-------------------------------------------------------------------------%
 \subsection{Teknik Optimasi}
@@ -875,8 +852,9 @@ Misalkan terdapat $T$ tugas yang dipelajari secara bersamaan. Untuk setiap
 tugas $t \in \{1, 2, \ldots, T\}$, terdapat dataset
 $\mathcal{D}_t = \{(\mathbf{x}_i^{(t)}, y_i^{(t)})\}_{i=1}^{n_t}$ dan
 fungsi \textit{loss} $\mathcal{L}_t$ yang mengukur kesalahan prediksi pada
-tugas ke-$t$. Tujuan MTL adalah meminimalkan kombinasi bobot dari
-\textit{loss} semua tugas secara bersamaan:
+tugas ke-$t$. Karena MTL mempelajari beberapa tugas secara bersamaan,
+proses optimasi dilakukan dengan menggabungkan kontribusi seluruh fungsi
+\textit{loss} ke dalam satu fungsi objektif:
 
 \begin{equation}
     \mathcal{L}_{\text{MTL}} = \sum_{t=1}^{T} \alpha_t

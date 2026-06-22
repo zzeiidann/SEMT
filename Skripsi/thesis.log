@@ -1,4 +1,4 @@
-This is pdfTeX, Version 3.141592653-2.6-1.40.28 (MiKTeX 25.12) (preloaded format=pdflatex 2026.6.8)  18 JUN 2026 23:09
+This is pdfTeX, Version 3.141592653-2.6-1.40.28 (MiKTeX 25.12) (preloaded format=pdflatex 2026.6.8)  22 JUN 2026 23:56
 entering extended mode
  restricted \write18 enabled.
  %&-line parsing enabled.
@@ -1958,6 +1958,12 @@ rep-re-sen-tasi bobot
  []
 
 
+Underfull \hbox (badness 1127) in paragraph at lines 7--7
+ [][] [][]\OT1/ptm/m/n/12 Ilustrasi graf kom-putasi pada proses \OT1/ptm/m/it/1
+2 back-prop-a-ga-tion 
+ []
+
+
 Underfull \hbox (badness 1297) in paragraph at lines 8--8
  [][] [][]\OT1/ptm/m/n/12 Ilustrasi \OT1/ptm/m/it/12 bias-variance trade-off \O
 T1/ptm/m/n/12 ter-hadap kom-plek-si-tas 
@@ -2141,7 +2147,7 @@ Package fancyhdr Warning: \headheight is too small (0.0pt):
 File: assets/pics/Aggarwal/NN Backprop.png Graphic file (type png)
 <use assets/pics/Aggarwal/NN Backprop.png>
 Package pdftex.def Info: assets/pics/Aggarwal/NN Backprop.png  used on input li
-ne 324.
+ne 327.
 (pdftex.def)             Requested size: 239.00558pt x 94.16986pt.
 
 
@@ -2168,11 +2174,11 @@ Package fancyhdr Warning: \headheight is too small (0.0pt):
 (fancyhdr)                \addtolength{\topmargin}{-14.49998pt}.
 
 [15]
-<assets/pics/Aggarwal/NN Regularization.png, id=958, 616.3025pt x 457.71pt>
+<assets/pics/Aggarwal/NN Regularization.png, id=959, 616.3025pt x 457.71pt>
 File: assets/pics/Aggarwal/NN Regularization.png Graphic file (type png)
 <use assets/pics/Aggarwal/NN Regularization.png>
 Package pdftex.def Info: assets/pics/Aggarwal/NN Regularization.png  used on in
-put line 516.
+put line 493.
 (pdftex.def)             Requested size: 239.00558pt x 177.50047pt.
 
 
@@ -2195,7 +2201,7 @@ Package fancyhdr Warning: \headheight is too small (0.0pt):
 File: assets/pics/Aggarwal/Autoencoder.png Graphic file (type png)
 <use assets/pics/Aggarwal/Autoencoder.png>
 Package pdftex.def Info: assets/pics/Aggarwal/Autoencoder.png  used on input li
-ne 614.
+ne 591.
 (pdftex.def)             Requested size: 298.75394pt x 158.32085pt.
 
 
@@ -2214,11 +2220,11 @@ Package fancyhdr Warning: \headheight is too small (0.0pt):
 (fancyhdr)                \addtolength{\topmargin}{-14.49998pt}.
 
 [19]
-<assets/pics/BERT/bert_architecture.png, id=999, 618.31pt x 263.98625pt>
+<assets/pics/BERT/bert_architecture.png, id=1000, 618.31pt x 263.98625pt>
 File: assets/pics/BERT/bert_architecture.png Graphic file (type png)
 <use assets/pics/BERT/bert_architecture.png>
 Package pdftex.def Info: assets/pics/BERT/bert_architecture.png  used on input 
-line 726.
+line 703.
 (pdftex.def)             Requested size: 278.83578pt x 119.0505pt.
 
 
@@ -2233,7 +2239,7 @@ Package fancyhdr Warning: \headheight is too small (0.0pt):
 File: assets/pics/BERT/bert_representation.png Graphic file (type png)
 <use assets/pics/BERT/bert_representation.png>
 Package pdftex.def Info: assets/pics/BERT/bert_representation.png  used on inpu
-t line 812.
+t line 789.
 (pdftex.def)             Requested size: 358.50229pt x 111.98679pt.
 
 
@@ -2243,7 +2249,7 @@ Package fancyhdr Warning: \headheight is too small (0.0pt):
 (fancyhdr)                You might also make \topmargin smaller:
 (fancyhdr)                \addtolength{\topmargin}{-14.49998pt}.
 
-[21]
+[21 <./assets/pics/BERT/bert_representation.png>]
 
 Package fancyhdr Warning: \headheight is too small (0.0pt): 
 (fancyhdr)                Make it at least 14.49998pt, for example:
@@ -2251,7 +2257,7 @@ Package fancyhdr Warning: \headheight is too small (0.0pt):
 (fancyhdr)                You might also make \topmargin smaller:
 (fancyhdr)                \addtolength{\topmargin}{-14.49998pt}.
 
-[22 <./assets/pics/BERT/bert_representation.png>]
+[22]
 
 Package fancyhdr Warning: \headheight is too small (0.0pt): 
 (fancyhdr)                Make it at least 14.49998pt, for example:
@@ -2284,6 +2290,11 @@ Package fancyhdr Warning: \headheight is too small (0.0pt):
 (fancyhdr)                \addtolength{\topmargin}{-14.49998pt}.
 
 [26]
+Underfull \hbox (badness 1436) in paragraph at lines 1278--1283
+[]\OT1/ptm/m/it/12 Occlusion-based at-tri-bu-tion \OT1/ptm/m/n/12 meru-pakan sa
+lah satu metode \OT1/ptm/m/it/12 post-hoc \OT1/ptm/m/n/12 yang
+ []
+
 
 Package fancyhdr Warning: \headheight is too small (0.0pt): 
 (fancyhdr)                Make it at least 14.49998pt, for example:
@@ -2292,11 +2303,6 @@ Package fancyhdr Warning: \headheight is too small (0.0pt):
 (fancyhdr)                \addtolength{\topmargin}{-14.49998pt}.
 
 [27]
-Underfull \hbox (badness 1436) in paragraph at lines 1300--1305
-[]\OT1/ptm/m/it/12 Occlusion-based at-tri-bu-tion \OT1/ptm/m/n/12 meru-pakan sa
-lah satu metode \OT1/ptm/m/it/12 post-hoc \OT1/ptm/m/n/12 yang
- []
-
 
 Package fancyhdr Warning: \headheight is too small (0.0pt): 
 (fancyhdr)                Make it at least 14.49998pt, for example:
@@ -2318,7 +2324,7 @@ BAB 3.
 Package hyperref Warning: Token not allowed in a PDF string (Unicode):
 (hyperref)                removing `\uppercase' on input line 2.
 
-<assets/pics/MTL/Alur2(Model).png, id=1117, 1794.705pt x 883.3pt>
+<assets/pics/MTL/Alur2(Model).png, id=1116, 1794.705pt x 883.3pt>
 File: assets/pics/MTL/Alur2(Model).png Graphic file (type png)
 <use assets/pics/MTL/Alur2(Model).png>
 Package pdftex.def Info: assets/pics/MTL/Alur2(Model).png  used on input line 9
@@ -2327,7 +2333,7 @@ Package pdftex.def Info: assets/pics/MTL/Alur2(Model).png  used on input line 9
 [30
 
  <./assets/pics/MTL/Alur2(Model).png (PNG copy)>]
-<assets/pics/BERT/BERT Rep-2.png, id=1123, 230.36063pt x 129.98563pt>
+<assets/pics/BERT/BERT Rep-2.png, id=1122, 230.36063pt x 129.98563pt>
 File: assets/pics/BERT/BERT Rep-2.png Graphic file (type png)
 <use assets/pics/BERT/BERT Rep-2.png>
 Package pdftex.def Info: assets/pics/BERT/BERT Rep-2.png  used on input line 26
@@ -2364,13 +2370,13 @@ Package fancyhdr Warning: \headheight is too small (0.0pt):
 (fancyhdr)                \addtolength{\topmargin}{-14.49998pt}.
 
 [33]
-<assets/pics/Autoencoder/Autoencoder0.png, id=1149, 287.57437pt x 268.75406pt>
+<assets/pics/Autoencoder/Autoencoder0.png, id=1148, 287.57437pt x 268.75406pt>
 File: assets/pics/Autoencoder/Autoencoder0.png Graphic file (type png)
 <use assets/pics/Autoencoder/Autoencoder0.png>
 Package pdftex.def Info: assets/pics/Autoencoder/Autoencoder0.png  used on inpu
 t line 154.
 (pdftex.def)             Requested size: 152.225pt x 142.26378pt.
-<assets/pics/Autoencoder/Autoencoder1.png, id=1150, 165.61874pt x 267.24844pt>
+<assets/pics/Autoencoder/Autoencoder1.png, id=1149, 165.61874pt x 267.24844pt>
 File: assets/pics/Autoencoder/Autoencoder1.png Graphic file (type png)
 <use assets/pics/Autoencoder/Autoencoder1.png>
 Package pdftex.def Info: assets/pics/Autoencoder/Autoencoder1.png  used on inpu
@@ -2490,7 +2496,7 @@ BAB 4.
 Package hyperref Warning: Token not allowed in a PDF string (Unicode):
 (hyperref)                removing `\uppercase' on input line 2.
 
-<assets/pics/other/Flowchart.png, id=1231, 511.9125pt x 605.26125pt>
+<assets/pics/other/Flowchart.png, id=1230, 511.9125pt x 605.26125pt>
 File: assets/pics/other/Flowchart.png Graphic file (type png)
 <use assets/pics/other/Flowchart.png>
 Package pdftex.def Info: assets/pics/other/Flowchart.png  used on input line 69
@@ -2820,21 +2826,21 @@ Overfull \hbox (1.8927pt too wide) in paragraph at lines 811--811
  []
 
 [57]
-<assets/pics/Other/fig1_actual_loss.png, id=1323, 787.3415pt x 313.17pt>
+<assets/pics/Other/fig1_actual_loss.png, id=1322, 787.3415pt x 313.17pt>
 File: assets/pics/Other/fig1_actual_loss.png Graphic file (type png)
 <use assets/pics/Other/fig1_actual_loss.png>
 Package pdftex.def Info: assets/pics/Other/fig1_actual_loss.png  used on input 
 line 864.
 (pdftex.def)             Requested size: 398.3386pt x 158.44347pt.
  [58 <./assets/pics/Other/fig1_actual_loss.png>]
-<assets/pics/Other/fig2_small_dataset.png, id=1331, 570.5315pt x 317.5865pt>
+<assets/pics/Other/fig2_small_dataset.png, id=1330, 570.5315pt x 317.5865pt>
 File: assets/pics/Other/fig2_small_dataset.png Graphic file (type png)
 <use assets/pics/Other/fig2_small_dataset.png>
 Package pdftex.def Info: assets/pics/Other/fig2_small_dataset.png  used on inpu
 t line 892.
 (pdftex.def)             Requested size: 286.80426pt x 159.65544pt.
  [59 <./assets/pics/Other/fig2_small_dataset.png>]
-<assets/pics/Other/fig_token_attribution_summary.png, id=1341, 1200.8865pt x 89
+<assets/pics/Other/fig_token_attribution_summary.png, id=1340, 1200.8865pt x 89
 9.7615pt>
 File: assets/pics/Other/fig_token_attribution_summary.png Graphic file (type pn
 g)
@@ -2868,7 +2874,7 @@ T1/ptm/m/it/12 arXiv preprint
  []
 
 [70]
-runsystem(latexminted cleantemp  --timestamp 20260618230937 2EF71E68B4AD97F6304
+runsystem(latexminted cleantemp  --timestamp 20260622235637 2EF71E68B4AD97F6304
 80BCEBC1842FB)...disabled (restricted).
 
  (thesis.aux)
@@ -2887,11 +2893,11 @@ Package logreq Info: Writing requests to 'thesis.run.xml'.
 
  ) 
 Here is how much of TeX's memory you used:
- 55614 strings out of 467871
- 1309246 string characters out of 5418377
- 2274154 words of memory out of 5000000
- 83091 multiletter control sequences out of 15000+600000
- 720087 words of font info for 229 fonts, out of 8000000 for 9000
+ 55606 strings out of 467871
+ 1309140 string characters out of 5418377
+ 2274021 words of memory out of 5000000
+ 83088 multiletter control sequences out of 15000+600000
+ 718680 words of font info for 227 fonts, out of 8000000 for 9000
  1210 hyphenation exceptions out of 8191
  99i,23n,108p,1164b,2316s stack positions out of 10000i,1000n,20000p,200000b,200000s
 <C:/Users/raffy/AppData/Local/Programs/MiKTeX/fonts/type1/public/amsfonts/cm/
@@ -2913,9 +2919,9 @@ mes/utmbi8a.pfb><C:/Users/raffy/AppData/Local/Programs/MiKTeX/fonts/type1/urw/t
 imes/utmr8a.pfb><C:/Users/raffy/AppData/Local/Programs/MiKTeX/fonts/type1/urw/t
 imes/utmri8a.pfb><C:/Users/raffy/AppData/Local/Programs/MiKTeX/fonts/type1/urw/
 zapfchan/uzcmi8a.pfb>
-Output written on thesis.pdf (86 pages, 2363507 bytes).
+Output written on thesis.pdf (86 pages, 2360474 bytes).
 PDF statistics:
- 1623 PDF objects out of 1728 (max. 8388607)
- 409 named destinations out of 1000 (max. 500000)
+ 1621 PDF objects out of 1728 (max. 8388607)
+ 406 named destinations out of 1000 (max. 500000)
  818 words of extra memory for PDF output out of 10000 (max. 10000000)
 
