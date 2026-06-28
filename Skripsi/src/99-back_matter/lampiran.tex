@@ -1,4 +1,31 @@
 %-----------------------------------------------------------------------------%
-\addChapter{Lampiran 1}
-\chapter*{Lampiran 1}
+\chapter*{Lampiran 1 \\ Kode Program}
 %-----------------------------------------------------------------------------%
+
+
+\section*{Transformasi Data Text -> BERT Embeddings -> Cached Data [CDT]}
+\lstinputlisting[language=Python, 
+  caption={Full implementation of Cached Data Transformation (CDT).},
+  label={lst:CDTBERT}]{src/code/data.py}
+
+
+\section*{Arsitektur Model}
+\lstinputlisting[language=Python, 
+  caption={Full implementation of JDST-DEC (SEMTGPU).},
+  label={lst:jdstdec}]{src/code/semtgpu.py}
+
+\section*{JDST DEC Training Loop (IMDB and Yelp)}
+\lstinputlisting[language=Python, 
+  caption={Full implementation of JDST DEC training loop.},
+  label={lst:jdstdec_train}]{src/code/jstdec.py}
+
+
+\section*{BERT Topic Evaluation Loop (IMDB and Yelp)}
+\lstinputlisting[language=Python, 
+  caption={Full implementation of BERT Topic evaluation loop.},
+  label={lst:bertopic_eval}]{src/code/bertopic.py}
+
+\section*{MLTGUI Training Loop (IMDB and Yelp)}
+\lstinputlisting[language=Python, 
+  caption={Full implementation of MLTGUI training loop.},
+  label={lst:mltgui_train}]{src/code/mltgui.py}

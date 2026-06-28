@@ -40,9 +40,9 @@ import matplotlib.pyplot as plt
 import seaborn as sns
 
 
-# 
+# -----------------------------------------------------------------------------
 # Professional Plot Style
-# 
+# -----------------------------------------------------------------------------
 def _apply_professional_style():
     plt.rcParams.update({
         "figure.facecolor":        "#FAFAFA",
@@ -93,15 +93,15 @@ _CLUSTER_PALETTE = [
 warnings.filterwarnings("ignore", category=UserWarning)
 
 
-# 
+# -----------------------------------------------------------------------------
 # Device
-# 
+# -----------------------------------------------------------------------------
 device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
 
 
-# 
+# -----------------------------------------------------------------------------
 # Utils
-# 
+# -----------------------------------------------------------------------------
 def cluster_acc(y_true: np.ndarray, y_pred: np.ndarray) -> float:
     y_true = y_true.astype(np.int64)
     assert y_pred.size == y_true.size
@@ -113,9 +113,9 @@ def cluster_acc(y_true: np.ndarray, y_pred: np.ndarray) -> float:
     return float(sum(w[i, j] for i, j in zip(row_ind, col_ind)) / y_pred.size)
 
 
-# 
+# -----------------------------------------------------------------------------
 # Model Components
-# 
+# -----------------------------------------------------------------------------
 class ClusteringLayer(nn.Module):
     def __init__(self, n_clusters: int, input_dim: int, alpha: float = 1.0) -> None:
         super().__init__()
@@ -164,9 +164,9 @@ class Autoencoder(nn.Module):
     def forward(self, x): h = self.encode(x); return h, self.decode(h)
 
 
-# 
+# -----------------------------------------------------------------------------
 # SEMTGPU
-# 
+# -----------------------------------------------------------------------------
 class SEMTGPU(nn.Module):
     """
     Joint Sentiment + Topic Clustering (DEC-style) with Autoencoder features.
@@ -224,7 +224,7 @@ class SEMTGPU(nn.Module):
                 if m.bias is not None:
                     nn.init.zeros_(m.bias)
 
-    #  Token Cleaning 
+    # -- Token Cleaning --------------------------------------------------------
     @staticmethod
     def _clean_token(tok: str) -> str:
         tok = tok.lstrip('\u0120')
@@ -234,7 +234,7 @@ class SEMTGPU(nn.Module):
         tok = tok.strip()
         return tok
 
-    #  Forward / inference 
+    # -- Forward / inference ---------------------------------------------------
     def forward(self, x):
         z = self.autoencoder.encode(x)
         return self.clustering(z), torch.softmax(self.sentiment(z), dim=1)
@@ -263,7 +263,7 @@ class SEMTGPU(nn.Module):
     def get_cluster_assignments(self, x):
         return self.predict_clusters(x)
 
-    #  Weight I/O 
+    # -- Weight I/O ------------------------------------------------------------
     def save_weights(self, path: str) -> None:
         os.makedirs(os.path.dirname(os.path.abspath(path)), exist_ok=True)
         torch.save({"model_state_dict": self.state_dict()}, path)
@@ -284,7 +284,7 @@ class SEMTGPU(nn.Module):
         print(f" Restored best model (iter={self._best_val_iter}, "
               f"val_score={self._best_val_score:.4f})")
 
-    #  Validation evaluation 
+    # -- Validation evaluation -------------------------------------------------
     def _evaluate_val(
         self,
         X_val: torch.Tensor,
@@ -356,7 +356,7 @@ class SEMTGPU(nn.Module):
         )
         return metrics
 
-    #  Pretraining (reconstruction loss lives here  unchanged) 
+    # -- Pretraining (reconstruction loss lives here  unchanged) -------------
     def pretrain_autoencoder(
         self,
         dataset,
@@ -400,7 +400,7 @@ class SEMTGPU(nn.Module):
         print(f" AE pretrain complete  {weights_path}")
         return str(weights_path)
 
-    #  Metrics helpers 
+    # -- Metrics helpers -------------------------------------------------------
     @staticmethod
     def target_distribution(q):
         weight = (q ** 2) / torch.clamp(torch.sum(q, 0), min=1e-12)
@@ -545,7 +545,7 @@ class SEMTGPU(nn.Module):
     def get_topic_assignments(self):
         return self.topic_mapping.copy()
 
-    #  Integrated Gradients 
+    # -- Integrated Gradients --------------------------------------------------
     def compute_integrated_gradients(self, x, target_class=1, n_steps=50, batch_size=64):
         """Uses eval() to prevent BatchNorm running stat corruption (FIX 1)."""
         dev  = next(self.parameters()).device
@@ -663,7 +663,7 @@ class SEMTGPU(nn.Module):
         if show_plot: plt.show()
         else:         plt.close()
 
-    #  Frequency-based representativeness scoring 
+    # -- Frequency-based representativeness scoring ----------------------------
     def _rank_texts_by_vocab_coverage(
         self, texts: List[str], vocab: List[str], max_samples: int,
     ) -> List[int]:
@@ -701,7 +701,7 @@ class SEMTGPU(nn.Module):
                      if w not in self.stop_words and len(w) > 2]
             return [w for w, _ in Counter(words).most_common(top_n)]
 
-    #  Longformer CLS helpers 
+    # -- Longformer CLS helpers ------------------------------------------------
     def _longformer_cls_embedding(self, text, model, tokenizer, max_length=4096):
         dev = next(self.parameters()).device
         enc = tokenizer(text, return_tensors="pt", padding=True,
@@ -724,7 +724,7 @@ class SEMTGPU(nn.Module):
                 out = model(**enc)
             return out.last_hidden_state[:, 0, :], None, enc, None
 
-    #  Bidirectional Occlusion Scoring 
+    # -- Bidirectional Occlusion Scoring --------------------------------------
     def _occlusion_scores_bidirectional(
         self, text, model, tokenizer, max_length=4096, is_longformer: bool = True
     ) -> Tuple[List[str], np.ndarray, np.ndarray, np.ndarray]:
@@ -768,7 +768,7 @@ class SEMTGPU(nn.Module):
 
         return tokens, scores_pos, scores_neg, base_prob
 
-    #  compute_token_attribution_per_cluster_with_embeddings (v3.6) 
+    # -- compute_token_attribution_per_cluster_with_embeddings (v3.6) ---------
     def compute_token_attribution_per_cluster_with_embeddings(
         self,
         texts: List[str],
@@ -920,7 +920,7 @@ class SEMTGPU(nn.Module):
 
         return result
 
-    #  compute_token_attribution_per_cluster (no embeddings) 
+    # -- compute_token_attribution_per_cluster (no embeddings) -----------------
     def compute_token_attribution_per_cluster(
         self,
         texts,
@@ -994,7 +994,7 @@ class SEMTGPU(nn.Module):
             }
         return result
 
-    #  _get_pos_neg_pools 
+    # -- _get_pos_neg_pools ----------------------------------------------------
     @staticmethod
     def _get_pos_neg_pools(
         entry: Dict
@@ -1007,7 +1007,7 @@ class SEMTGPU(nn.Module):
         neg = {t: abs(v) for t, v in entry.items() if isinstance(v, float) and v < 0}
         return pos, neg
 
-    #  Plot: POSITIVE pool grid 
+    # -- Plot: POSITIVE pool grid ----------------------------------------------
     def plot_token_attribution_pos_grid(
         self,
         cluster_token_scores: Dict[int, Dict[str, Dict[str, float]]],
@@ -1086,7 +1086,7 @@ class SEMTGPU(nn.Module):
         if show_plot: plt.show()
         else:         plt.close()
 
-    #  Plot: NEGATIVE pool grid 
+    # -- Plot: NEGATIVE pool grid ----------------------------------------------
     def plot_token_attribution_neg_grid(
         self,
         cluster_token_scores: Dict[int, Dict[str, Dict[str, float]]],
@@ -1165,7 +1165,7 @@ class SEMTGPU(nn.Module):
         if show_plot: plt.show()
         else:         plt.close()
 
-    #  Plot: Combined bidirectional 
+    # -- Plot: Combined bidirectional ------------------------------------------
     def plot_token_attribution_per_cluster(
         self,
         cluster_token_scores: Dict[int, Dict[str, Dict[str, float]]],
@@ -1253,7 +1253,7 @@ class SEMTGPU(nn.Module):
         if show_plot: plt.show()
         else:         plt.close()
 
-    #  Plot: Attribution Heatmap 
+    # -- Plot: Attribution Heatmap ---------------------------------------------
     def plot_token_attribution_heatmap(
         self,
         cluster_token_scores: Dict[int, Dict[str, Dict[str, float]]],
@@ -1357,7 +1357,7 @@ class SEMTGPU(nn.Module):
         if show_plot: plt.show()
         else:         plt.close()
 
-    #  Plot: Explain single text 
+    # -- Plot: Explain single text ---------------------------------------------
     def explain_single_text(
         self, text,
         bert_model_name="allenai/longformer-base-4096",
@@ -1431,7 +1431,7 @@ class SEMTGPU(nn.Module):
         else:    plt.close()
         return fig
 
-    #  Cluster evolution plot 
+    # -- Cluster evolution plot ------------------------------------------------
     def plot_cluster_evolution(
         self, embeddings, cluster_assignments, epoch,
         texts=None, save_dir="./results/fnnjst", method="tsne",
@@ -1500,7 +1500,7 @@ class SEMTGPU(nn.Module):
         else:         plt.close()
         return fig
 
-    #  K-means init 
+    # -- K-means init ----------------------------------------------------------
     def _init_clusters_with_kmeans(self, all_embeddings, n_init=20, random_state=42):
         dev = next(self.parameters()).device
         if all_embeddings.size(0) < self.n_clusters:
@@ -1514,9 +1514,9 @@ class SEMTGPU(nn.Module):
             km.cluster_centers_, dtype=torch.float32, device=dev)
         return y_pred
 
-    # 
+    # -------------------------------------------------------------------------
     # fit()
-    # 
+    # -------------------------------------------------------------------------
     def fit(
         self,
         dataset,
@@ -1589,7 +1589,7 @@ class SEMTGPU(nn.Module):
         plot_dir = os.path.join(save_dir, "evolution_plots")
         os.makedirs(plot_dir, exist_ok=True)
 
-        #  Collect dataset 
+        # -- Collect dataset ---------------------------------------------------
         embs, lbls, texts_list = [], [], []
         for i in range(len(dataset)):
             item = dataset[i]
@@ -1612,7 +1612,7 @@ class SEMTGPU(nn.Module):
         has_labels = len(lbls) > 0
         has_texts  = len(texts_list) > 0
 
-        #  Validation split 
+        # -- Validation split --------------------------------------------------
         n_val   = max(1, int(N * val_ratio))
         n_train = N - n_val
         idx_all   = np.random.permutation(N)
@@ -1885,7 +1885,7 @@ class SEMTGPU(nn.Module):
                 if ite % save_interval == 0 and ite > 0:
                     self.save_weights(os.path.join(save_dir, f"SEMTGPU_{ite}.weights.pth"))
 
-        #  Post-training 
+        # -- Post-training -----------------------------------------------------
         print("\n" + "=" * 60)
         print("Training complete.  Restoring best model checkpoint")
         self.load_best_weights()
@@ -1904,14 +1904,14 @@ class SEMTGPU(nn.Module):
         print(f"  Best iter={self._best_val_iter}, {_primary}={self._best_val_score:.4f}")
         self.save_weights(os.path.join(save_dir, "SEMTGPU_final.weights.pth"))
 
-        #  Final cluster assignments 
+        # -- Final cluster assignments -----------------------------------------
         self.eval()
         with torch.no_grad():
             q_all_f = torch.cat([self(X_train[i:i+batch_size])[0]
                                   for i in range(0, n_train, batch_size)], 0)
         y_final = q_all_f.argmax(1).cpu().numpy()
 
-        #  FIX 2: Final metrics BEFORE IG / token-attribution 
+        # -- FIX 2: Final metrics BEFORE IG / token-attribution ----------------
         self.eval()
         with torch.no_grad():
             qs, ss = [], []
@@ -1953,7 +1953,7 @@ class SEMTGPU(nn.Module):
               f"Div={val_final.get('val_diversity',0):.4f}  "
               f"Score={val_final.get('val_cluster_score',0):.4f}")
 
-        #  Token attribution (after metrics  FIX 2) 
+        # -- Token attribution (after metrics  FIX 2) -------------------------
         if plot_token_attribution and has_texts:
             try:
                 print(f"\n[Token Attribution  Final Best Model  (v3.7)]")
@@ -1987,7 +1987,7 @@ class SEMTGPU(nn.Module):
                 print(f"Warning: final token attribution failed: {e}")
                 traceback.print_exc()
 
-        #  Integrated Gradients (after metrics  FIX 2) 
+        # -- Integrated Gradients (after metrics  FIX 2) ----------------------
         if plot_integrated_gradients and has_labels:
             try:
                 idx_ig = np.random.choice(n_train, min(ig_max_samples, n_train), replace=False)

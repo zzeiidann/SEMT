@@ -6,9 +6,11 @@
 \contentsline {chapter}{\uppercase {Kata Pengantar}}{v}{section*.8}%
 \contentsline {chapter}{LEMBAR PERSETUJUAN PUBLIKASI ILMIAH}{vi}{section*.9}%
 \contentsline {chapter}{ABSTRAK}{viii}{section*.10}%
-\contentsline {chapter}{\uppercase {Daftar Isi}}{x}{section*.11}%
-\contentsline {chapter}{\uppercase {Daftar Gambar}}{xiii}{section*.12}%
-\contentsline {chapter}{\uppercase {Daftar Tabel}}{xv}{section*.13}%
+\contentsline {chapter}{Extended Abstract}{ix}{section*.10}%
+\contentsline {paragraph}{Limitations.}{xii}{section*.15}%
+\contentsline {chapter}{\uppercase {Daftar Isi}}{xiv}{section*.16}%
+\contentsline {chapter}{\uppercase {Daftar Gambar}}{xvii}{section*.17}%
+\contentsline {chapter}{\uppercase {Daftar Tabel}}{xix}{section*.18}%
 \contentsline {chapter}{\numberline {1}\uppercase {Pendahuluan}}{1}{chapter.1}%
 \contentsline {section}{\numberline {1.1}Latar Belakang}{1}{section.1.1}%
 \contentsline {section}{\numberline {1.2}Rumusan Permasalahan}{5}{section.1.2}%
@@ -49,16 +51,14 @@
 \contentsline {chapter}{\numberline {3}\uppercase {METODE MODEL \textit {JOINT DOCUMENT-LEVEL SENTIMENT-TOPIC} (JDST) BERBASIS \textit {DEEP EMBEDDED CLUSTERING} UNTUK ANALISIS SENTIMEN}}{30}{chapter.3}%
 \contentsline {section}{\numberline {3.1}\textit {Bidirectional Encoder Representations from Transformers} (BERT) Sebagai Model Representasi Teks}{30}{section.3.1}%
 \contentsline {section}{\numberline {3.2}Alur Pelatihan Model \textit {Multitask}}{33}{section.3.2}%
-\contentsline {subsection}{\numberline {3.2.1}Implementasi \textit {Autoencoder}}{34}{subsection.3.2.1}%
-\contentsline {subsection}{\numberline {3.2.2}\textit {Deep Embedded Clustering} (DEC)}{35}{subsection.3.2.2}%
+\contentsline {subsection}{\numberline {3.2.1}Implementasi \textit {Autoencoder}}{33}{subsection.3.2.1}%
+\contentsline {subsection}{\numberline {3.2.2}\textit {Deep Embedded Clustering} (DEC)}{34}{subsection.3.2.2}%
 \contentsline {subsection}{\numberline {3.2.3}Pelatihan \textit {Multitask}: JDST-DEC}{36}{subsection.3.2.3}%
 \contentsline {subsubsection}{\numberline {3.2.3.1}\textit {Clustering Head}}{36}{subsubsection.3.2.3.1}%
 \contentsline {subsubsection}{\numberline {3.2.3.2}Analisis Sentimen Menggunakan \textit {Sentiment Head}}{37}{subsubsection.3.2.3.2}%
 \contentsline {subsubsection}{\numberline {3.2.3.3}Pelatihan \textit {Joint} dengan \textit {Multitask Loss}}{38}{subsubsection.3.2.3.3}%
-\contentsline {subsubsection}{\numberline {3.2.3.4}Algoritma JDST-DEC}{38}{subsubsection.3.2.3.4}%
-\contentsline {section}{\numberline {3.3}Interpretasi Model dengan Analisis Atribusi Token}{39}{section.3.3}%
-\contentsline {subsection}{\numberline {3.3.1}Implementasi \textit {Occlusion-based Token Attribution} dan Agregasi per Klaster}{39}{subsection.3.3.1}%
-\contentsline {subsection}{\numberline {3.3.2}Implementasi \textit {Integrated Gradients}}{40}{subsection.3.3.2}%
+\contentsline {subsubsection}{\numberline {3.2.3.4}Algoritma JDST-DEC}{39}{subsubsection.3.2.3.4}%
+\contentsline {section}{\numberline {3.3}Interpretasi Model dengan Analisis Atribusi Token}{40}{section.3.3}%
 \contentsline {section}{\numberline {3.4}Evaluasi Topik}{41}{section.3.4}%
 \contentsline {subsection}{\numberline {3.4.1}\textit {Topic Coherence} Berbasis NPMI}{41}{subsection.3.4.1}%
 \contentsline {subsection}{\numberline {3.4.2}\textit {Topic Diversity}}{42}{subsection.3.4.2}%
@@ -79,8 +79,8 @@
 \contentsline {section}{\numberline {4.5}Analisis Kinerja Model}{54}{section.4.5}%
 \contentsline {subsection}{\numberline {4.5.1}Analisis Kinerja Pra-pelatihan}{54}{subsection.4.5.1}%
 \contentsline {subsection}{\numberline {4.5.2}Analisis Kinerja \textit {Joint Training}}{56}{subsection.4.5.2}%
-\contentsline {subsubsection}{\numberline {4.5.2.1}Hasil Evaluasi pada Dataset IMDB}{56}{subsubsection.4.5.2.1}%
-\contentsline {subsubsection}{\numberline {4.5.2.2}Hasil Evaluasi pada Dataset Yelp}{57}{subsubsection.4.5.2.2}%
+\contentsline {subsubsection}{\numberline {4.5.2.1}Klasifikasi Sentimen}{56}{subsubsection.4.5.2.1}%
+\contentsline {subsubsection}{\numberline {4.5.2.2}Pemodelan Topik}{57}{subsubsection.4.5.2.2}%
 \contentsline {subsection}{\numberline {4.5.3}Analisis Multiloss}{58}{subsection.4.5.3}%
 \contentsline {subsubsection}{\numberline {4.5.3.1}Dinamika pada Data Eksperimen}{58}{subsubsection.4.5.3.1}%
 \contentsline {subsubsection}{\numberline {4.5.3.2}Eksperimen Dataset Kecil}{59}{subsubsection.4.5.3.2}%
@@ -88,3 +88,4 @@
 \contentsline {chapter}{\numberline {5}Penutup}{62}{chapter.5}%
 \contentsline {section}{\numberline {5.1}Kesimpulan}{62}{section.5.1}%
 \contentsline {section}{\numberline {5.2}Saran}{63}{section.5.2}%
+\contentsline {chapter}{LAMPIRAN}{1}{section*.56}%

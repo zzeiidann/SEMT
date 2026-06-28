@@ -355,7 +355,7 @@
         {{un=0,uniquepart=base,hash=802157026f850823b2027c2100cb359a}{%
            family={Sander},
            familyi={S\bibinitperiod},
-           given={Jörg},
+           given={Jrg},
            giveni={J\bibinitperiod},
            givenun=0}}%
       }
@@ -516,7 +516,7 @@
            giveni={K\bibinitperiod},
            givenun=0}}%
         {{un=0,uniquepart=base,hash=f0f9993391f26a73b94828bfc6fb784f}{%
-           family={Merriënboer},
+           family={Merrinboer},
            familyi={M\bibinitperiod},
            given={Bart},
            giveni={B\bibinitperiod},
@@ -639,7 +639,7 @@
         {{un=0,uniquepart=base,hash=ac762f2592005edf6bad58f566967c6c}{%
            family={Bottou},
            familyi={B\bibinitperiod},
-           given={Léon},
+           given={Lon},
            giveni={L\bibinitperiod},
            givenun=0}}%
         {{un=0,uniquepart=base,hash=7db9458d121085904e6496ca5d82977a}{%
@@ -839,7 +839,7 @@
         {{un=0,uniquepart=base,hash=802157026f850823b2027c2100cb359a}{%
            family={Sander},
            familyi={S\bibinitperiod},
-           given={Jörg},
+           given={Jrg},
            giveni={J\bibinitperiod},
            givenun=0}}%
         {{un=0,uniquepart=base,hash=2dda16c0a5d50fc830d0d4a3787937fa}{%
@@ -2284,7 +2284,7 @@
     \entry{roder2015exploring}{inproceedings}{}{}
       \name{author}{3}{}{%
         {{un=0,uniquepart=base,hash=46b2f13d42748a566e9d8a5fe6452afd}{%
-           family={Röder},
+           family={Rder},
            familyi={R\bibinitperiod},
            given={Michael},
            giveni={M\bibinitperiod},
@@ -2456,7 +2456,7 @@
         {{un=0,uniquepart=base,hash=657304bed697f7302a28a771ddf30451}{%
            family={Flauzino},
            familyi={F\bibinitperiod},
-           given={Rogério\bibnamedelima Andrade},
+           given={Rogrio\bibnamedelima Andrade},
            giveni={R\bibinitperiod\bibinitdelim A\bibinitperiod},
            givenun=0}}%
         {{un=0,uniquepart=base,hash=41aa173a0094ea779cc5875c0321f7fe}{%
@@ -2754,8 +2754,8 @@
         {{un=0,uniquepart=base,hash=540fcd72e1fa4bbed46604f4e6cff817}{%
            family={Kaiser},
            familyi={K\bibinitperiod},
-           given={{Ł}ukasz},
-           giveni={Ł\bibinitperiod},
+           given={{}ukasz},
+           giveni={\bibinitperiod},
            givenun=0}}%
         {{un=0,uniquepart=base,hash=95595a0fefb86187cbc36e551017d332}{%
            family={Polosukhin},

@@ -11,32 +11,36 @@ Judul: \judul\par
 
 \bigskip
 
-Pertumbuhan data teks dari platform digital seperti ulasan produk dan media sosial
-mendorong kebutuhan metode otomatis yang mampu menganalisis sentimen dan
-mengidentifikasi topik secara bersamaan. Pendekatan analisis sentimen konvensional
-umumnya mengasumsikan satu sentimen per dokumen sehingga belum dapat merepresentasikan
-ulasan yang membahas lebih dari satu topik. Penelitian ini mengembangkan model
-\textit{Joint Document-level Sentiment--Topic} berbasis \textit{Deep Embedded
-Clustering} (JDST-DEC) yang mengintegrasikan DEC sebagai komponen pendeteksian topik
-ke dalam kerangka \textit{Multi-Task Learning} (MTL) dengan encoder BERT yang
-dibekukan. Pelatihan dilakukan dalam dua tahap, yaitu pra-pelatihan \textit{autoencoder}
-untuk membentuk representasi laten dari \textit{embedding} \texttt{[CLS]} BERT,
-kemudian dilanjutkan dengan optimasi gabungan fungsi \textit{loss} sentimen
-berbasis \textit{cross-entropy} dan \textit{loss} klasterisasi berbasis KL
-\textit{divergence}. Evaluasi dilakukan pada dataset IMDB dan Yelp dengan variasi
-jumlah topik $K=30$, $50$, dan $80$. Pada tugas klasifikasi sentimen, JDST-DEC memperoleh F1-\textit{score} sebesar
-0{,}8986 (IMDB) dan 0{,}9020 (Yelp) pada $K=50$, lebih tinggi dibandingkan
-NN-BERT yang memperoleh 0{,}8612 dan 0{,}8715. Pada tugas pendeteksian topik,
-BERTopic menghasilkan kualitas topik yang lebih baik berdasarkan metrik
-\textit{Topic Coherence} dan \textit{Topic Diversity}, sedangkan JDST-DEC
-menunjukkan adanya \textit{trade-off} antara objektif sentimen dan topik selama
-pelatihan multitugas. Analisis tambahan menunjukkan bahwa objektif sentimen mencapai kondisi stabil
-lebih awal dibandingkan objektif klasterisasi, serta model telah mampu mengenali
-token yang relevan pada masing-masing klaster meskipun pemisahan sentimen
-antarklaster belum sepenuhnya konsisten. Secara keseluruhan, JDST-DEC mampu
-mempertahankan performa klasifikasi sentimen dalam kerangka pembelajaran
-multitugas, namun keseimbangan antara objektif sentimen dan topik masih menjadi
-tantangan dalam proses optimasi.
+Pertumbuhan data teks dari platform digital, seperti ulasan produk dan
+media sosial, mendorong kebutuhan akan metode otomatis yang mampu
+menganalisis sentimen dan mengidentifikasi topik secara bersamaan.
+Pendekatan analisis sentimen konvensional umumnya mengasumsikan satu
+sentimen untuk setiap dokumen sehingga belum mampu merepresentasikan
+ulasan yang membahas lebih dari satu topik. Penelitian ini mengembangkan
+model \textit{Joint Document-level Sentiment--Topic} berbasis
+\textit{Deep Embedded Clustering} (JDST-DEC) yang mengintegrasikan
+\textit{Deep Embedded Clustering} (DEC) ke dalam kerangka
+\textit{Multi-Task Learning} (MTL) dengan encoder BERT yang dibekukan.
+Pelatihan dilakukan dalam dua tahap, yaitu pra-pelatihan
+\textit{autoencoder} untuk membentuk representasi laten dari
+\textit{embedding} \texttt{[CLS]} BERT, kemudian dilanjutkan dengan
+optimasi gabungan fungsi \textit{loss} sentimen berbasis
+\textit{cross-entropy} dan \textit{loss} klasterisasi berbasis
+KL \textit{divergence}. Evaluasi dilakukan pada dataset IMDb dan Yelp
+dengan variasi jumlah topik $K=30$, $50$, dan $80$. Pada tugas klasifikasi sentimen,
+JDST-DEC memperoleh F1-\textit{score}
+terbaik sebesar 0{,}8986 pada dataset IMDb dan 0{,}9020 pada dataset
+Yelp pada konfigurasi $K=50$, lebih tinggi dibandingkan NN-BERT yang
+memperoleh 0{,}8612 dan 0{,}8715. Pada tugas pemodelan topik, BERTopic
+menghasilkan nilai \textit{Topic Coherence} dan \textit{Topic Diversity}
+yang lebih tinggi dibandingkan JDST-DEC. Meskipun demikian, JDST-DEC
+tetap mampu menghasilkan kualitas topik yang memadai sambil melakukan
+klasifikasi sentimen dan pemodelan topik secara simultan dalam satu
+kerangka \textit{Multi-Task Learning}. Secara keseluruhan, hasil
+penelitian menunjukkan bahwa pendekatan yang diusulkan mampu
+meningkatkan performa klasifikasi sentimen dibandingkan pendekatan
+\textit{single-task}, meskipun kualitas pemodelan topik masih dapat
+ditingkatkan.
 
 \bigskip
 

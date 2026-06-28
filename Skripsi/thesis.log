@@ -1,4 +1,4 @@
-This is pdfTeX, Version 3.141592653-2.6-1.40.28 (MiKTeX 25.12) (preloaded format=pdflatex 2026.6.8)  22 JUN 2026 23:56
+This is pdfTeX, Version 3.141592653-2.6-1.40.28 (MiKTeX 25.12) (preloaded format=pdflatex 2026.6.8)  28 JUN 2026 22:11
 entering extended mode
  restricted \write18 enabled.
  %&-line parsing enabled.
@@ -963,59 +963,103 @@ File: tikzlibraryshapes.geometric.code.tex 2025-08-29 v3.1.11a (3.1.11a)
 pgflibraryshapes.geometric.code.tex
 File: pgflibraryshapes.geometric.code.tex 2025-08-29 v3.1.11a (3.1.11a)
 ))
+(C:\Users\raffy\AppData\Local\Programs\MiKTeX\tex/latex/base\fontenc.sty
+Package: fontenc 2025/07/18 v2.1d Standard LaTeX package
+)
+(C:\Users\raffy\AppData\Local\Programs\MiKTeX\tex/latex/base\inputenc.sty
+Package: inputenc 2024/02/08 v1.3d Input encoding file
+\inpenc@prehook=\toks57
+\inpenc@posthook=\toks58
+)
+(C:\Users\raffy\AppData\Local\Programs\MiKTeX\tex/latex/listings\listings.sty
+\lst@mode=\count382
+\lst@gtempboxa=\box82
+\lst@token=\toks59
+\lst@length=\count383
+\lst@currlwidth=\dimen337
+\lst@column=\count384
+\lst@pos=\count385
+\lst@lostspace=\dimen338
+\lst@width=\dimen339
+\lst@newlines=\count386
+\lst@lineno=\count387
+\lst@maxwidth=\dimen340
+
+(C:\Users\raffy\AppData\Local\Programs\MiKTeX\tex/latex/listings\lstpatch.sty
+File: lstpatch.sty 2025/11/14 1.11b (Carsten Heinz)
+)
+(C:\Users\raffy\AppData\Local\Programs\MiKTeX\tex/latex/listings\lstmisc.sty
+File: lstmisc.sty 2025/11/14 1.11b (Carsten Heinz)
+\c@lstnumber=\count388
+\lst@skipnumbers=\count389
+\lst@framebox=\box83
+)
+(C:\Users\raffy\AppData\Local\Programs\MiKTeX\tex/latex/listings\listings.cfg
+File: listings.cfg 2025/11/14 1.11b listings configuration
+))
+Package: listings 2025/11/14 1.11b (Carsten Heinz)
+==> First Aid for listings.sty no longer applied!
+    Expected:
+        2024/09/23 1.10c (Carsten Heinz)
+    but found:
+        2025/11/14 1.11b (Carsten Heinz)
+    so I'm assuming it got fixed.
+(C:\Users\raffy\AppData\Local\Programs\MiKTeX\tex/latex/listings\lstlang1.sty
+File: lstlang1.sty 2025/11/14 1.11b listings language file
+)
 (C:\Users\raffy\AppData\Local\Programs\MiKTeX\tex/latex/biblatex\biblatex.sty
 Package: biblatex 2025/07/10 v3.21 programmable bibliographies (PK/MW)
 
 (C:\Users\raffy\AppData\Local\Programs\MiKTeX\tex/latex/logreq\logreq.sty
 Package: logreq 2010/08/04 v1.0 xml request logger
-\lrq@indent=\count382
+\lrq@indent=\count390
 
 (C:\Users\raffy\AppData\Local\Programs\MiKTeX\tex/latex/logreq\logreq.def
 File: logreq.def 2010/08/04 v1.0 logreq spec v1.0
 ))
-\c@tabx@nest=\count383
-\c@listtotal=\count384
-\c@listcount=\count385
-\c@liststart=\count386
-\c@liststop=\count387
-\c@citecount=\count388
-\c@citetotal=\count389
-\c@multicitecount=\count390
-\c@multicitetotal=\count391
-\c@instcount=\count392
-\c@maxnames=\count393
-\c@minnames=\count394
-\c@maxitems=\count395
-\c@minitems=\count396
-\c@citecounter=\count397
-\c@maxcitecounter=\count398
-\c@savedcitecounter=\count399
-\c@uniquelist=\count400
-\c@uniquename=\count401
-\c@refsection=\count402
-\c@refsegment=\count403
-\c@maxextratitle=\count404
-\c@maxextratitleyear=\count405
-\c@maxextraname=\count406
-\c@maxextradate=\count407
-\c@maxextraalpha=\count408
-\c@abbrvpenalty=\count409
-\c@highnamepenalty=\count410
-\c@lownamepenalty=\count411
-\c@maxparens=\count412
-\c@parenlevel=\count413
-\blx@tempcnta=\count414
-\blx@tempcntb=\count415
-\blx@tempcntc=\count416
-\c@blx@maxsection=\count417
-\blx@maxsegment@0=\count418
-\blx@notetype=\count419
-\blx@parenlevel@text=\count420
-\blx@parenlevel@foot=\count421
-\blx@sectionciteorder@0=\count422
-\blx@sectionciteorderinternal@0=\count423
-\blx@entrysetcounter=\count424
-\blx@biblioinstance=\count425
+\c@tabx@nest=\count391
+\c@listtotal=\count392
+\c@listcount=\count393
+\c@liststart=\count394
+\c@liststop=\count395
+\c@citecount=\count396
+\c@citetotal=\count397
+\c@multicitecount=\count398
+\c@multicitetotal=\count399
+\c@instcount=\count400
+\c@maxnames=\count401
+\c@minnames=\count402
+\c@maxitems=\count403
+\c@minitems=\count404
+\c@citecounter=\count405
+\c@maxcitecounter=\count406
+\c@savedcitecounter=\count407
+\c@uniquelist=\count408
+\c@uniquename=\count409
+\c@refsection=\count410
+\c@refsegment=\count411
+\c@maxextratitle=\count412
+\c@maxextratitleyear=\count413
+\c@maxextraname=\count414
+\c@maxextradate=\count415
+\c@maxextraalpha=\count416
+\c@abbrvpenalty=\count417
+\c@highnamepenalty=\count418
+\c@lownamepenalty=\count419
+\c@maxparens=\count420
+\c@parenlevel=\count421
+\blx@tempcnta=\count422
+\blx@tempcntb=\count423
+\blx@tempcntc=\count424
+\c@blx@maxsection=\count425
+\blx@maxsegment@0=\count426
+\blx@notetype=\count427
+\blx@parenlevel@text=\count428
+\blx@parenlevel@foot=\count429
+\blx@sectionciteorder@0=\count430
+\blx@sectionciteorderinternal@0=\count431
+\blx@entrysetcounter=\count432
+\blx@biblioinstance=\count433
 \labelnumberwidth=\skip66
 \labelalphawidth=\skip67
 \biblabelsep=\skip68
@@ -1027,9 +1071,9 @@ File: logreq.def 2010/08/04 v1.0 logreq spec v1.0
 \blx@bcfin=\read3
 \blx@bcfout=\write4
 \blx@langwohyphens=\language79
-\c@mincomprange=\count426
-\c@maxcomprange=\count427
-\c@mincompwidth=\count428
+\c@mincomprange=\count434
+\c@maxcomprange=\count435
+\c@mincompwidth=\count436
 Package biblatex Info: Trying to load biblatex default data model...
 Package biblatex Info: ... file 'blx-dm.def' found.
 
@@ -1040,74 +1084,74 @@ Package biblatex Info: Trying to load biblatex style data model...
 Package biblatex Info: ... file 'numeric.dbx' not found.
 Package biblatex Info: Trying to load biblatex custom data model...
 Package biblatex Info: ... file 'biblatex-dm.cfg' not found.
-\c@afterword=\count429
-\c@savedafterword=\count430
-\c@annotator=\count431
-\c@savedannotator=\count432
-\c@author=\count433
-\c@savedauthor=\count434
-\c@bookauthor=\count435
-\c@savedbookauthor=\count436
-\c@commentator=\count437
-\c@savedcommentator=\count438
-\c@editor=\count439
-\c@savededitor=\count440
-\c@editora=\count441
-\c@savededitora=\count442
-\c@editorb=\count443
-\c@savededitorb=\count444
-\c@editorc=\count445
-\c@savededitorc=\count446
-\c@foreword=\count447
-\c@savedforeword=\count448
-\c@holder=\count449
-\c@savedholder=\count450
-\c@introduction=\count451
-\c@savedintroduction=\count452
-\c@namea=\count453
-\c@savednamea=\count454
-\c@nameb=\count455
-\c@savednameb=\count456
-\c@namec=\count457
-\c@savednamec=\count458
-\c@translator=\count459
-\c@savedtranslator=\count460
-\c@shortauthor=\count461
-\c@savedshortauthor=\count462
-\c@shorteditor=\count463
-\c@savedshorteditor=\count464
-\c@labelname=\count465
-\c@savedlabelname=\count466
-\c@institution=\count467
-\c@savedinstitution=\count468
-\c@lista=\count469
-\c@savedlista=\count470
-\c@listb=\count471
-\c@savedlistb=\count472
-\c@listc=\count473
-\c@savedlistc=\count474
-\c@listd=\count475
-\c@savedlistd=\count476
-\c@liste=\count477
-\c@savedliste=\count478
-\c@listf=\count479
-\c@savedlistf=\count480
-\c@location=\count481
-\c@savedlocation=\count482
-\c@organization=\count483
-\c@savedorganization=\count484
-\c@origlocation=\count485
-\c@savedoriglocation=\count486
-\c@origpublisher=\count487
-\c@savedorigpublisher=\count488
-\c@publisher=\count489
-\c@savedpublisher=\count490
-\c@language=\count491
-\c@savedlanguage=\count492
-\c@origlanguage=\count493
-\c@savedoriglanguage=\count494
-\c@pageref=\count495
-\c@savedpageref=\count496
+\c@afterword=\count437
+\c@savedafterword=\count438
+\c@annotator=\count439
+\c@savedannotator=\count440
+\c@author=\count441
+\c@savedauthor=\count442
+\c@bookauthor=\count443
+\c@savedbookauthor=\count444
+\c@commentator=\count445
+\c@savedcommentator=\count446
+\c@editor=\count447
+\c@savededitor=\count448
+\c@editora=\count449
+\c@savededitora=\count450
+\c@editorb=\count451
+\c@savededitorb=\count452
+\c@editorc=\count453
+\c@savededitorc=\count454
+\c@foreword=\count455
+\c@savedforeword=\count456
+\c@holder=\count457
+\c@savedholder=\count458
+\c@introduction=\count459
+\c@savedintroduction=\count460
+\c@namea=\count461
+\c@savednamea=\count462
+\c@nameb=\count463
+\c@savednameb=\count464
+\c@namec=\count465
+\c@savednamec=\count466
+\c@translator=\count467
+\c@savedtranslator=\count468
+\c@shortauthor=\count469
+\c@savedshortauthor=\count470
+\c@shorteditor=\count471
+\c@savedshorteditor=\count472
+\c@labelname=\count473
+\c@savedlabelname=\count474
+\c@institution=\count475
+\c@savedinstitution=\count476
+\c@lista=\count477
+\c@savedlista=\count478
+\c@listb=\count479
+\c@savedlistb=\count480
+\c@listc=\count481
+\c@savedlistc=\count482
+\c@listd=\count483
+\c@savedlistd=\count484
+\c@liste=\count485
+\c@savedliste=\count486
+\c@listf=\count487
+\c@savedlistf=\count488
+\c@location=\count489
+\c@savedlocation=\count490
+\c@organization=\count491
+\c@savedorganization=\count492
+\c@origlocation=\count493
+\c@savedoriglocation=\count494
+\c@origpublisher=\count495
+\c@savedorigpublisher=\count496
+\c@publisher=\count497
+\c@savedpublisher=\count498
+\c@language=\count499
+\c@savedlanguage=\count500
+\c@origlanguage=\count501
+\c@savedoriglanguage=\count502
+\c@pageref=\count503
+\c@savedpageref=\count504
 \shorthandwidth=\skip74
 \shortjournalwidth=\skip75
 \shortserieswidth=\skip76
@@ -1132,19 +1176,19 @@ Package biblatex Info: Trying to load generic definitions...
 Package biblatex Info: ... file 'biblatex.def' found.
  (C:\Users\raffy\AppData\Local\Programs\MiKTeX\tex/latex/biblatex\biblatex.def
 File: biblatex.def 2025/07/10 v3.21 biblatex compatibility (PK/MW)
-\c@textcitecount=\count497
-\c@textcitetotal=\count498
-\c@textcitemaxnames=\count499
-\c@biburlbigbreakpenalty=\count500
-\c@biburlbreakpenalty=\count501
-\c@biburlnumpenalty=\count502
-\c@biburlucpenalty=\count503
-\c@biburllcpenalty=\count504
+\c@textcitecount=\count505
+\c@textcitetotal=\count506
+\c@textcitemaxnames=\count507
+\c@biburlbigbreakpenalty=\count508
+\c@biburlbreakpenalty=\count509
+\c@biburlnumpenalty=\count510
+\c@biburlucpenalty=\count511
+\c@biburllcpenalty=\count512
 \biburlbigskip=\muskip19
 \biburlnumskip=\muskip20
 \biburlucskip=\muskip21
 \biburllcskip=\muskip22
-\c@smartand=\count505
+\c@smartand=\count513
 )
 Package biblatex Info: Trying to load bibliography style 'numeric'...
 Package biblatex Info: ... file 'numeric.bbx' found.
@@ -1158,8 +1202,8 @@ Package biblatex Info: ... file 'standard.bbx' found.
 (C:\Users\raffy\AppData\Local\Programs\MiKTeX\tex/latex/biblatex/bbx\standard.b
 bx
 File: standard.bbx 2025/07/10 v3.21 biblatex bibliography style (PK/MW)
-\c@bbx:relatedcount=\count506
-\c@bbx:relatedtotal=\count507
+\c@bbx:relatedcount=\count514
+\c@bbx:relatedtotal=\count515
 ))
 Package biblatex Info: Trying to load citation style 'authoryear'...
 Package biblatex Info: ... file 'authoryear.cbx' found.
@@ -1190,7 +1234,7 @@ Package: expl3 2025-12-24 L3 programming layer (loader)
 (C:\Users\raffy\AppData\Local\Programs\MiKTeX\tex/latex/l3backend\l3backend-pdf
 tex.def
 File: l3backend-pdftex.def 2025-10-09 L3 backend support: PDF output (pdfTeX)
-\l__color_backend_stack_int=\count508
+\l__color_backend_stack_int=\count516
 ))
 Package biblatex Info: ... and expl3
 (biblatex)             2025-12-24 L3 programming layer (loader) 
@@ -1222,18 +1266,18 @@ Package: geometry 2026/03/07 v6.0 Page Geometry
 (C:\Users\raffy\AppData\Local\Programs\MiKTeX\tex/generic/iftex\ifvtex.sty
 Package: ifvtex 2019/10/25 v1.7 ifvtex legacy package. Use iftex instead.
 )
-\Gm@cnth=\count509
-\Gm@cntv=\count510
-\c@Gm@tempcnt=\count511
-\Gm@bindingoffset=\dimen337
-\Gm@wd@mp=\dimen338
-\Gm@odd@mp=\dimen339
-\Gm@even@mp=\dimen340
-\Gm@layoutwidth=\dimen341
-\Gm@layoutheight=\dimen342
-\Gm@layouthoffset=\dimen343
-\Gm@layoutvoffset=\dimen344
-\Gm@dimlist=\toks57
+\Gm@cnth=\count517
+\Gm@cntv=\count518
+\c@Gm@tempcnt=\count519
+\Gm@bindingoffset=\dimen341
+\Gm@wd@mp=\dimen342
+\Gm@odd@mp=\dimen343
+\Gm@even@mp=\dimen344
+\Gm@layoutwidth=\dimen345
+\Gm@layoutheight=\dimen346
+\Gm@layouthoffset=\dimen347
+\Gm@layoutvoffset=\dimen348
+\Gm@dimlist=\toks60
 
 (C:\Users\raffy\AppData\Local\Programs\MiKTeX\tex/latex/geometry\geometry.cfg))
 (C:\Users\raffy\AppData\Local\Programs\MiKTeX\tex/latex/tools\bm.sty
@@ -1296,44 +1340,44 @@ Package: fancyhdr 2025/02/07 v5.2 Extensive control of page headers and footers
 \f@nch@widthL=\skip99
 \f@nch@widthC=\skip100
 \f@nch@widthR=\skip101
-\@temptokenb=\toks58
+\@temptokenb=\toks61
 )
 (C:\Users\raffy\AppData\Local\Programs\MiKTeX\tex/latex/pdfpages\pdfpages.sty
 Package: pdfpages 2026/03/30 v0.6h Insert pages of external PDF documents (AM)
 
 (C:\Users\raffy\AppData\Local\Programs\MiKTeX\tex/latex/tools\calc.sty
 Package: calc 2025/03/01 v4.3b Infix arithmetic (KKT,FJ)
-\calc@Acount=\count512
-\calc@Bcount=\count513
-\calc@Adimen=\dimen345
-\calc@Bdimen=\dimen346
+\calc@Acount=\count520
+\calc@Bcount=\count521
+\calc@Adimen=\dimen349
+\calc@Bdimen=\dimen350
 \calc@Askip=\skip102
 \calc@Bskip=\skip103
 LaTeX Info: Redefining \setlength on input line 86.
 LaTeX Info: Redefining \addtolength on input line 87.
-\calc@Ccount=\count514
+\calc@Ccount=\count522
 \calc@Cskip=\skip104
 )
 (C:\Users\raffy\AppData\Local\Programs\MiKTeX\tex/latex/eso-pic\eso-pic.sty
 Package: eso-pic 2026/05/31 v3.0e eso-pic (RN)
-\ESO@tempdima=\dimen347
-\ESO@tempdimb=\dimen348
+\ESO@tempdima=\dimen351
+\ESO@tempdimb=\dimen352
 )
-\AM@pagewidth=\dimen349
-\AM@pageheight=\dimen350
-\AM@fboxrule=\dimen351
+\AM@pagewidth=\dimen353
+\AM@pageheight=\dimen354
+\AM@fboxrule=\dimen355
 
 (C:\Users\raffy\AppData\Local\Programs\MiKTeX\tex/latex/pdfpages\pppdftex.def
 File: pppdftex.def 2026/03/30 v0.6h Pdfpages driver for pdfTeX (AM)
 )
-\pdfpages@includegraphics@status=\count515
-\AM@pagebox=\box82
-\AM@global@opts=\toks59
-\AM@pagecnt=\count516
-\AM@toc@title=\toks60
-\AM@lof@heading=\toks61
-\c@AM@survey=\count517
-\AM@templatesizebox=\box83
+\pdfpages@includegraphics@status=\count523
+\AM@pagebox=\box84
+\AM@global@opts=\toks62
+\AM@pagecnt=\count524
+\AM@toc@title=\toks63
+\AM@lof@heading=\toks64
+\c@AM@survey=\count525
+\AM@templatesizebox=\box85
 ) (_internals/fncychap.sty
 
 LaTeX Warning: You have requested package `_internals/fncychap',
@@ -1385,19 +1429,19 @@ Package tocloft Info: The document has chapter divisions on input line 51.
 \cftbeforefigskip=\skip141
 \cftfigindent=\skip142
 \cftfignumwidth=\skip143
-\c@lofdepth=\count518
-\c@lotdepth=\count519
+\c@lofdepth=\count526
+\c@lotdepth=\count527
 \cftbeforelottitleskip=\skip144
 \cftafterlottitleskip=\skip145
 \cftbeforetabskip=\skip146
 \cfttabindent=\skip147
 \cfttabnumwidth=\skip148
 )
-\c@listing=\count520
+\c@listing=\count528
 \cftbeforelistingskip=\skip149
 \cftlistingindent=\skip150
 \cftlistingnumwidth=\skip151
-\c@loldepth=\count521
+\c@loldepth=\count529
 \cftbeforeloltitleskip=\skip152
 \cftafterloltitleskip=\skip153
 
@@ -1416,11 +1460,11 @@ rb
 
 (C:\Users\raffy\AppData\Local\Programs\MiKTeX\tex/latex/fancyvrb\fancyvrb.sty
 Package: fancyvrb 2026/04/16 4.6a verbatim text (tvz,hv)
-\FV@CodeLineNo=\count522
+\FV@CodeLineNo=\count530
 \FV@InFile=\read4
-\FV@TabBox=\box84
-\c@FancyVerbLine=\count523
-\FV@StepNumber=\count524
+\FV@TabBox=\box86
+\c@FancyVerbLine=\count531
+\FV@StepNumber=\count532
 \FV@OutFile=\write5
 )
 (C:\Users\raffy\AppData\Local\Programs\MiKTeX\tex/latex/upquote\upquote.sty
@@ -1430,32 +1474,32 @@ tim
 (C:\Users\raffy\AppData\Local\Programs\MiKTeX\tex/latex/base\textcomp.sty
 Package: textcomp 2024/04/24 v2.1b Standard LaTeX package
 ))
-\c@FancyVerbWriteLine=\count525
-\c@FancyVerbBufferLine=\count526
-\c@FV@TrueTabGroupLevel=\count527
-\c@FV@TrueTabCounter=\count528
-\FV@TabBox@Group=\box85
-\FV@bgcolorstructbox=\box86
+\c@FancyVerbWriteLine=\count533
+\c@FancyVerbBufferLine=\count534
+\c@FV@TrueTabGroupLevel=\count535
+\c@FV@TrueTabCounter=\count536
+\FV@TabBox@Group=\box87
+\FV@bgcolorstructbox=\box88
 \FV@TmpLength=\skip154
-\c@FV@HighlightLinesStart=\count529
-\c@FV@HighlightLinesStop=\count530
-\FV@LoopCount=\count531
-\FV@NCharsBox=\box87
-\FV@BreakIndent=\dimen352
-\FV@BreakIndentNChars=\count532
-\FV@BreakSymbolSepLeft=\dimen353
-\FV@BreakSymbolSepLeftNChars=\count533
-\FV@BreakSymbolSepRight=\dimen354
-\FV@BreakSymbolSepRightNChars=\count534
-\FV@BreakSymbolIndentLeft=\dimen355
-\FV@BreakSymbolIndentLeftNChars=\count535
-\FV@BreakSymbolIndentRight=\dimen356
-\FV@BreakSymbolIndentRightNChars=\count536
-\c@FancyVerbLineBreakLast=\count537
-\FV@LineBox=\box88
-\FV@LineIndentBox=\box89
-\c@FV@BreakBufferDepth=\count538
-\FV@LineWidth=\dimen357
+\c@FV@HighlightLinesStart=\count537
+\c@FV@HighlightLinesStop=\count538
+\FV@LoopCount=\count539
+\FV@NCharsBox=\box89
+\FV@BreakIndent=\dimen356
+\FV@BreakIndentNChars=\count540
+\FV@BreakSymbolSepLeft=\dimen357
+\FV@BreakSymbolSepLeftNChars=\count541
+\FV@BreakSymbolSepRight=\dimen358
+\FV@BreakSymbolSepRightNChars=\count542
+\FV@BreakSymbolIndentLeft=\dimen359
+\FV@BreakSymbolIndentLeftNChars=\count543
+\FV@BreakSymbolIndentRight=\dimen360
+\FV@BreakSymbolIndentRightNChars=\count544
+\c@FancyVerbLineBreakLast=\count545
+\FV@LineBox=\box90
+\FV@LineIndentBox=\box91
+\c@FV@BreakBufferDepth=\count546
+\FV@LineWidth=\dimen361
 )
 (C:\Users\raffy\AppData\Local\Programs\MiKTeX\tex/latex/latex2pydata\latex2pyda
 ta.sty
@@ -1464,8 +1508,8 @@ thon literal format
 )
 (C:\Users\raffy\AppData\Local\Programs\MiKTeX\tex/latex/pgfopts\pgfopts.sty
 Package: pgfopts 2014/07/10 v2.1a LaTeX package options with pgfkeys
-\pgfopts@list@add@a@toks=\toks62
-\pgfopts@list@add@b@toks=\toks63
+\pgfopts@list@add@a@toks=\toks65
+\pgfopts@list@add@b@toks=\toks66
 )
 (C:\Users\raffy\AppData\Local\Programs\MiKTeX\tex/latex/tools\shellesc.sty
 Package: shellesc 2023/07/08 v1.0d unified shell escape interface for LaTeX
@@ -1488,7 +1532,7 @@ Package newfloat Info: \Hy@org@chapter = macro:[#1]#2->\NR@gettitle {#1}\NR@cha
 pter [{#1}]{#2}.
 Package newfloat Info: \algocf@original@chapter = undefined.
 )
-\c@minted@FancyVerbLineTemp=\count539
+\c@minted@FancyVerbLineTemp=\count547
 Package newfloat Info: New float `listing' with options `fileext=lol,placement=
 tbp' on input line 1985.
 Package newfloat Info: \c@listing is already defined on input line 1985.
@@ -1498,7 +1542,7 @@ Package newfloat Info: \l@listing is already defined on input line 1985.
 Package newfloat Info: \ext@listing is already defined on input line 1985.
 Package newfloat Info: \c@loldepth is already defined on input line 1985.
 Package caption Info: New subtype `sublisting' on input line 1985.
-\c@sublisting=\count540
+\c@sublisting=\count548
 ) (C:\Users\raffy\AppData\Local\Programs\MiKTeX\tex/latex/mdframed\mdframed.sty
 Package: mdframed 2013/07/01 1.9b: mdframed
 
@@ -1515,14 +1559,14 @@ Package zref Info: New property list: main on input line 767.
 Package zref Info: New property: default on input line 768.
 Package zref Info: New property: page on input line 769.
 )
-\c@abspage=\count541
+\c@abspage=\count549
 Package zref Info: New property: abspage on input line 67.
 )
 (C:\Users\raffy\AppData\Local\Programs\MiKTeX\tex/latex/needspace\needspace.sty
 Package: needspace 2025/03/13 v1.3e reserve vertical space
 )
 \mdf@templength=\skip155
-\c@mdf@globalstyle@cnt=\count542
+\c@mdf@globalstyle@cnt=\count550
 \mdf@skipabove@length=\skip156
 \mdf@skipbelow@length=\skip157
 \mdf@leftmargin@length=\skip158
@@ -1566,11 +1610,11 @@ Package: needspace 2025/03/13 v1.3e reserve vertical space
 (C:\Users\raffy\AppData\Local\Programs\MiKTeX\tex/latex/mdframed\md-frame-1.mdf
 File: md-frame-1.mdf 2013/07/01\ 1.9b: md-frame-1
 )
-\mdf@frametitlebox=\box90
-\mdf@footnotebox=\box91
-\mdf@splitbox@one=\box92
-\mdf@splitbox@two=\box93
-\mdf@splitbox@save=\box94
+\mdf@frametitlebox=\box92
+\mdf@footnotebox=\box93
+\mdf@splitbox@one=\box94
+\mdf@splitbox@two=\box95
+\mdf@splitbox@save=\box96
 \mdfsplitboxwidth=\skip195
 \mdfsplitboxtotalwidth=\skip196
 \mdfsplitboxheight=\skip197
@@ -1598,74 +1642,72 @@ File: md-frame-1.mdf 2013/07/01\ 1.9b: md-frame-1
 \mdf@horizontalspaceofbox=\skip275
 \mdfsubtitleheight=\skip276
 \mdfsubsubtitleheight=\skip277
-\c@mdfcountframes=\count543
+\c@mdfcountframes=\count551
 
 ****** mdframed patching \endmdf@trivlist
 
 ****** -- success******
 
-\mdf@envdepth=\count544
-\c@mdf@env@i=\count545
-\c@mdf@env@ii=\count546
-\c@mdf@zref@counter=\count547
+\mdf@envdepth=\count552
+\c@mdf@env@i=\count553
+\c@mdf@env@ii=\count554
+\c@mdf@zref@counter=\count555
 Package zref Info: New property: mdf@pagevalue on input line 895.
 )) (_internals/hype.indonesia.tex) (settings.tex) (istilah.tex)
 Package translations Info: No language package found. I am going to use `englis
-h' as default language. on input line 115.
-\@quotelevel=\count548
-\@quotereset=\count549
+h' as default language. on input line 136.
+\@quotelevel=\count556
+\@quotereset=\count557
  (thesis.aux
 
 LaTeX Warning: Label `sec:bert' multiply defined.
 
-
-LaTeX Warning: Label `eq:cls_extraction' multiply defined.
-
 )
 \openout1 = `thesis.aux'.
 
-LaTeX Font Info:    Checking defaults for OML/cmm/m/it on input line 115.
-LaTeX Font Info:    ... okay on input line 115.
-LaTeX Font Info:    Checking defaults for OMS/pzccm/m/n on input line 115.
+LaTeX Font Info:    Checking defaults for OML/cmm/m/it on input line 136.
+LaTeX Font Info:    ... okay on input line 136.
+LaTeX Font Info:    Checking defaults for OMS/pzccm/m/n on input line 136.
 LaTeX Font Info:    Trying to load font information for OMS+pzccm on input line
- 115.
+ 136.
  (C:\Users\raffy\AppData\Local\Programs\MiKTeX\tex/latex/psnfss\omspzccm.fd
 File: omspzccm.fd 2000/01/03 Fontinst v1.801 font definitions for OMS/pzccm.
 )
-LaTeX Font Info:    ... okay on input line 115.
-LaTeX Font Info:    Checking defaults for OT1/cmr/m/n on input line 115.
-LaTeX Font Info:    ... okay on input line 115.
-LaTeX Font Info:    Checking defaults for T1/cmr/m/n on input line 115.
-LaTeX Font Info:    ... okay on input line 115.
-LaTeX Font Info:    Checking defaults for TS1/cmr/m/n on input line 115.
-LaTeX Font Info:    ... okay on input line 115.
-LaTeX Font Info:    Checking defaults for OMX/cmex/m/n on input line 115.
-LaTeX Font Info:    ... okay on input line 115.
-LaTeX Font Info:    Checking defaults for U/cmr/m/n on input line 115.
-LaTeX Font Info:    ... okay on input line 115.
-LaTeX Font Info:    Checking defaults for PD1/pdf/m/n on input line 115.
-LaTeX Font Info:    ... okay on input line 115.
-LaTeX Font Info:    Checking defaults for PU/pdf/m/n on input line 115.
-LaTeX Font Info:    ... okay on input line 115.
+LaTeX Font Info:    ... okay on input line 136.
+LaTeX Font Info:    Checking defaults for OT1/cmr/m/n on input line 136.
+LaTeX Font Info:    ... okay on input line 136.
+LaTeX Font Info:    Checking defaults for T1/cmr/m/n on input line 136.
+LaTeX Font Info:    ... okay on input line 136.
+LaTeX Font Info:    Checking defaults for TS1/cmr/m/n on input line 136.
+LaTeX Font Info:    ... okay on input line 136.
+LaTeX Font Info:    Checking defaults for OMX/cmex/m/n on input line 136.
+LaTeX Font Info:    ... okay on input line 136.
+LaTeX Font Info:    Checking defaults for U/cmr/m/n on input line 136.
+LaTeX Font Info:    ... okay on input line 136.
+LaTeX Font Info:    Checking defaults for PD1/pdf/m/n on input line 136.
+LaTeX Font Info:    ... okay on input line 136.
+LaTeX Font Info:    Checking defaults for PU/pdf/m/n on input line 136.
+LaTeX Font Info:    ... okay on input line 136.
 Package caption Info: Begin \AtBeginDocument code.
 Package caption Info: float package is loaded.
 Package caption Info: hyperref package is loaded.
+Package caption Info: listings package is loaded.
 Package caption Info: End \AtBeginDocument code.
 
 (C:\Users\raffy\AppData\Local\Programs\MiKTeX\tex/context/base/mkii\supp-pdf.mk
 ii
 [Loading MPS to PDF converter (version 2006.09.02).]
-\scratchcounter=\count550
-\scratchdimen=\dimen358
-\scratchbox=\box95
-\nofMPsegments=\count551
-\nofMParguments=\count552
-\everyMPshowfont=\toks64
-\MPscratchCnt=\count553
-\MPscratchDim=\dimen359
-\MPnumerator=\count554
-\makeMPintoPDFobject=\count555
-\everyMPtoPDFconversion=\toks65
+\scratchcounter=\count558
+\scratchdimen=\dimen362
+\scratchbox=\box97
+\nofMPsegments=\count559
+\nofMParguments=\count560
+\everyMPshowfont=\toks67
+\MPscratchCnt=\count561
+\MPscratchDim=\dimen363
+\MPnumerator=\count562
+\makeMPintoPDFobject=\count563
+\everyMPtoPDFconversion=\toks68
 )
 (C:\Users\raffy\AppData\Local\Programs\MiKTeX\tex/latex/epstopdf-pkg\epstopdf-b
 ase.sty
@@ -1677,7 +1719,7 @@ Package epstopdf-base Info: Redefining graphics rule for `.eps' on input line 4
 fg
 File: epstopdf-sys.cfg 2021/03/18 v2.0 Configuration of epstopdf for MiKTeX
 ))
-Package hyperref Info: Link coloring OFF on input line 115.
+Package hyperref Info: Link coloring OFF on input line 136.
  (thesis.out) (thesis.out)
 \@outlinefile=\write6
 \openout6 = `thesis.out'.
@@ -1689,11 +1731,12 @@ File: translations-basic-dictionary-english.trsl (english translation file `tra
 nslations-basic-dictionary')
 )
 Package translations Info: loading dictionary `translations-basic-dictionary' f
-or `english'. on input line 115.
+or `english'. on input line 136.
 
 Package pgfplots notification 'compat/show suggested version=true': document ha
 s been generated with the most recent feature set (\pgfplotsset{compat=1.18}).
 
+\c@lstlisting=\count564
 Package biblatex Info: Trying to load language 'english'...
 Package biblatex Info: ... file 'english.lbx' found.
 
@@ -1709,8 +1752,8 @@ Package biblatex Info: Automatic encoding selection.
 Package biblatex Info: Trying to load bibliographic data...
 Package biblatex Info: ... file 'thesis.bbl' found.
  (thesis.bbl)
-Package biblatex Info: Reference section=0 on input line 115.
-Package biblatex Info: Reference segment=0 on input line 115.
+Package biblatex Info: Reference section=0 on input line 136.
+Package biblatex Info: Reference segment=0 on input line 136.
 
 *geometry* driver: auto-detecting
 *geometry* detected driver: pdftex
@@ -1774,7 +1817,7 @@ Package epstopdf Info: Source file: <_internals/makara.eps>
 s-converted-to.pdf _internals/makara.eps>
 (epstopdf)             \includegraphics on input line 14.
 Package epstopdf Info: Output file is already uptodate.
-<_internals/makara-eps-converted-to.pdf, id=366, 219.82124pt x 219.82124pt>
+<_internals/makara-eps-converted-to.pdf, id=365, 219.82124pt x 219.82124pt>
 File: _internals/makara-eps-converted-to.pdf Graphic file (type pdf)
 <use _internals/makara-eps-converted-to.pdf>
 Package pdftex.def Info: _internals/makara-eps-converted-to.pdf  used on input 
@@ -1846,7 +1889,7 @@ LaTeX Font Info:    Font shape `OT1/ptm/bx/n' in size <7> not available
 ])
 (src/00-front_matter/03-pengesahan_sidang.tex
 Underfull \hbox (badness 7397) in paragraph at lines 19--20
-[]|\OT1/ptm/m/it/12 Pengembangan Joint Document-Level Sentimen-
+[]|\T1/ptm/m/it/12 Pengembangan Joint Document-Level Sentimen-
  []
 
 
@@ -1861,8 +1904,8 @@ Underfull \hbox (badness 10000) in paragraph at lines 13--21
 
 
 Underfull \hbox (badness 1596) in paragraph at lines 24--28
-\OT1/ptm/b/n/12 Telah berhasil diper-ta-hankan di hada-pan De-wan Pen-guji dan 
-di-ter-ima
+\T1/ptm/b/n/12 Telah berhasil diper-ta-hankan di hada-pan De-wan Pen-guji dan d
+i-ter-ima
  []
 
 
@@ -1885,7 +1928,7 @@ Underfull \hbox (badness 10000) in paragraph at lines 35--45
 ])
 
 Package hyperref Warning: Token not allowed in a PDF string (Unicode):
-(hyperref)                removing `\uppercase' on input line 152.
+(hyperref)                removing `\uppercase' on input line 173.
 
 (src/00-front_matter/04-pengantar.tex [5
 
@@ -1898,33 +1941,59 @@ Package fancyhdr Warning: \headheight is too small (0.0pt):
 (fancyhdr)                You might also make \topmargin smaller:
 (fancyhdr)                \addtolength{\topmargin}{-14.49998pt}.
 
-LaTeX Font Info:    Font shape `OT1/phv/m/n' will be
+LaTeX Font Info:    Font shape `T1/phv/m/n' will be
 (Font)              scaled to size 8.99994pt on input line 1.
-LaTeX Font Info:    Font shape `OT1/phv/b/n' will be
+LaTeX Font Info:    Font shape `T1/phv/b/n' will be
 (Font)              scaled to size 8.99994pt on input line 1.
 [6] [7
 
 ]) (src/00-front_matter/06-abstrak.tex [8
 
 ])
-(src/00-front_matter/07-abstract.tex [9
-
-])
-
-Package hyperref Warning: Token not allowed in a PDF string (Unicode):
-(hyperref)                removing `\uppercase' on input line 170.
-
-(thesis.toc
-Underfull \hbox (badness 2189) in paragraph at lines 4--4
- [][] []\OT1/ptm/b/n/12 LEM-BAR PERNY-ATAAN PENG-GU-NAAN KE-CER-DASAN AR-TI- 
- []
-
-[10
+(src/00-front_matter/07-abstract.tex
+<assets/pics/other/Flowchart.png, id=426, 511.9125pt x 605.26125pt>
+File: assets/pics/other/Flowchart.png Graphic file (type png)
+<use assets/pics/other/Flowchart.png>
+Package pdftex.def Info: assets/pics/other/Flowchart.png  used on input line 71
+.
+(pdftex.def)             Requested size: 326.64055pt x 386.20218pt.
+ [9
 
 ]
-Underfull \hbox (badness 2418) in paragraph at lines 49--49
- [][] [][]\OT1/ptm/b/n/12 METODE MODEL \OT1/ptm/b/it/12 JOINT DOCUMENT-LEVEL SE
-NTIMENT- 
+
+Package fancyhdr Warning: \headheight is too small (0.0pt): 
+(fancyhdr)                Make it at least 14.49998pt, for example:
+(fancyhdr)                \setlength{\headheight}{14.49998pt}.
+(fancyhdr)                You might also make \topmargin smaller:
+(fancyhdr)                \addtolength{\topmargin}{-14.49998pt}.
+
+[10 <./assets/pics/other/Flowchart.png>]
+LaTeX Font Info:    Font shape `OT1/ptm/bx/n' in size <10.95> not available
+(Font)              Font shape `OT1/ptm/b/n' tried instead on input line 149.
+LaTeX Font Info:    Font shape `OT1/ptm/bx/n' in size <8> not available
+(Font)              Font shape `OT1/ptm/b/n' tried instead on input line 149.
+LaTeX Font Info:    Font shape `OT1/ptm/bx/n' in size <6> not available
+(Font)              Font shape `OT1/ptm/b/n' tried instead on input line 149.
+
+
+Package fancyhdr Warning: \headheight is too small (0.0pt): 
+(fancyhdr)                Make it at least 14.49998pt, for example:
+(fancyhdr)                \setlength{\headheight}{14.49998pt}.
+(fancyhdr)                You might also make \topmargin smaller:
+(fancyhdr)                \addtolength{\topmargin}{-14.49998pt}.
+
+[11]
+
+Package fancyhdr Warning: \headheight is too small (0.0pt): 
+(fancyhdr)                Make it at least 14.49998pt, for example:
+(fancyhdr)                \setlength{\headheight}{14.49998pt}.
+(fancyhdr)                You might also make \topmargin smaller:
+(fancyhdr)                \addtolength{\topmargin}{-14.49998pt}.
+
+[12]
+Underfull \hbox (badness 2828) in paragraph at lines 352--360
+[]\T1/ptm/m/n/12 In con-clu-sion, \T1/ptm/b/n/12 JDST-DEC \T1/ptm/m/n/12 demon-
+strates an ef-fec-tive mech-a-nism for joint
  []
 
 
@@ -1934,7 +2003,32 @@ Package fancyhdr Warning: \headheight is too small (0.0pt):
 (fancyhdr)                You might also make \topmargin smaller:
 (fancyhdr)                \addtolength{\topmargin}{-14.49998pt}.
 
-[11])
+[13])
+
+Package hyperref Warning: Token not allowed in a PDF string (Unicode):
+(hyperref)                removing `\uppercase' on input line 191.
+
+(thesis.toc
+Underfull \hbox (badness 2189) in paragraph at lines 4--4
+ [][] []\T1/ptm/b/n/12 LEM-BAR PERNY-ATAAN PENG-GU-NAAN KE-CER-DASAN AR-TI- 
+ []
+
+[14
+
+]
+Underfull \hbox (badness 2418) in paragraph at lines 51--51
+ [][] [][]\T1/ptm/b/n/12 METODE MODEL \T1/ptm/b/it/12 JOINT DOCUMENT-LEVEL SENT
+IMENT- 
+ []
+
+
+Package fancyhdr Warning: \headheight is too small (0.0pt): 
+(fancyhdr)                Make it at least 14.49998pt, for example:
+(fancyhdr)                \setlength{\headheight}{14.49998pt}.
+(fancyhdr)                You might also make \topmargin smaller:
+(fancyhdr)                \addtolength{\topmargin}{-14.49998pt}.
+
+[15])
 \tf@toc=\write7
 \openout7 = `thesis.toc'.
 
@@ -1946,36 +2040,36 @@ Package fancyhdr Warning: \headheight is too small (0.0pt):
 (fancyhdr)                You might also make \topmargin smaller:
 (fancyhdr)                \addtolength{\topmargin}{-14.49998pt}.
 
-[12]
+[16]
 
 Package hyperref Warning: Token not allowed in a PDF string (Unicode):
-(hyperref)                removing `\uppercase' on input line 173.
+(hyperref)                removing `\uppercase' on input line 194.
 
 (thesis.lof
-Underfull \hbox (badness 2556) in paragraph at lines 4--4
- [][] [][]\OT1/ptm/m/it/12 Artificial Neu-ral Net-work \OT1/ptm/m/n/12 de-ngan 
-rep-re-sen-tasi bobot 
+Underfull \hbox (badness 2556) in paragraph at lines 5--5
+ [][] [][]\T1/ptm/m/it/12 Artificial Neu-ral Net-work \T1/ptm/m/n/12 de-ngan re
+p-re-sen-tasi bobot 
  []
 
 
-Underfull \hbox (badness 1127) in paragraph at lines 7--7
- [][] [][]\OT1/ptm/m/n/12 Ilustrasi graf kom-putasi pada proses \OT1/ptm/m/it/1
-2 back-prop-a-ga-tion 
+Underfull \hbox (badness 1127) in paragraph at lines 8--8
+ [][] [][]\T1/ptm/m/n/12 Ilustrasi graf kom-putasi pada proses \T1/ptm/m/it/12 
+back-prop-a-ga-tion 
  []
 
 
-Underfull \hbox (badness 1297) in paragraph at lines 8--8
- [][] [][]\OT1/ptm/m/n/12 Ilustrasi \OT1/ptm/m/it/12 bias-variance trade-off \O
-T1/ptm/m/n/12 ter-hadap kom-plek-si-tas 
+Underfull \hbox (badness 1297) in paragraph at lines 9--9
+ [][] [][]\T1/ptm/m/n/12 Ilustrasi \T1/ptm/m/it/12 bias-variance trade-off \T1/
+ptm/m/n/12 ter-hadap kom-plek-si-tas 
  []
 
 
-Underfull \hbox (badness 1215) in paragraph at lines 9--9
- [][] [][]\OT1/ptm/m/n/12 Arsitektur \OT1/ptm/m/it/12 au-toen-coder \OT1/ptm/m/
-n/12 me-nun-jukkan proses \OT1/ptm/m/it/12 en-cod-ing 
+Underfull \hbox (badness 1215) in paragraph at lines 10--10
+ [][] [][]\T1/ptm/m/n/12 Arsitektur \T1/ptm/m/it/12 au-toen-coder \T1/ptm/m/n/1
+2 me-nun-jukkan proses \T1/ptm/m/it/12 en-cod-ing 
  []
 
-[13
+[17
 
 
 ])
@@ -1990,16 +2084,16 @@ Package fancyhdr Warning: \headheight is too small (0.0pt):
 (fancyhdr)                You might also make \topmargin smaller:
 (fancyhdr)                \addtolength{\topmargin}{-14.49998pt}.
 
-[14]
+[18]
 
 Package hyperref Warning: Token not allowed in a PDF string (Unicode):
-(hyperref)                removing `\uppercase' on input line 176.
+(hyperref)                removing `\uppercase' on input line 197.
 
 (thesis.lot)
 \tf@lot=\write9
 \openout9 = `thesis.lot'.
 
- [15
+ [19
 
 
 ] (src/01-body/01-bab1.tex
@@ -2053,8 +2147,8 @@ Package fancyhdr Warning: \headheight is too small (0.0pt):
 
 [5]
 Underfull \hbox (badness 1122) in paragraph at lines 110--112
-[]\OT1/ptm/m/n/12 Penelitian ini di-hara-p-kan da-pat mem-berikan man-faat baik
- se-cara teo-retis
+[]\T1/ptm/m/n/12 Penelitian ini di-hara-p-kan da-pat mem-berikan man-faat baik 
+se-cara teo-retis
  []
 
 
@@ -2081,7 +2175,7 @@ Package hyperref Warning: Token not allowed in a PDF string (Unicode):
 [8
 
 ]
-<assets/pics/Aggarwal/Dendrit (Biological Neural Nework).png, id=876, 291.0875p
+<assets/pics/Aggarwal/Dendrit (Biological Neural Nework).png, id=916, 291.0875p
 t x 92.345pt>
 File: assets/pics/Aggarwal/Dendrit (Biological Neural Nework).png Graphic file 
 (type png)
@@ -2089,7 +2183,7 @@ File: assets/pics/Aggarwal/Dendrit (Biological Neural Nework).png Graphic file
 Package pdftex.def Info: assets/pics/Aggarwal/Dendrit (Biological Neural Nework
 ).png  used on input line 102.
 (pdftex.def)             Requested size: 191.20082pt x 60.65761pt.
-<assets/pics/Aggarwal/NN ML.png, id=879, 158.5925pt x 115.43124pt>
+<assets/pics/Aggarwal/NN ML.png, id=919, 158.5925pt x 115.43124pt>
 File: assets/pics/Aggarwal/NN ML.png Graphic file (type png)
 <use assets/pics/Aggarwal/NN ML.png>
 Package pdftex.def Info: assets/pics/Aggarwal/NN ML.png  used on input line 110
@@ -2104,7 +2198,7 @@ Package fancyhdr Warning: \headheight is too small (0.0pt):
 (fancyhdr)                \addtolength{\topmargin}{-14.49998pt}.
 
 [9]
-<assets/pics/Aggarwal/Multi Layer Bias.png, id=889, 256.96pt x 142.5325pt>
+<assets/pics/Aggarwal/Multi Layer Bias.png, id=928, 256.96pt x 142.5325pt>
 File: assets/pics/Aggarwal/Multi Layer Bias.png Graphic file (type png)
 <use assets/pics/Aggarwal/Multi Layer Bias.png>
 Package pdftex.def Info: assets/pics/Aggarwal/Multi Layer Bias.png  used on inp
@@ -2132,8 +2226,6 @@ LaTeX Font Info:    Font shape `OT1/ptm/bx/n' in size <10> not available
 (Font)              Font shape `OT1/ptm/b/n' tried instead on input line 276.
 LaTeX Font Info:    Font shape `OT1/ptm/bx/n' in size <7.4> not available
 (Font)              Font shape `OT1/ptm/b/n' tried instead on input line 276.
-LaTeX Font Info:    Font shape `OT1/ptm/bx/n' in size <6> not available
-(Font)              Font shape `OT1/ptm/b/n' tried instead on input line 276.
 
 
 Package fancyhdr Warning: \headheight is too small (0.0pt): 
@@ -2143,7 +2235,7 @@ Package fancyhdr Warning: \headheight is too small (0.0pt):
 (fancyhdr)                \addtolength{\topmargin}{-14.49998pt}.
 
 [12]
-<assets/pics/Aggarwal/NN Backprop.png, id=923, 435.6275pt x 171.64125pt>
+<assets/pics/Aggarwal/NN Backprop.png, id=960, 435.6275pt x 171.64125pt>
 File: assets/pics/Aggarwal/NN Backprop.png Graphic file (type png)
 <use assets/pics/Aggarwal/NN Backprop.png>
 Package pdftex.def Info: assets/pics/Aggarwal/NN Backprop.png  used on input li
@@ -2174,7 +2266,7 @@ Package fancyhdr Warning: \headheight is too small (0.0pt):
 (fancyhdr)                \addtolength{\topmargin}{-14.49998pt}.
 
 [15]
-<assets/pics/Aggarwal/NN Regularization.png, id=959, 616.3025pt x 457.71pt>
+<assets/pics/Aggarwal/NN Regularization.png, id=995, 616.3025pt x 457.71pt>
 File: assets/pics/Aggarwal/NN Regularization.png Graphic file (type png)
 <use assets/pics/Aggarwal/NN Regularization.png>
 Package pdftex.def Info: assets/pics/Aggarwal/NN Regularization.png  used on in
@@ -2197,7 +2289,7 @@ Package fancyhdr Warning: \headheight is too small (0.0pt):
 (fancyhdr)                \addtolength{\topmargin}{-14.49998pt}.
 
 [17]
-<assets/pics/Aggarwal/Autoencoder.png, id=979, 335.2525pt x 177.66376pt>
+<assets/pics/Aggarwal/Autoencoder.png, id=1016, 335.2525pt x 177.66376pt>
 File: assets/pics/Aggarwal/Autoencoder.png Graphic file (type png)
 <use assets/pics/Aggarwal/Autoencoder.png>
 Package pdftex.def Info: assets/pics/Aggarwal/Autoencoder.png  used on input li
@@ -2220,7 +2312,7 @@ Package fancyhdr Warning: \headheight is too small (0.0pt):
 (fancyhdr)                \addtolength{\topmargin}{-14.49998pt}.
 
 [19]
-<assets/pics/BERT/bert_architecture.png, id=1000, 618.31pt x 263.98625pt>
+<assets/pics/BERT/bert_architecture.png, id=1037, 618.31pt x 263.98625pt>
 File: assets/pics/BERT/bert_architecture.png Graphic file (type png)
 <use assets/pics/BERT/bert_architecture.png>
 Package pdftex.def Info: assets/pics/BERT/bert_architecture.png  used on input 
@@ -2235,7 +2327,7 @@ Package fancyhdr Warning: \headheight is too small (0.0pt):
 (fancyhdr)                \addtolength{\topmargin}{-14.49998pt}.
 
 [20 <./assets/pics/BERT/bert_architecture.png>]
-<assets/pics/BERT/bert_representation.png, id=1014, 494.84875pt x 154.5775pt>
+<assets/pics/BERT/bert_representation.png, id=1050, 494.84875pt x 154.5775pt>
 File: assets/pics/BERT/bert_representation.png Graphic file (type png)
 <use assets/pics/BERT/bert_representation.png>
 Package pdftex.def Info: assets/pics/BERT/bert_representation.png  used on inpu
@@ -2291,8 +2383,8 @@ Package fancyhdr Warning: \headheight is too small (0.0pt):
 
 [26]
 Underfull \hbox (badness 1436) in paragraph at lines 1278--1283
-[]\OT1/ptm/m/it/12 Occlusion-based at-tri-bu-tion \OT1/ptm/m/n/12 meru-pakan sa
-lah satu metode \OT1/ptm/m/it/12 post-hoc \OT1/ptm/m/n/12 yang
+[]\T1/ptm/m/it/12 Occlusion-based at-tri-bu-tion \T1/ptm/m/n/12 meru-pakan sala
+h satu metode \T1/ptm/m/it/12 post-hoc \T1/ptm/m/n/12 yang
  []
 
 
@@ -2324,7 +2416,7 @@ BAB 3.
 Package hyperref Warning: Token not allowed in a PDF string (Unicode):
 (hyperref)                removing `\uppercase' on input line 2.
 
-<assets/pics/MTL/Alur2(Model).png, id=1116, 1794.705pt x 883.3pt>
+<assets/pics/MTL/Alur2(Model).png, id=1152, 1794.705pt x 883.3pt>
 File: assets/pics/MTL/Alur2(Model).png Graphic file (type png)
 <use assets/pics/MTL/Alur2(Model).png>
 Package pdftex.def Info: assets/pics/MTL/Alur2(Model).png  used on input line 9
@@ -2333,7 +2425,7 @@ Package pdftex.def Info: assets/pics/MTL/Alur2(Model).png  used on input line 9
 [30
 
  <./assets/pics/MTL/Alur2(Model).png (PNG copy)>]
-<assets/pics/BERT/BERT Rep-2.png, id=1122, 230.36063pt x 129.98563pt>
+<assets/pics/BERT/BERT Rep-2.png, id=1158, 230.36063pt x 129.98563pt>
 File: assets/pics/BERT/BERT Rep-2.png Graphic file (type png)
 <use assets/pics/BERT/BERT Rep-2.png>
 Package pdftex.def Info: assets/pics/BERT/BERT Rep-2.png  used on input line 26
@@ -2362,6 +2454,19 @@ Package fancyhdr Warning: \headheight is too small (0.0pt):
 (fancyhdr)                \addtolength{\topmargin}{-14.49998pt}.
 
 [32]
+<assets/pics/Autoencoder/Autoencoder0.png, id=1177, 287.57437pt x 268.75406pt>
+File: assets/pics/Autoencoder/Autoencoder0.png Graphic file (type png)
+<use assets/pics/Autoencoder/Autoencoder0.png>
+Package pdftex.def Info: assets/pics/Autoencoder/Autoencoder0.png  used on inpu
+t line 143.
+(pdftex.def)             Requested size: 152.225pt x 142.26378pt.
+<assets/pics/Autoencoder/Autoencoder1.png, id=1178, 165.61874pt x 267.24844pt>
+File: assets/pics/Autoencoder/Autoencoder1.png Graphic file (type png)
+<use assets/pics/Autoencoder/Autoencoder1.png>
+Package pdftex.def Info: assets/pics/Autoencoder/Autoencoder1.png  used on inpu
+t line 150.
+(pdftex.def)             Requested size: 88.16669pt x 142.26378pt.
+
 
 Package fancyhdr Warning: \headheight is too small (0.0pt): 
 (fancyhdr)                Make it at least 14.49998pt, for example:
@@ -2370,18 +2475,11 @@ Package fancyhdr Warning: \headheight is too small (0.0pt):
 (fancyhdr)                \addtolength{\topmargin}{-14.49998pt}.
 
 [33]
-<assets/pics/Autoencoder/Autoencoder0.png, id=1148, 287.57437pt x 268.75406pt>
-File: assets/pics/Autoencoder/Autoencoder0.png Graphic file (type png)
-<use assets/pics/Autoencoder/Autoencoder0.png>
-Package pdftex.def Info: assets/pics/Autoencoder/Autoencoder0.png  used on inpu
-t line 154.
-(pdftex.def)             Requested size: 152.225pt x 142.26378pt.
-<assets/pics/Autoencoder/Autoencoder1.png, id=1149, 165.61874pt x 267.24844pt>
-File: assets/pics/Autoencoder/Autoencoder1.png Graphic file (type png)
-<use assets/pics/Autoencoder/Autoencoder1.png>
-Package pdftex.def Info: assets/pics/Autoencoder/Autoencoder1.png  used on inpu
-t line 161.
-(pdftex.def)             Requested size: 88.16669pt x 142.26378pt.
+Underfull \hbox (badness 3240) in paragraph at lines 159--164
+[]\T1/ptm/m/n/12 Pada tahap \T1/ptm/m/it/12 pre-train-ing\T1/ptm/m/n/12 , \T1/p
+tm/m/it/12 au-toen-coder \T1/ptm/m/n/12 di-latih se-cara \T1/ptm/m/it/12 un-su-
+per-vised \T1/ptm/m/n/12 un-tuk
+ []
 
 
 Package fancyhdr Warning: \headheight is too small (0.0pt): 
@@ -2400,17 +2498,13 @@ Package fancyhdr Warning: \headheight is too small (0.0pt):
 (fancyhdr)                \addtolength{\topmargin}{-14.49998pt}.
 
 [35]
-Underfull \hbox (badness 2744) in paragraph at lines 312--320
-[]\OT1/ptm/m/n/12 Pendekatan \OT1/ptm/m/it/12 mul-ti-task \OT1/ptm/m/n/12 me-mu
-ng-kin-kan rep-re-sen-tasi laten dipela-jari se-cara
+Underfull \hbox (badness 2744) in paragraph at lines 306--314
+[]\T1/ptm/m/n/12 Pendekatan \T1/ptm/m/it/12 mul-ti-task \T1/ptm/m/n/12 me-mung-
+kin-kan rep-re-sen-tasi laten dipela-jari se-cara
  []
 
-LaTeX Font Info:    Font shape `OT1/ptm/bx/n' in size <10.95> not available
-(Font)              Font shape `OT1/ptm/b/n' tried instead on input line 373.
-LaTeX Font Info:    Font shape `OT1/ptm/bx/n' in size <8> not available
-(Font)              Font shape `OT1/ptm/b/n' tried instead on input line 373.
 LaTeX Font Info:    Font shape `OT1/ptm/bx/n' in size <5> not available
-(Font)              Font shape `OT1/ptm/b/n' tried instead on input line 373.
+(Font)              Font shape `OT1/ptm/b/n' tried instead on input line 367.
 
 Package fancyhdr Warning: \headheight is too small (0.0pt): 
 (fancyhdr)                Make it at least 14.49998pt, for example:
@@ -2427,15 +2521,16 @@ Package fancyhdr Warning: \headheight is too small (0.0pt):
 (fancyhdr)                \addtolength{\topmargin}{-14.49998pt}.
 
 [37]
-Underfull \hbox (badness 2478) in paragraph at lines 535--536
-[]|\OT1/ptm/m/n/12 Hitung $\OML/ptmcm/m/it/12 q[]$ \OT1/ptm/m/n/12 dari \OT1/pt
-m/m/it/12 cen-troid \OT1/ptm/m/n/12 in-isial-isasi DEC; tetap-kan $\OML/ptmcm/m
-/it/12 y[] \OMS/pzccm/m/n/12  
+Underfull \hbox (badness 1342) in paragraph at lines 472--473
+[]\T1/ptm/m/n/12 Pada tahap pelati-han \T1/ptm/m/it/12 joint\T1/ptm/m/n/12 , mo
+del diop-ti-malkan meng-gu-nakan kom-bi-nasi
  []
 
 
-Overfull \hbox (37.93073pt too wide) in paragraph at lines 516--582
- [][] 
+Underfull \hbox (badness 3439) in paragraph at lines 501--504
+\T1/ptm/m/n/12 Sementara itu, pa-ram-e-ter pada \T1/ptm/m/it/12 sen-ti-ment hea
+d $\OT1/ptmcm/m/n/12 (\OT1/ptm/b/n/12 W[]\OML/ptmcm/m/it/12 ; \OT1/ptm/b/n/12 b
+[]\OT1/ptmcm/m/n/12 )$ \T1/ptm/m/n/12 hanya diper-barui
  []
 
 
@@ -2446,9 +2541,15 @@ Package fancyhdr Warning: \headheight is too small (0.0pt):
 (fancyhdr)                \addtolength{\topmargin}{-14.49998pt}.
 
 [38]
-Underfull \hbox (badness 6078) in paragraph at lines 593--593
-[]\OT1/ptm/b/n/14.4 Implementasi \OT1/ptm/b/it/14.4 Occlusion-based To-ken At-t
-ri-bu-tion \OT1/ptm/b/n/14.4 dan
+Underfull \hbox (badness 2478) in paragraph at lines 577--578
+[]|\T1/ptm/m/n/12 Hitung $\OML/ptmcm/m/it/12 q[]$ \T1/ptm/m/n/12 dari \T1/ptm/m
+/it/12 cen-troid \T1/ptm/m/n/12 in-isial-isasi DEC; tetap-kan $\OML/ptmcm/m/it/
+12 y[] \OMS/pzccm/m/n/12  
+ []
+
+
+Overfull \hbox (132.2669pt too wide) in paragraph at lines 557--620
+ [][] 
  []
 
 
@@ -2459,6 +2560,11 @@ Package fancyhdr Warning: \headheight is too small (0.0pt):
 (fancyhdr)                \addtolength{\topmargin}{-14.49998pt}.
 
 [39]
+Underfull \hbox (badness 1215) in paragraph at lines 665--668
+[]\T1/ptm/m/n/12 Untuk mem-per-oleh in-ter-pre-tasi pada level topik, skor atri
+busi di-a-gre-gasi
+ []
+
 
 Package fancyhdr Warning: \headheight is too small (0.0pt): 
 (fancyhdr)                Make it at least 14.49998pt, for example:
@@ -2467,6 +2573,17 @@ Package fancyhdr Warning: \headheight is too small (0.0pt):
 (fancyhdr)                \addtolength{\topmargin}{-14.49998pt}.
 
 [40]
+Underfull \hbox (badness 1448) in paragraph at lines 700--703
+\T1/ptm/m/n/12 Dalam im-ple-men-tasinya, kosakata yang dieval-u-asi di-batasi p
+ada \T1/ptm/m/it/12 top-N \T1/ptm/m/n/12 kata
+ []
+
+
+Underfull \hbox (badness 1253) in paragraph at lines 700--703
+\T1/ptm/m/n/12 berdasarkan ni-lai TF-IDF pada masing-masing klaster, se-hingga 
+per-hi-tungan
+ []
+
 
 Package fancyhdr Warning: \headheight is too small (0.0pt): 
 (fancyhdr)                Make it at least 14.49998pt, for example:
@@ -2496,7 +2613,6 @@ BAB 4.
 Package hyperref Warning: Token not allowed in a PDF string (Unicode):
 (hyperref)                removing `\uppercase' on input line 2.
 
-<assets/pics/other/Flowchart.png, id=1230, 511.9125pt x 605.26125pt>
 File: assets/pics/other/Flowchart.png Graphic file (type png)
 <use assets/pics/other/Flowchart.png>
 Package pdftex.def Info: assets/pics/other/Flowchart.png  used on input line 69
@@ -2512,9 +2628,9 @@ Package fancyhdr Warning: \headheight is too small (0.0pt):
 (fancyhdr)                You might also make \topmargin smaller:
 (fancyhdr)                \addtolength{\topmargin}{-14.49998pt}.
 
-[45 <./assets/pics/other/Flowchart.png>]
-Overfull \hbox (1.45302pt too wide) in paragraph at lines 131--132
-[]|\OT1/ptm/b/n/12 Label| 
+[45]
+Overfull \hbox (1.45302pt too wide) in paragraph at lines 134--135
+[]|\T1/ptm/b/n/12 Label| 
  []
 
 
@@ -2525,8 +2641,8 @@ Package fancyhdr Warning: \headheight is too small (0.0pt):
 (fancyhdr)                \addtolength{\topmargin}{-14.49998pt}.
 
 [46]
-Overfull \hbox (1.45302pt too wide) in paragraph at lines 159--160
-[]|\OT1/ptm/b/n/12 Label| 
+Overfull \hbox (1.45302pt too wide) in paragraph at lines 162--163
+[]|\T1/ptm/b/n/12 Label| 
  []
 
 
@@ -2537,39 +2653,39 @@ Package fancyhdr Warning: \headheight is too small (0.0pt):
 (fancyhdr)                \addtolength{\topmargin}{-14.49998pt}.
 
 [47]
-Underfull \hbox (badness 1968) in paragraph at lines 201--204
-[]\OT1/ptm/m/it/12 Casefolding\OT1/ptm/m/n/12 , yaitu meng-u-bah selu-ruh teks 
-men-jadi hu-ruf ke-cil un-tuk
+Underfull \hbox (badness 1968) in paragraph at lines 204--207
+[]\T1/ptm/m/it/12 Casefolding\T1/ptm/m/n/12 , yaitu meng-u-bah selu-ruh teks me
+n-jadi hu-ruf ke-cil un-tuk
  []
 
 
-Underfull \hbox (badness 1769) in paragraph at lines 238--240
-\OT1/ptm/m/n/12 mended to any-one who ap-pre-ci-ates
+Underfull \hbox (badness 1769) in paragraph at lines 241--243
+\T1/ptm/m/n/12 mended to any-one who ap-pre-ci-ates
  []
 
 
-Underfull \hbox (badness 10000) in paragraph at lines 241--242
-[]|\OT1/ptm/m/n/12 A com-plete waste of time.
+Underfull \hbox (badness 10000) in paragraph at lines 244--245
+[]|\T1/ptm/m/n/12 A com-plete waste of time.
  []
 
 
-Underfull \hbox (badness 10000) in paragraph at lines 241--242
-\OT1/pcr/m/n/12 <br />\OT1/ptm/m/n/12 Read the full re-view at
+Underfull \hbox (badness 10000) in paragraph at lines 244--245
+\T1/pcr/m/n/12 <br />\T1/ptm/m/n/12 Read the full re-view at
  []
 
 
-Underfull \hbox (badness 1430) in paragraph at lines 247--248
-[]|\OT1/ptm/m/n/12 Hands down the BEST ra-men out-
+Underfull \hbox (badness 1430) in paragraph at lines 250--251
+[]|\T1/ptm/m/n/12 Hands down the BEST ra-men out-
  []
 
 
-Underfull \hbox (badness 7238) in paragraph at lines 247--248
-\OT1/ptm/m/n/12 side of Japan :) The broth is
+Underfull \hbox (badness 7238) in paragraph at lines 250--251
+\T1/ptm/m/n/12 side of Japan :) The broth is
  []
 
 
-Underfull \hbox (badness 5817) in paragraph at lines 247--248
-\OT1/ptm/m/n/12 in-cred-i-ble! Check the menu at
+Underfull \hbox (badness 5817) in paragraph at lines 250--251
+\T1/ptm/m/n/12 in-cred-i-ble! Check the menu at
  []
 
 
@@ -2580,13 +2696,13 @@ Package fancyhdr Warning: \headheight is too small (0.0pt):
 (fancyhdr)                \addtolength{\topmargin}{-14.49998pt}.
 
 [48]
-Underfull \hbox (badness 10000) in paragraph at lines 292--293
-[]|\OT1/pcr/m/n/12 [101, 2019, 7927, 4902, 1996,
+Underfull \hbox (badness 10000) in paragraph at lines 295--296
+[]|\T1/pcr/m/n/12 [101, 2019, 7927, 4902, 1996,
  []
 
 
-Underfull \hbox (badness 10000) in paragraph at lines 325--325
-[]|\OT1/pcr/m/n/12 [101, 2019, 7927, 4902,
+Underfull \hbox (badness 10000) in paragraph at lines 328--328
+[]|\T1/pcr/m/n/12 [101, 2019, 7927, 4902,
  []
 
 
@@ -2629,9 +2745,9 @@ Package fancyhdr Warning: \headheight is too small (0.0pt):
 (fancyhdr)                \addtolength{\topmargin}{-14.49998pt}.
 
 [53]
-Underfull \hbox (badness 1803) in paragraph at lines 582--587
-[]\OT1/ptm/m/n/12 Tahap pra-pelatihan di-lakukan un-tuk mem-ben-tuk rep-re-sen-
-tasi laten awal
+Underfull \hbox (badness 1803) in paragraph at lines 585--590
+[]\T1/ptm/m/n/12 Tahap pra-pelatihan di-lakukan un-tuk mem-ben-tuk rep-re-sen-t
+asi laten awal
  []
 
 
@@ -2649,232 +2765,343 @@ Package fancyhdr Warning: \headheight is too small (0.0pt):
 (fancyhdr)                You might also make \topmargin smaller:
 (fancyhdr)                \addtolength{\topmargin}{-14.49998pt}.
 
-[55]
-Overfull \hbox (1.8927pt too wide) in paragraph at lines 709--709
- []|\OT1/ptm/m/n/10 0.8963| 
- []
-
-
-Overfull \hbox (1.8927pt too wide) in paragraph at lines 709--709
- []|\OT1/ptm/b/n/10 0.9025| 
- []
-
-
-Overfull \hbox (1.8927pt too wide) in paragraph at lines 709--710
- []|\OT1/ptm/m/n/10 0.2256| 
- []
-
-
-Overfull \hbox (1.8927pt too wide) in paragraph at lines 710--710
- []|\OT1/ptm/b/n/10 0.8986| 
- []
-
-
-Overfull \hbox (1.8927pt too wide) in paragraph at lines 710--710
- []|\OT1/ptm/m/n/10 0.9022| 
- []
-
-
-Overfull \hbox (1.8927pt too wide) in paragraph at lines 710--711
- []|\OT1/ptm/m/n/10 0.2100| 
- []
-
-
-Overfull \hbox (1.8927pt too wide) in paragraph at lines 711--711
- []|\OT1/ptm/m/n/10 0.8930| 
- []
-
-
-Overfull \hbox (1.8927pt too wide) in paragraph at lines 711--711
- []|\OT1/ptm/m/n/10 0.8843| 
- []
-
-
-Overfull \hbox (1.8927pt too wide) in paragraph at lines 711--712
- []|\OT1/ptm/m/n/10 0.2875| 
- []
-
-
-Overfull \hbox (1.8927pt too wide) in paragraph at lines 716--717
- []|\OT1/ptm/m/n/10 0.7966| 
- []
-
-
-Overfull \hbox (1.8927pt too wide) in paragraph at lines 717--718
- []|\OT1/ptm/m/n/10 0.7680| 
- []
-
-
-Overfull \hbox (1.8927pt too wide) in paragraph at lines 718--719
- []|\OT1/ptm/m/n/10 0.7625| 
- []
-
-
-Overfull \hbox (1.8927pt too wide) in paragraph at lines 723--724
- []|\OT1/ptm/b/n/10 0.9567| 
- []
-
-
-Overfull \hbox (1.8927pt too wide) in paragraph at lines 724--725
- []|\OT1/ptm/m/n/10 0.9000| 
- []
-
-
-Overfull \hbox (1.8927pt too wide) in paragraph at lines 725--726
- []|\OT1/ptm/m/n/10 0.8413| 
- []
-
-
-Overfull \hbox (1.8927pt too wide) in paragraph at lines 730--730
- []|\OT1/ptm/m/n/10 0.8612| 
- []
-
-
-Overfull \hbox (1.8927pt too wide) in paragraph at lines 730--730
- []|\OT1/ptm/m/n/10 0.8700| 
- []
-
-[56]
-Underfull \hbox (badness 4595) in paragraph at lines 743--749
-[]\OT1/ptm/m/n/12 Namun, kua-li-tas topik yang di-hasilkan masih tert-ing-gal d
-iband-ingkan
- []
-
-
-Overfull \hbox (1.8927pt too wide) in paragraph at lines 790--790
- []|\OT1/ptm/m/n/10 0.8944| 
- []
-
-
-Overfull \hbox (1.8927pt too wide) in paragraph at lines 790--790
- []|\OT1/ptm/m/n/10 0.9069| 
- []
-
-
-Overfull \hbox (1.8927pt too wide) in paragraph at lines 790--791
- []|\OT1/ptm/m/n/10 0.3267| 
- []
-
-
-Overfull \hbox (1.8927pt too wide) in paragraph at lines 791--791
- []|\OT1/ptm/b/n/10 0.9020| 
- []
-
-
-Overfull \hbox (1.8927pt too wide) in paragraph at lines 791--791
- []|\OT1/ptm/b/n/10 0.9338| 
- []
-
-
-Overfull \hbox (1.8927pt too wide) in paragraph at lines 791--792
- []|\OT1/ptm/m/n/10 0.2280| 
- []
-
-
-Overfull \hbox (1.8927pt too wide) in paragraph at lines 792--792
- []|\OT1/ptm/m/n/10 0.8953| 
- []
-
-
-Overfull \hbox (1.8927pt too wide) in paragraph at lines 792--792
- []|\OT1/ptm/m/n/10 0.9128| 
- []
-
-
-Overfull \hbox (1.8927pt too wide) in paragraph at lines 792--793
- []|\OT1/ptm/m/n/10 0.3150| 
- []
-
-
-Overfull \hbox (1.8927pt too wide) in paragraph at lines 797--798
- []|\OT1/ptm/m/n/10 0.7233| 
- []
-
-
-Overfull \hbox (1.8927pt too wide) in paragraph at lines 798--799
- []|\OT1/ptm/m/n/10 0.7041| 
- []
-
-
-Overfull \hbox (1.8927pt too wide) in paragraph at lines 799--800
- []|\OT1/ptm/m/n/10 0.6671| 
- []
-
-
-Overfull \hbox (1.8927pt too wide) in paragraph at lines 804--805
- []|\OT1/ptm/b/n/10 0.7800| 
- []
-
-
-Overfull \hbox (1.8927pt too wide) in paragraph at lines 805--806
- []|\OT1/ptm/m/n/10 0.6740| 
- []
-
-
-Overfull \hbox (1.8927pt too wide) in paragraph at lines 806--807
- []|\OT1/ptm/m/n/10 0.6438| 
- []
-
-
-Overfull \hbox (1.8927pt too wide) in paragraph at lines 811--811
- []|\OT1/ptm/m/n/10 0.8715| 
- []
-
-
-Overfull \hbox (1.8927pt too wide) in paragraph at lines 811--811
- []|\OT1/ptm/m/n/10 0.8823| 
- []
-
-[57]
-<assets/pics/Other/fig1_actual_loss.png, id=1322, 787.3415pt x 313.17pt>
+[55] [56] [57]
+<assets/pics/Other/fig1_actual_loss.png, id=1359, 787.3415pt x 313.17pt>
 File: assets/pics/Other/fig1_actual_loss.png Graphic file (type png)
 <use assets/pics/Other/fig1_actual_loss.png>
 Package pdftex.def Info: assets/pics/Other/fig1_actual_loss.png  used on input 
-line 864.
+line 904.
 (pdftex.def)             Requested size: 398.3386pt x 158.44347pt.
  [58 <./assets/pics/Other/fig1_actual_loss.png>]
-<assets/pics/Other/fig2_small_dataset.png, id=1330, 570.5315pt x 317.5865pt>
+<assets/pics/Other/fig2_small_dataset.png, id=1367, 570.5315pt x 317.5865pt>
 File: assets/pics/Other/fig2_small_dataset.png Graphic file (type png)
 <use assets/pics/Other/fig2_small_dataset.png>
 Package pdftex.def Info: assets/pics/Other/fig2_small_dataset.png  used on inpu
-t line 892.
+t line 932.
 (pdftex.def)             Requested size: 286.80426pt x 159.65544pt.
- [59 <./assets/pics/Other/fig2_small_dataset.png>]
-<assets/pics/Other/fig_token_attribution_summary.png, id=1340, 1200.8865pt x 89
+<assets/pics/Other/fig_token_attribution_summary.png, id=1372, 1200.8865pt x 89
 9.7615pt>
 File: assets/pics/Other/fig_token_attribution_summary.png Graphic file (type pn
 g)
 <use assets/pics/Other/fig_token_attribution_summary.png>
 Package pdftex.def Info: assets/pics/Other/fig_token_attribution_summary.png  u
-sed on input line 932.
+sed on input line 972.
 (pdftex.def)             Requested size: 398.3386pt x 298.44615pt.
- [60 <./assets/pics/Other/fig_token_attribution_summary.png>]) (src/01-body/99-
-kesimpulan.tex [61]
+ [59 <./assets/pics/Other/fig2_small_dataset.png>] [60 <./assets/pics/Other/fig
+_token_attribution_summary.png>]) (src/01-body/99-kesimpulan.tex [61]
 BAB 5.
+
+Underfull \hbox (badness 10000) in paragraph at lines 19--25
+[]\T1/ptm/m/n/12 Pendekatan \T1/ptm/m/it/12 Multi-Task Learn-ing \T1/ptm/m/n/12
+ (MTL) pada JDST-DEC mampu
+ []
+
+
+Underfull \hbox (badness 3701) in paragraph at lines 19--25
+\T1/ptm/m/n/12 meningkatkan per-forma klasi-fikasi sen-ti-men diband-ingkan pen
+-dekatan
+ []
+
 [62
 
 ]) [63] [64
 
 ]
-Underfull \hbox (badness 1642) in paragraph at lines 203--203
-[]\OT1/ptm/m/n/12 Kyunghyun Cho \OT1/ptm/m/it/12 et al. \OT1/ptm/m/n/12 ``Learn
--ing Phrase Rep-re-sen-ta-tions us-ing RNN
+Underfull \hbox (badness 1642) in paragraph at lines 224--224
+[]\T1/ptm/m/n/12 Kyunghyun Cho \T1/ptm/m/it/12 et al. \T1/ptm/m/n/12 ``Learn-in
+g Phrase Rep-re-sen-ta-tions us-ing RNN
  []
 
 
-Underfull \hbox (badness 1776) in paragraph at lines 203--203
-[]\OT1/ptm/m/n/12 Ronan Col-lobert \OT1/ptm/m/it/12 et al. \OT1/ptm/m/n/12 ``Na
-t-u-ral Lan-guage Pro-cess-ing (Al-most) from
+Underfull \hbox (badness 1776) in paragraph at lines 224--224
+[]\T1/ptm/m/n/12 Ronan Col-lobert \T1/ptm/m/it/12 et al. \T1/ptm/m/n/12 ``Nat-u
+-ral Lan-guage Pro-cess-ing (Al-most) from
  []
 
 [65] [66] [67] [68] [69]
-Underfull \hbox (badness 1097) in paragraph at lines 203--203
-\OT1/ptm/m/n/12 di-tional meth-ods to mod-ern deep learn-ing al-go-rithms''. \O
-T1/ptm/m/it/12 arXiv preprint
+Underfull \hbox (badness 1097) in paragraph at lines 224--224
+\T1/ptm/m/n/12 di-tional meth-ods to mod-ern deep learn-ing al-go-rithms''. \T1
+/ptm/m/it/12 arXiv preprint
  []
 
-[70]
-runsystem(latexminted cleantemp  --timestamp 20260622235637 2EF71E68B4AD97F6304
+(_internals/markLampiran.tex [70]
+pdfTeX warning (ext4): destination with the same identifier (name{page.1}) has 
+been already used, duplicate ignored
+<to be read again> 
+                   \relax 
+l.13 \end{titlepage}
+                     [1]) (src/99-back_matter/lampiran.tex
+Package hyperref Info: bookmark level for unknown lstlisting defaults to 0 on i
+nput line 9.
+ (src/code/data.py
+LaTeX Font Info:    Font shape `T1/pcr/m/it' in size <6> not available
+(Font)              Font shape `T1/pcr/m/sl' tried instead on input line 14.
+LaTeX Font Info:    Trying to load font information for TS1+pcr on input line 4
+6.
+
+(C:\Users\raffy\AppData\Local\Programs\MiKTeX\tex/latex/psnfss\ts1pcr.fd
+File: ts1pcr.fd 2001/06/04 font definitions for TS1/pcr.
+)
+pdfTeX warning (ext4): destination with the same identifier (name{page.2}) has 
+been already used, duplicate ignored
+<to be read again> 
+                   \relax 
+l.61  
+             with torch.no_grad(): [2
+
+]) (src/code/semtgpu.py
+pdfTeX warning (ext4): destination with the same identifier (name{page.3}) has 
+been already used, duplicate ignored
+<to be read again> 
+                   \relax 
+l.1 from 
+         __future__ import annotations [3]
+pdfTeX warning (ext4): destination with the same identifier (name{page.4}) has 
+been already used, duplicate ignored
+<to be read again> 
+                   \relax 
+l.78 )
+       [4]
+pdfTeX warning (ext4): destination with the same identifier (name{page.5}) has 
+been already used, duplicate ignored
+<to be read again> 
+                   \relax 
+l.156  
+              for m in self.modules(): [5]
+pdfTeX warning (ext4): destination with the same identifier (name{page.6}) has 
+been already used, duplicate ignored
+<to be read again> 
+                   \relax 
+l.232  
+              tok = tok.replace('##', '') [6]
+pdfTeX warning (ext4): destination with the same identifier (name{page.7}) has 
+been already used, duplicate ignored
+<to be read again> 
+                   \relax 
+l.310  
+              if Y_val is not None: [7]
+pdfTeX warning (ext4): destination with the same identifier (name{page.8}) has 
+been already used, duplicate ignored
+<to be read again> 
+                   \relax 
+l.386  
+              crit = nn.MSELoss() [8]
+pdfTeX warning (ext4): destination with the same identifier (name{page.9}) has 
+been already used, duplicate ignored
+<to be read again> 
+                   \relax 
+l.463  
+              from itertools import combinations [9]
+pdfTeX warning (ext4): destination with the same identifier (name{page.10}) has
+ been already used, duplicate ignored
+<to be read again> 
+                   \relax 
+l.540  
+              self.topic_mapping[cluster_id] = topic_name; return self [10]
+pdfTeX warning (ext4): destination with the same identifier (name{page.11}) has
+ been already used, duplicate ignored
+<to be read again> 
+                   \relax 
+l.617  
+                            fontsize=10, fontweight="bold", pad=8) [11]
+pdfTeX warning (ext4): destination with the same identifier (name{page.12}) has
+ been already used, duplicate ignored
+<to be read again> 
+                   \relax 
+l.694  
+                  mat  = vect.fit_transform(c_texts) [12]
+pdfTeX warning (ext4): destination with the same identifier (name{page.13}) has
+ been already used, duplicate ignored
+<to be read again> 
+                   \relax 
+l.771  
+          # -- compute_token_attribution_per_cluster_with_embeddings (v3.6) ...
+[13]
+pdfTeX warning (ext4): destination with the same identifier (name{page.14}) has
+ been already used, duplicate ignored
+<to be read again> 
+                   \relax 
+l.849  
+                  stratified[cid] = {"neg": samp_neg, "pos": samp_pos} [14]
+pdfTeX warning (ext4): destination with the same identifier (name{page.15}) has
+ been already used, duplicate ignored
+<to be read again> 
+                   \relax 
+l.925  
+              self, [15]
+pdfTeX warning (ext4): destination with the same identifier (name{page.16}) has
+ been already used, duplicate ignored
+<to be read again> 
+                   \relax 
+l.1002  
+               if "pos_pool" in entry or "neg_pool" in entry: [16]
+pdfTeX warning (ext4): destination with the same identifier (name{page.17}) has
+ been already used, duplicate ignored
+<to be read again> 
+                   \relax 
+l.1079  
+               plt.tight_layout(rect=[0, 0, 1, 0.97]) [17]
+pdfTeX warning (ext4): destination with the same identifier (name{page.18}) has
+ been already used, duplicate ignored
+<to be read again> 
+                   \relax 
+l.1156  
+                   fontsize=12, fontweight="bold", color="#1C1C1C", y=1.02
+[18]
+pdfTeX warning (ext4): destination with the same identifier (name{page.19}) has
+ been already used, duplicate ignored
+<to be read again> 
+                   \relax 
+l.1233  
+                   mpatches.Patch(facecolor=_COL_POS, alpha=0.85, [19]
+pdfTeX warning (ext4): destination with the same identifier (name{page.20}) has
+ been already used, duplicate ignored
+<to be read again> 
+                   \relax 
+l.1310  
+                   fontsize=12, fontweight="bold", color="#1C1C1C", y=1.02
+[20]
+pdfTeX warning (ext4): destination with the same identifier (name{page.21}) has
+ been already used, duplicate ignored
+<to be read again> 
+                   \relax 
+l.1387  
+                   if len(clean) < 1: continue [21]
+pdfTeX warning (ext4): destination with the same identifier (name{page.22}) has
+ been already used, duplicate ignored
+<to be read again> 
+                   \relax 
+l.1464  
+                   except Exception: [22]
+pdfTeX warning (ext4): destination with the same identifier (name{page.23}) has
+ been already used, duplicate ignored
+<to be read again> 
+                   \relax 
+l.1541  
+               ig_n_steps:       int  = 50, [23]
+pdfTeX warning (ext4): destination with the same identifier (name{page.24}) has
+ been already used, duplicate ignored
+<to be read again> 
+                   \relax 
+l.1618  
+               idx_all   = np.random.permutation(N) [24]
+pdfTeX warning (ext4): destination with the same identifier (name{page.25}) has
+ been already used, duplicate ignored
+<to be read again> 
+                   \relax 
+l.1695  
+                   tot_L = Lc = Ls = 0.0          # Lr removed [25]
+pdfTeX warning (ext4): destination with the same identifier (name{page.26}) has
+ been already used, duplicate ignored
+<to be read again> 
+                   \relax 
+l.1772  
+                               print(f"  Supervised Train  ACC={cl_sup_tr['A...
+[26]
+pdfTeX warning (ext4): destination with the same identifier (name{page.27}) has
+ been already used, duplicate ignored
+<to be read again> 
+                   \relax 
+l.1849  
+                               train_loader = DataLoader( [27]
+pdfTeX warning (ext4): destination with the same identifier (name{page.28}) has
+ been already used, duplicate ignored
+<to be read again> 
+                   \relax 
+l.1926  
+               if has_labels: [28]
+pdfTeX warning (ext4): destination with the same identifier (name{page.29}) has
+ been already used, duplicate ignored
+<to be read again> 
+                   \relax 
+l.2003  
+               if has_labels: [29]) (src/code/jstdec.py
+pdfTeX warning (ext4): destination with the same identifier (name{page.30}) has
+ been already used, duplicate ignored
+<to be read again> 
+                   \relax 
+l.65  
+         "his", "her", "their", "an", "at", "by", "from", [30]
+pdfTeX warning (ext4): destination with the same identifier (name{page.31}) has
+ been already used, duplicate ignored
+<to be read again> 
+                   \relax 
+l.141  
+          ) [31]) (src/code/bertopic.py
+pdfTeX warning (ext4): destination with the same identifier (name{page.32}) has
+ been already used, duplicate ignored
+<to be read again> 
+                   \relax 
+l.31 #
+       Config [32]
+pdfTeX warning (ext4): destination with the same identifier (name{page.33}) has
+ been already used, duplicate ignored
+<to be read again> 
+                   \relax 
+l.108 def 
+          clean_text(text: str) -> str: [33]
+pdfTeX warning (ext4): destination with the same identifier (name{page.34}) has
+ been already used, duplicate ignored
+<to be read again> 
+                   \relax 
+l.184  
+              if tid != -1: [34]
+pdfTeX warning (ext4): destination with the same identifier (name{page.35}) has
+ been already used, duplicate ignored
+<to be read again> 
+                   \relax 
+l.261 print(
+            results_df.to_string(float_format=lambda x: f"{x:.4f}")) [35])
+(src/code/mltgui.py
+pdfTeX warning (ext4): destination with the same identifier (name{page.36}) has
+ been already used, duplicate ignored
+<to be read again> 
+                   \relax 
+l.63  
+         }, [36]
+pdfTeX warning (ext4): destination with the same identifier (name{page.37}) has
+ been already used, duplicate ignored
+<to be read again> 
+                   \relax 
+l.140  
+          def build(self, texts): [37]
+pdfTeX warning (ext4): destination with the same identifier (name{page.38}) has
+ been already used, duplicate ignored
+<to be read again> 
+                   \relax 
+l.218 #
+        Model Architecture [38]
+pdfTeX warning (ext4): destination with the same identifier (name{page.39}) has
+ been already used, duplicate ignored
+<to be read again> 
+                   \relax 
+l.293  
+                  words     = padded_docs[s_i] [39]
+pdfTeX warning (ext4): destination with the same identifier (name{page.40}) has
+ been already used, duplicate ignored
+<to be read again> 
+                   \relax 
+l.370  
+          word_freq, pair_freq = Counter(), Counter() [40]
+pdfTeX warning (ext4): destination with the same identifier (name{page.41}) has
+ been already used, duplicate ignored
+<to be read again> 
+                   \relax 
+l.447  
+                         test_size=0.2, device=DEVICE): [41]
+pdfTeX warning (ext4): destination with the same identifier (name{page.42}) has
+ been already used, duplicate ignored
+<to be read again> 
+                   \relax 
+l.524  
+                  "Topic_Diversity":  round(td, 4), [42]))
+pdfTeX warning (ext4): destination with the same identifier (name{page.43}) has
+ been already used, duplicate ignored
+<to be read again> 
+                   \relax 
+l.235 \end{document}
+                     [43]
+runsystem(latexminted cleantemp  --timestamp 20260628221101 2EF71E68B4AD97F6304
 80BCEBC1842FB)...disabled (restricted).
 
  (thesis.aux)
@@ -2887,17 +3114,17 @@ L3 programming layer <2025-12-24>
 LaTeX Warning: There were multiply-defined labels.
 
 Package rerunfilecheck Info: File `thesis.out' has not changed.
-(rerunfilecheck)             Checksum: 9D6569D37B18CB8EC4CDE634EE5F2F29;18993.
+(rerunfilecheck)             Checksum: 0257DB983E4441228F6B17E94066E0EB;18313.
 Package logreq Info: Writing requests to 'thesis.run.xml'.
 \openout1 = `thesis.run.xml'.
 
  ) 
 Here is how much of TeX's memory you used:
- 55606 strings out of 467871
- 1309140 string characters out of 5418377
- 2274021 words of memory out of 5000000
- 83088 multiletter control sequences out of 15000+600000
- 718680 words of font info for 227 fonts, out of 8000000 for 9000
+ 61794 strings out of 467871
+ 1405231 string characters out of 5418377
+ 4139412 words of memory out of 5000000
+ 86039 multiletter control sequences out of 15000+600000
+ 759934 words of font info for 248 fonts, out of 8000000 for 9000
  1210 hyphenation exceptions out of 8191
  99i,23n,108p,1164b,2316s stack positions out of 10000i,1000n,20000p,200000b,200000s
 <C:/Users/raffy/AppData/Local/Programs/MiKTeX/fonts/type1/public/amsfonts/cm/
@@ -2911,17 +3138,19 @@ y/AppData/Local/Programs/MiKTeX/fonts/type1/public/amsfonts/cm/cmsy10.pfb><C:/U
 sers/raffy/AppData/Local/Programs/MiKTeX/fonts/type1/public/amsfonts/symbols/ms
 bm10.pfb><C:/Users/raffy/AppData/Local/Programs/MiKTeX/fonts/type1/urw/courier/
 ucrb8a.pfb><C:/Users/raffy/AppData/Local/Programs/MiKTeX/fonts/type1/urw/courie
-r/ucrr8a.pfb><C:/Users/raffy/AppData/Local/Programs/MiKTeX/fonts/type1/urw/helv
-etic/uhvb8a.pfb><C:/Users/raffy/AppData/Local/Programs/MiKTeX/fonts/type1/urw/s
-ymbol/usyr.pfb><C:/Users/raffy/AppData/Local/Programs/MiKTeX/fonts/type1/urw/ti
-mes/utmb8a.pfb><C:/Users/raffy/AppData/Local/Programs/MiKTeX/fonts/type1/urw/ti
-mes/utmbi8a.pfb><C:/Users/raffy/AppData/Local/Programs/MiKTeX/fonts/type1/urw/t
-imes/utmr8a.pfb><C:/Users/raffy/AppData/Local/Programs/MiKTeX/fonts/type1/urw/t
-imes/utmri8a.pfb><C:/Users/raffy/AppData/Local/Programs/MiKTeX/fonts/type1/urw/
-zapfchan/uzcmi8a.pfb>
-Output written on thesis.pdf (86 pages, 2360474 bytes).
+r/ucrr8a.pfb><C:/Users/raffy/AppData/Local/Programs/MiKTeX/fonts/type1/urw/cour
+ier/ucrr8a.pfb><C:/Users/raffy/AppData/Local/Programs/MiKTeX/fonts/type1/urw/co
+urier/ucrro8a.pfb><C:/Users/raffy/AppData/Local/Programs/MiKTeX/fonts/type1/urw
+/helvetic/uhvb8a.pfb><C:/Users/raffy/AppData/Local/Programs/MiKTeX/fonts/type1/
+urw/symbol/usyr.pfb><C:/Users/raffy/AppData/Local/Programs/MiKTeX/fonts/type1/u
+rw/times/utmb8a.pfb><C:/Users/raffy/AppData/Local/Programs/MiKTeX/fonts/type1/u
+rw/times/utmbi8a.pfb><C:/Users/raffy/AppData/Local/Programs/MiKTeX/fonts/type1/
+urw/times/utmr8a.pfb><C:/Users/raffy/AppData/Local/Programs/MiKTeX/fonts/type1/
+urw/times/utmri8a.pfb><C:/Users/raffy/AppData/Local/Programs/MiKTeX/fonts/type1
+/urw/zapfchan/uzcmi8a.pfb>
+Output written on thesis.pdf (133 pages, 2956782 bytes).
 PDF statistics:
- 1621 PDF objects out of 1728 (max. 8388607)
- 406 named destinations out of 1000 (max. 500000)
+ 5606 PDF objects out of 6186 (max. 8388607)
+ 3581 named destinations out of 4296 (max. 500000)
  818 words of extra memory for PDF output out of 10000 (max. 10000000)
 

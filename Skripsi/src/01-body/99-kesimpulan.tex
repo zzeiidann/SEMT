@@ -16,29 +16,27 @@ Berdasarkan hasil penelitian yang telah dilakukan, dapat ditarik kesimpulan seba
     Clustering} (DEC) sebagai komponen pemodelan topik, dengan \textit{sentiment
     head} berbasis \textit{fully connected} untuk tugas klasifikasi sentimen.
 
-    \item Pendekatan \textit{Multi-Task Learning} (MTL) terbukti meningkatkan
-    performa klasifikasi sentimen dibandingkan model \textit{single-task}.
-    JST-DEC memperoleh F1-score sebesar 0{,}8986 pada dataset IMDB dan 0{,}9020
-    pada dataset Yelp, melampaui model pembanding NN-BERT yang memperoleh
-    F1-score 0{,}8612 dan 0{,}8715 secara berturut-turut. Hal ini menunjukkan
-    bahwa sinyal dari tugas klasterisasi topik berkontribusi positif terhadap
-    kualitas representasi untuk sentimen.
+    \item Pendekatan \textit{Multi-Task Learning} (MTL) pada JDST-DEC mampu
+    meningkatkan performa klasifikasi sentimen dibandingkan pendekatan
+    \textit{single-task}. Model memperoleh F1-score terbaik sebesar
+    0{,}8986 pada dataset IMDb dan 0{,}9020 pada dataset Yelp, lebih tinggi
+    dibandingkan NN-BERT yang memperoleh F1-score sebesar 0{,}8612 dan
+    0{,}8715.
 
     \item Penerapan \textit{autoencoder} berhasil mereduksi dimensi representasi
-    BERT dari 768 menjadi 256 dimensi. Proses pra-pelatihan menunjukkan konvergensi
-    yang stabil pada kedua dataset, dengan nilai MSE akhir sebesar
-    $1{,}41 \times 10^{-4}$ pada IMDB dan $1{,}55 \times 10^{-4}$ pada Yelp,
-    tanpa indikasi \textit{overfitting}. Representasi laten yang dihasilkan
-    terbukti mendukung proses klasterisasi dan klasifikasi pada tahap
-    \textit{joint training}.
+    BERT dari 768 menjadi 256 dimensi. Proses pra-pelatihan menunjukkan
+    konvergensi yang stabil pada kedua dataset, dengan nilai MSE akhir sebesar
+    $1{,}41 \times 10^{-4}$ pada IMDb dan $1{,}55 \times 10^{-4}$ pada Yelp,
+    tanpa indikasi \textit{overfitting}.
 
     \item JST-DEC mengungguli NN-BERT pada tugas analisis sentimen, namun
-    menghasilkan kualitas topik yang lebih rendah dibandingkan BERTopic. Nilai
-    TC-NPMI tertinggi JST-DEC mencapai 0{,}0803 pada IMDB dan 0{,}0788 pada Yelp,
-    sedangkan BERTopic memperoleh hingga 0{,}1874 dan 0{,}1666. Demikian pula
-    pada metrik \textit{Topic Diversity}, JST-DEC masih tertinggal dibandingkan
-    BERTopic. Temuan ini mengindikasikan adanya \textit{trade-off} antara
-    performa sentimen dan kualitas topik dalam pendekatan \textit{joint model}.
+    menghasilkan kualitas topik yang lebih rendah dibandingkan BERTopic.
+    Nilai TC-NPMI tertinggi JST-DEC mencapai 0{,}0803 pada IMDb dan 0{,}0788
+    pada Yelp, sedangkan BERTopic memperoleh hingga 0{,}1874 dan 0{,}1666.
+    Demikian pula pada metrik \textit{Topic Diversity}, JDST-DEC masih
+    tertinggal dibandingkan BERTopic. Meskipun demikian, JDST-DEC tetap
+    mampu menghasilkan topik yang memadai sambil melakukan klasifikasi
+    sentimen secara simultan dalam satu model.
 \end{enumerate}
 
 

@@ -3,7 +3,7 @@
 %-----------------------------------------------------------------------------%
 
 Bab ini membahas hasil simulasi dan analisis kinerja model \textit{Joint
-Sentiment-Topic} berbasis \textit{multitask learning} yang diusulkan.
+Sentiment-Topic} berbasis \textit{Multi-Task Learning} yang diusulkan.
 Data yang digunakan berasal dari dataset IMDB dan Yelp yang telah melalui
 tahap prapengolahan dan pembagian data. Kinerja model dievaluasi dari dua
 aspek, yaitu analisis sentimen dan pendeteksian topik. Pada analisis
@@ -71,19 +71,22 @@ pada Gambar~\ref{fig:alur_simulasi}.
     \label{fig:alur_simulasi}
 \end{figure}
 
-Proses dimulai dengan pengumpulan data ulasan yang kemudian melewati tahap
-prapengolahan untuk menghasilkan data yang bersih. Data tersebut selanjutnya
-diproses oleh BERT yang digunakan secara \textit{feature-based} dengan bobot
-yang dibekukan, menghasilkan representasi vektor \texttt{[CLS]} berdimensi
-768 untuk setiap dokumen. Representasi ini kemudian menjadi masukan bagi
-\textit{autoencoder} untuk menghasilkan representasi laten berdimensi lebih
-rendah.
+Proses dimulai dengan pengumpulan data ulasan yang kemudian melewati tahap prapengolahan 
+untuk menghasilkan data yang bersih. Data tersebut selanjutnya diproses oleh BERT yang 
+digunakan secara \textit{feature-based} dengan bobot yang dibekukan sehingga menghasilkan 
+representasi vektor \texttt{[CLS]} berdimensi 768 untuk setiap dokumen.
 
-Representasi laten yang dihasilkan digunakan secara bersamaan oleh dua jalur
-tugas, yaitu analisis sentimen melalui \textit{sentiment head} dan
-pendeteksian topik melalui \textit{Deep Embedded Clustering} (DEC). Setelah
-pelatihan \textit{joint} selesai, kinerja dari kedua tugas dievaluasi dengan
-metrik yang sesuai.
+Pada tahap pertama, representasi BERT digunakan untuk melatih \textit{autoencoder} guna 
+memperoleh representasi laten berdimensi lebih rendah yang mampu mempertahankan informasi 
+penting dari data masukan. Representasi laten hasil pelatihan ini kemudian digunakan sebagai 
+inisialisasi untuk tahap berikutnya.
+
+Pada tahap kedua, representasi laten dimanfaatkan secara bersamaan oleh dua tugas, 
+yaitu analisis sentimen melalui \textit{sentiment head} dan pendeteksian topik 
+melalui \textit{Deep Embedded Clustering} (DEC) dengan mekanisme
+pelatihan \textit{joint}.
+Setelah proses pelatihan selesai, kinerja kedua tugas dievaluasi menggunakan metrik yang sesuai.
+
 
 %-----------------------------------------------------------------------------%
 \section{Data}
@@ -119,13 +122,13 @@ dengan dataset IMDB yang digunakan pada penelitian ini.
 
 Kedua dataset memiliki label sentimen biner, dengan nilai 1 untuk sentimen
 positif dan nilai 0 untuk sentimen negatif. Beberapa cuplikan ulasan dari
-masing-masing dataset ditampilkan pada Tabel~\ref{tab:imdb_sample} dan
+masing-masing dataset ditampilkan pada Tabel~\ref{tab:IMDB_sample} dan
 Tabel~\ref{tab:yelp_sample}.
 
 \begin{table}[H]
     \centering
     \caption{Cuplikan data ulasan IMDB \parencite{maas2011}.}
-    \label{tab:imdb_sample}
+    \label{tab:IMDB_sample}
     \begin{tabular}{p{0.10\textwidth} p{0.73\textwidth} p{0.07\textwidth}}
         \hline
         \textbf{No} & \textbf{Text} & \textbf{Label} \\
@@ -418,7 +421,7 @@ hasil klasterisasi.
 \subsection{Konfigurasi \textit{Joint Training}}
 %-----------------------------------------------------------------------------%
 
-Setelah tahap \textit{pretraining}, JDST-DEC dioptimasi melalui proses
+Setelah tahap pra-pelatihan, JDST-DEC dioptimasi melalui proses
 \textit{joint training} untuk menjalankan dua tugas secara simultan, yaitu
 klasifikasi sentimen dan pembentukan klaster topik. Fungsi objektif yang
 digunakan didefinisikan sebagai
@@ -516,8 +519,8 @@ representasi dokumen, kemudian dilanjutkan dengan reduksi dimensi menggunakan
 UMAP sebelum proses pembentukan topik dilakukan melalui algoritma
 klasterisasi. Pada penelitian ini digunakan dua pendekatan klasterisasi,
 yaitu HDBSCAN dan K-Means, untuk mengevaluasi pengaruh metode pembentukan
-klaster terhadap kualitas topik yang dihasilkan. Ringkasan konfigurasi yang digunakan ditunjukkan
-pada Tabel~\ref{tab:config_bertopic}.
+klaster terhadap kualitas topik yang dihasilkan.Ringkasan konfigurasi yang digunakan ditunjukkan pada
+Tabel~\ref{tab:config_bertopic}.
 
 \begin{table}[H]
     \centering
@@ -594,12 +597,12 @@ validasi juga digunakan untuk mengamati kestabilan proses pelatihan serta
 indikasi terjadinya \textit{overfitting}. 
 
 Hasil pra-pelatihan pada dataset IMDB dan Yelp disajikan pada
-Tabel~\ref{tab:pretrain_loss_imdb} dan Tabel~\ref{tab:pretrain_loss_yelp}.
+Tabel~\ref{tab:pretrain_loss_IMDB} dan Tabel~\ref{tab:pretrain_loss_yelp}.
 
 \begin{table}[H]
     \centering
     \caption{Perkembangan \textit{loss} pra-pelatihan pada dataset IMDB}
-    \label{tab:pretrain_loss_imdb}
+    \label{tab:pretrain_loss_IMDB}
     \renewcommand{\arraystretch}{1.15}
     \begin{tabular}{C{2.0cm} C{3.5cm} C{3.5cm}}
         \toprule
@@ -654,181 +657,218 @@ merekonstruksi representasi BERT dengan baik pada kedua dataset.
 \setlength{\headheight}{14.5pt}
 \addtolength{\topmargin}{-14.5pt}
 
+%-----------------------------------------------------------------------------%
 \subsection{Analisis Kinerja \textit{Joint Training}}
+%-----------------------------------------------------------------------------%
 
-Kinerja \textit{joint training} dievaluasi menggunakan dua kelompok metrik.
-Untuk tugas analisis sentimen digunakan \textit{accuracy}, F1-score,
-\textit{precision}, dan \textit{recall}. Sementara itu, kualitas topik
-dievaluasi menggunakan \textit{Topic Coherence} (TC-NPMI) dan
-\textit{Topic Diversity} (TD). Evaluasi dilakukan pada dua domain berbeda,
-yaitu ulasan film (IMDB) dan ulasan layanan/bisnis (Yelp), untuk melihat
-konsistensi performa model pada karakteristik data yang berbeda.
+Kinerja \textit{joint training} dievaluasi pada dua aspek utama, yaitu
+klasifikasi sentimen dan pemodelan topik. Evaluasi membandingkan
+JDST-DEC dengan beberapa model pembanding, yaitu NN-BERT, MTL GUI
+\parencite{gui2022mtml}, BERTopic-HDBSCAN, BERTopic-KMeans, dan
+MambaQuin. Khusus pada dataset Yelp, hasil MambaQuin tidak sepenuhnya
+dapat dibandingkan secara langsung karena menggunakan proses
+\textit{sampling} data yang berbeda.
 
-%========================================================%
-\subsubsection{Hasil Evaluasi pada Dataset IMDB}
-%========================================================%
+%-----------------------------------------------------------------------------%
+\subsubsection{Klasifikasi Sentimen}
+%-----------------------------------------------------------------------------%
 
-Dataset IMDB berisi ulasan film yang umumnya memiliki pola opini yang lebih
-terfokus terhadap aspek cerita, karakter, dan kualitas film. Evaluasi pada
-dataset ini bertujuan melihat apakah pendekatan \textit{joint training}
-mampu mempertahankan performa klasifikasi sentimen sekaligus menghasilkan
-struktur topik yang baik. Tanda ($-$) menunjukkan metrik tidak relevan
-untuk model tertentu.
+Performa klasifikasi sentimen dievaluasi menggunakan \textit{accuracy}
+dan F1-score. Model yang tidak memiliki komponen klasifikasi sentimen
+tidak disertakan dalam evaluasi.
 
 \begin{table}[H]
 \centering
-\caption{Hasil evaluasi model pada dataset IMDB}
-\label{tab:eval_imdb}
-\renewcommand{\arraystretch}{1.3}
-\footnotesize
+\caption{Perbandingan hasil \textit{Sentiment Classification}}
+\label{tab:sentiment}
+\small
+\renewcommand{\arraystretch}{1.55}
+\setlength{\tabcolsep}{6pt}
 
-\begin{tabular}{
-L{3.0cm}
-C{0.6cm}
-C{1.0cm}
-C{0.9cm}
-C{1.0cm}
-C{0.9cm}
-C{1.3cm}
-C{0.9cm}
-}
+\begin{adjustbox}{width=\textwidth}
+\begin{tabular}{|l|cc|cc|cc|cc|cc|cc|}
+\hline
 
-\toprule
-\textbf{Model}
-& \textbf{K}
-& \textbf{Acc}
-& \textbf{F1}
-& \textbf{Prec}
-& \textbf{Rec}
-& \textbf{TC-NPMI}
-& \textbf{TD}
-\\
-\midrule
+\multirow{2}{*}{Method}
+  & \multicolumn{6}{c|}{IMDB}
+  & \multicolumn{6}{c|}{Yelp} \\
+\cline{2-13}
 
-\multirow{3}{*}{JDST-DEC}
-&30 &0.8957 &0.8963 &0.8902 &\textbf{0.9025} &0.0803 &0.2256 \\
-&50 &\textbf{0.8967} &\textbf{0.8986} &0.8950 &0.9022 &0.0551 &0.2100 \\
-&80 &0.8941 &0.8930 &\textbf{0.9018} &0.8843 &0.0675 &0.2875 \\
-
-\midrule
-
-\multirow{3}{*}{\parbox{3.0cm}{BERTopic-\\HDBSCAN}}
-&30 &\multicolumn{4}{c}{$-$} &0.1714 &0.7966 \\
-&50 &\multicolumn{4}{c}{$-$} &0.1823 &0.7680 \\
-&80 &\multicolumn{4}{c}{$-$} &0.1751 &0.7625 \\
-
-\midrule
-
-\multirow{3}{*}{\parbox{3.0cm}{BERTopic-\\KMeans}}
-&30 &\multicolumn{4}{c}{$-$} &0.1566 &\textbf{0.9567} \\
-&50 &\multicolumn{4}{c}{$-$} &0.1596 &0.9000 \\
-&80 &\multicolumn{4}{c}{$-$} &\textbf{0.1874} &0.8413 \\
-
-\midrule
+  & \multicolumn{2}{c}{}
+  & \multicolumn{2}{c}{Acc \qquad F1}
+  & \multicolumn{2}{c|}{}
+  & \multicolumn{2}{c}{}
+  & \multicolumn{2}{c}{Acc \qquad F1}
+  & \multicolumn{2}{c|}{} \\
+\hline
 
 NN-BERT
-& $-$ &0.8581 &0.8612 &0.8526 &0.8700 &\multicolumn{2}{c}{$-$} \\
+  & \multicolumn{6}{c|}{0.8581 \qquad 0.8612}
+  & \multicolumn{6}{c|}{0.8664 \qquad 0.8715} \\
+\hline
 
-\bottomrule
+  & \multicolumn{2}{c|}{$K=30$}
+  & \multicolumn{2}{c|}{$K=50$}
+  & \multicolumn{2}{c|}{$K=80$}
+  & \multicolumn{2}{c|}{$K=30$}
+  & \multicolumn{2}{c|}{$K=50$}
+  & \multicolumn{2}{c|}{$K=80$} \\
+\cline{2-13}
+
+  & Acc & F1
+  & Acc & F1
+  & Acc & F1
+  & Acc & F1
+  & Acc & F1
+  & Acc & F1 \\
+\hline
+
+JDST-DEC
+  & 0.8957 & 0.8963
+  & 0.8967 & 0.8986
+  & 0.8941 & 0.8930
+  & 0.8965 & 0.8944
+  & 0.8983 & 0.9020
+  & 0.8935 & 0.8953 \\
+\hline
+
+MTL GUI
+  & 0.8327 & 0.8326
+  & 0.8317 & 0.8317
+  & 0.8334 & 0.8334
+  & 0.8385 & 0.8385
+  & 0.8380 & 0.8380
+  & 0.8402 & 0.8401 \\
+\hline
+
+MambaQuin
+  & \textbf{0.9085} & \textbf{0.9085}
+  & \textbf{0.9083} & \textbf{0.9083}
+  & \textbf{0.9086} & \textbf{0.9086}
+  & \textbf{0.9433} & \textbf{0.9433}
+  & \textbf{0.9416} & \textbf{0.9416}
+  & \textbf{0.9428} & \textbf{0.9428} \\
+\hline
+
 \end{tabular}
-
+\end{adjustbox}
 \end{table}
 
-Berdasarkan Tabel~\ref{tab:eval_imdb}, JDST-DEC menghasilkan performa
-sentimen terbaik dengan F1-score sebesar 0.8986 pada $K=50$ dan melampaui
-baseline NN-BERT yang memperoleh F1-score sebesar 0.8612. Hal ini
-menunjukkan bahwa pembelajaran bersama masih mampu mempertahankan kualitas
-representasi untuk klasifikasi sentimen.
+Berdasarkan Tabel~\ref{tab:sentiment}, MambaQuin memperoleh nilai
+\textit{accuracy} dan F1-score tertinggi pada seluruh konfigurasi.
+Namun, hasil MambaQuin pada dataset Yelp tidak sepenuhnya dapat
+dibandingkan secara langsung karena menggunakan proses
+\textit{sampling} data yang berbeda.
 
-Namun, kualitas topik yang dihasilkan masih tertinggal dibandingkan
-BERTopic. Nilai TC-NPMI tertinggi JDST-DEC hanya mencapai 0.0803, sedangkan
-BERTopic-KMeans mencapai 0.1874. Untuk TD, JDST-DEC berada pada rentang
-0.2100--0.2875 dan masih jauh di bawah BERTopic-KMeans yang memperoleh
-0.9567. Temuan ini menunjukkan bahwa JDST-DEC lebih unggul pada aspek
-sentimen dibanding kualitas topik.
+Di antara model yang dievaluasi pada pengaturan eksperimen yang sama,
+JDST-DEC secara konsisten mengungguli NN-BERT dan MTL GUI. Pada dataset
+IMDB, JDST-DEC memperoleh F1-score terbaik sebesar 0.8986 pada $K=50$,
+lebih tinggi dibandingkan NN-BERT (0.8612) dan MTL GUI (0.8317).
+Sementara itu, pada dataset Yelp, JDST-DEC mencapai F1-score sebesar
+0.9020 pada $K=50$, melampaui NN-BERT (0.8715) dan MTL GUI (0.8401).
+Perubahan jumlah topik dari $K=30$ hingga $K=80$ juga hanya memberikan
+perbedaan performa yang kecil, sehingga menunjukkan bahwa kinerja
+JDST-DEC relatif stabil terhadap variasi jumlah topik.
 
-%========================================================%
-\subsubsection{Hasil Evaluasi pada Dataset Yelp}
-%========================================================%
+%-----------------------------------------------------------------------------%
+\subsubsection{Pemodelan Topik}
+%-----------------------------------------------------------------------------%
 
-Dataset Yelp berisi ulasan layanan dan bisnis yang mencakup topik lebih
-beragam, seperti kualitas pelayanan, harga, fasilitas, dan pengalaman
-pengguna. Dataset ini digunakan untuk mengevaluasi kemampuan model pada
-domain yang memiliki variasi topik lebih tinggi dibandingkan IMDB.
+Kualitas pemodelan topik dievaluasi menggunakan dua metrik, yaitu
+\textit{Topic Coherence} (TC-NPMI) dan \textit{Topic Diversity} (TD).
+TC-NPMI mengukur seberapa bermakna hubungan semantik antar kata dalam satu
+topik berdasarkan ko-kemunculan pada korpus, sedangkan TD mengukur proporsi
+kata unik yang muncul lintas topik. Nilai yang lebih tinggi pada kedua
+metrik menunjukkan topik yang lebih koheren sekaligus lebih beragam.
+NN-BERT tidak diikutsertakan karena tidak memiliki komponen pemodelan topik.
 
 \begin{table}[H]
 \centering
-\caption{Hasil evaluasi model pada dataset Yelp}
-\label{tab:eval_yelp}
-\renewcommand{\arraystretch}{1.3}
-\footnotesize
-
-\begin{tabular}{
-L{3.0cm}
-C{0.6cm}
-C{1.0cm}
-C{0.9cm}
-C{1.0cm}
-C{0.9cm}
-C{1.3cm}
-C{0.9cm}
-}
-
-\toprule
-\textbf{Model}
-& \textbf{K}
-& \textbf{Acc}
-& \textbf{F1}
-& \textbf{Prec}
-& \textbf{Rec}
-& \textbf{TC-NPMI}
-& \textbf{TD}
-\\
-\midrule
-
-\multirow{3}{*}{JDST-DEC}
-&30 &0.8965 &0.8944 &\textbf{0.8823} &0.9069 &0.0788 &0.3267 \\
-&50 &\textbf{0.8983} &\textbf{0.9020} &0.8723 &\textbf{0.9338} &0.0369 &0.2280 \\
-&80 &0.8935 &0.8953 &0.8785 &0.9128 &0.0563 &0.3150 \\
-
-\midrule
-
-\multirow{3}{*}{\parbox{3.0cm}{BERTopic-\\HDBSCAN}}
-&30 &\multicolumn{4}{c}{$-$} &0.1092 &0.7233 \\
-&50 &\multicolumn{4}{c}{$-$} &\textbf{0.1666} &0.7041 \\
-&80 &\multicolumn{4}{c}{$-$} &0.1646 &0.6671 \\
-
-\midrule
-
-\multirow{3}{*}{\parbox{3.0cm}{BERTopic-\\KMeans}}
-&30 &\multicolumn{4}{c}{$-$} &0.1077 &\textbf{0.7800} \\
-&50 &\multicolumn{4}{c}{$-$} &0.1120 &0.6740 \\
-&80 &\multicolumn{4}{c}{$-$} &0.1465 &0.6438 \\
-
-\midrule
-
-NN-BERT
-& $-$ &0.8664 &0.8715 &0.8610 &0.8823 &\multicolumn{2}{c}{$-$} \\
-
-\bottomrule
+\caption{Perbandingan hasil \textit{Topic Modelling}}
+\label{tab:topic}
+\small
+\renewcommand{\arraystretch}{1.55}
+\setlength{\tabcolsep}{6pt}
+\begin{adjustbox}{width=\textwidth}
+\begin{tabular}{|l|cc|cc|cc|cc|cc|cc|}
+\hline
+\multirow{3}{*}{Method}
+  & \multicolumn{6}{c|}{IMDB}
+  & \multicolumn{6}{c|}{Yelp} \\
+\cline{2-13}
+  & \multicolumn{2}{c|}{$K=30$}
+  & \multicolumn{2}{c|}{$K=50$}
+  & \multicolumn{2}{c|}{$K=80$}
+  & \multicolumn{2}{c|}{$K=30$}
+  & \multicolumn{2}{c|}{$K=50$}
+  & \multicolumn{2}{c|}{$K=80$} \\
+\cline{2-13}
+  & TC-NPMI & TD
+  & TC-NPMI & TD
+  & TC-NPMI & TD
+  & TC-NPMI & TD
+  & TC-NPMI & TD
+  & TC-NPMI & TD \\
+\hline
+JDST-DEC
+  & 0.0803 & 0.2256
+  & 0.0551 & 0.2100
+  & 0.0675 & 0.2875
+  & 0.0788 & 0.3267
+  & 0.0369 & 0.2280
+  & 0.0563 & 0.3150 \\
+\hline
+BERTopic-HDBSCAN
+  & 0.1714 & 0.7966
+  & \textbf{0.1823} & 0.7680
+  & 0.1751 & 0.7625
+  & 0.1092 & 0.7233
+  & 0.1666 & \textbf{0.7041}
+  & 0.1646 & \textbf{0.6671} \\
+\hline
+BERTopic-KMeans
+  & 0.1566 & \textbf{0.9567}
+  & 0.1596 & \textbf{0.9000}
+  & \textbf{0.1874} & \textbf{0.8413}
+  & 0.1077 & \textbf{0.7800}
+  & 0.1120 & 0.6740
+  & 0.1465 & 0.6438 \\
+\hline
+MTL GUI
+  & 0.0200 & 0.5833
+  & 0.0108 & 0.5800
+  & 0.0060 & 0.4913
+  & 0.1578 & 0.6600
+  & 0.1086 & 0.6720
+  & 0.1123 & 0.5000 \\
+\hline
+MambaQuin
+  & \textbf{0.1589} & 0.2400
+  & 0.1561 & 0.2040
+  & 0.1606 & 0.1575
+  & \textbf{0.2557} & 0.2533
+  & \textbf{0.2727} & 0.2060
+  & \textbf{0.2699} & 0.1588 \\
+\hline
 \end{tabular}
-
+\end{adjustbox}
 \end{table}
 
-Pada dataset Yelp, JDST-DEC kembali menghasilkan performa sentimen terbaik
-dengan F1-score sebesar 0.9020 pada $K=50$, lebih tinggi dibandingkan
-NN-BERT yang memperoleh 0.8715.
+Berdasarkan Tabel~\ref{tab:topic}, BERTopic memperoleh nilai
+\textit{Topic Diversity} (TD) tertinggi pada sebagian besar konfigurasi.
+Pada dataset IMDB, BERTopic-KMeans menghasilkan TD tertinggi sebesar
+0.9567 ($K=30$), 0.9000 ($K=50$), dan 0.8413 ($K=80$). Pada dataset Yelp,
+BERTopic-KMeans memperoleh TD tertinggi pada $K=30$ sebesar 0.7800,
+sedangkan BERTopic-HDBSCAN unggul pada $K=50$ dan $K=80$ dengan nilai
+masing-masing 0.7041 dan 0.6671.
 
-Meskipun demikian, kualitas topik yang dihasilkan masih lebih rendah
-dibandingkan BERTopic. Nilai TC-NPMI tertinggi JDST-DEC hanya mencapai
-0.0788, sedangkan BERTopic-HDBSCAN mencapai 0.1666. Pada metrik TD,
-JDST-DEC memperoleh nilai maksimum sebesar 0.3267 dan masih berada di bawah
-BERTopic-KMeans yang mencapai 0.7800.
-
-Secara keseluruhan, hasil pada kedua dataset menunjukkan adanya
-\textit{trade-off} antara performa klasifikasi sentimen dan kualitas topik.
-JDST-DEC lebih unggul untuk tugas sentimen, sedangkan BERTopic menghasilkan
-topik yang lebih koheren dan lebih beragam.
+Untuk metrik TC-NPMI, MambaQuin memperoleh nilai tertinggi pada IMDB
+$K=30$ sebesar 0.1589, sedangkan BERTopic-HDBSCAN dan BERTopic-KMeans
+masing-masing unggul pada IMDB $K=50$ (0.1823) dan $K=80$ (0.1874). Pada
+dataset Yelp, MambaQuin memperoleh TC-NPMI tertinggi pada seluruh
+konfigurasi, yaitu 0.2557, 0.2727, dan 0.2699. Namun, hasil MambaQuin
+pada dataset Yelp tidak sepenuhnya dapat dibandingkan secara langsung
+karena menggunakan proses \textit{sampling} data yang berbeda.
 
 %-----------------------------------------------------------------------------%
 \subsection{Analisis Multiloss}
@@ -845,8 +885,8 @@ fungsi objektif:
 \]
 
 Karena kedua komponen memiliki rentang nilai yang berbeda,
-$\mathcal{L}{\text{sent}}$ cenderung memiliki nilai lebih besar
-dibandingkan $\mathcal{L}{\text{clust}}$, sehingga analisis dilakukan
+$\mathcal{L}_{\text{sent}}$ cenderung memiliki nilai lebih besar
+dibandingkan $\mathcal{L}_{\text{clust}}$, sehingga analisis dilakukan
 menggunakan normalisasi \textit{min-max}. Normalisasi ini digunakan agar
 perubahan kedua komponen dapat diamati pada skala yang sama.
 
@@ -871,7 +911,7 @@ pada dataset IMDB ($K=50$) dan Yelp ($K=30$).}
 Berdasarkan Gambar~\ref{fig:loss_actual}, $\mathcal{L}_{\text{sent}}$
 menunjukkan tren menurun sejak iterasi awal. Sebaliknya, $\mathcal{L}_{\text{clust}}$ 
 cenderung meningkat selama proses pelatihan dan belum menunjukkan kecenderungan 
-konvergen hingga iterasi ke-100
+konvergen hingga iterasi ke-100.
 
 Pola tersebut dapat dikaitkan dengan mekanisme DEC. Pada tahap awal,
 distribusi \textit{soft assignment} ($q$) masih mendekati distribusi target
@@ -884,7 +924,7 @@ Hasil ini mengindikasikan bahwa proses pembentukan klaster masih berlangsung.
 %---------------------------------------------------------------------%
 
 Untuk memberikan ilustrasi tambahan mengenai dinamika \textit{multiloss},
-dilakukan percobaan pada dataset dengan ukuran lebih kecil (±1000 data).
+dilakukan percobaan pada dataset dengan ukuran lebih kecil (1000 data).
 Hasilnya ditunjukkan pada Gambar~\ref{fig:loss_small}.
 
 \begin{figure}[H]
@@ -902,7 +942,7 @@ $\mathcal{L}_{\text{sent}}$ terjadi lebih cepat dibandingkan
 $\mathcal{L}_{\text{clust}}$. Setelah laju penurunan
 $\mathcal{L}_{\text{sent}}$ mulai melambat, perubahan pada komponen
 klasterisasi menjadi lebih terlihat dan
-$\mathcal{L}{\text{clust}}$ mulai mengalami penurunan.
+$\mathcal{L}_{\text{clust}}$ mulai mengalami penurunan.
 Pola ini menunjukkan bahwa ketika proses klasifikasi sentimen telah
 cukup terbentuk, optimasi mulai diikuti oleh perbaikan pada struktur
 klaster.

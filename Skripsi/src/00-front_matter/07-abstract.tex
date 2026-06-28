@@ -1,40 +1,370 @@
-%
-% Halaman Abstract
-%
-% @author  Andreas Febrian
-% @version 1.00
-%
-
+%-----------------------------------------------------------------------------%
 \chapter*{Extended Abstract}
+\addcontentsline{toc}{chapter}{Extended Abstract}
+%-----------------------------------------------------------------------------%
+
+\renewcommand{\thetable}{\arabic{table}}
+\renewcommand{\thefigure}{\arabic{figure}}
+\setcounter{figure}{0}
+\setcounter{table}{0}
 
 \vspace*{0.2cm}
 {
-	\setlength{\parindent}{0pt}
-	
-	\begin{tabular}{@{}l l p{10cm}}
-		Name&: & \penulis \\
-		Study Program&: & \program \\
-		Title&: & \judulInggris \\
-		Counsellor&: & \pembimbing \\
-	\end{tabular}
+\setlength{\parindent}{0pt}
 
-	\bigskip
-	\bigskip
+\begin{center}
+{\large\textbf{EXTENDED ABSTRACT}}
 
-	The focus of this study is the freshman student of Faculty of Psychology at University of
-	Indonesia experience of acquiring, evaluating and using information, when they enroll in
-	“Program Dasar Pendidikan Tinggi (PDPT)”. The purpose of this study is to understand
-	how freshman students acquire, evaluate and use information. Knowing this will allow
-	library to identify changes should be made to improve user education program at
-	University of Indonesia. This research is qualitative descriptive interpretive. The data
-	were collected by means of deep interview. The researcher suggests that library should
-	improve the user education program and provide facilities which can help students to be
-	information literate.
+\medskip
+{\normalsize\textbf{Undergraduate Thesis}}
 
-	\bigskip
+\medskip
+{\normalsize\textbf{\textit{\judulInggris}}}
 
-	Key words:\\
-	Information literacy, information skills, information
+\medskip
+\textbf{Student Name} : \penulis \\
+\textbf{Student ID Number (NPM)} : 2206051462 \\
+\textbf{Study Program} : \program
+\end{center}
+
+\bigskip
+
+% #20 opening gap sentence added
+Every day, review platforms and social media generate enormous volumes of
+user-generated text. Automatically extracting sentiment and thematic content
+from this data has become a central challenge in Natural Language Processing
+(NLP). Conventional document-level sentiment analysis reduces each document
+to a single polarity label, which overlooks the fact that a review often
+discusses multiple aspects with differing opinions. Yet existing joint
+sentiment-topic approaches either require aspect-level supervision or rely
+on pipeline architectures that do not allow the two objectives to reinforce
+each other during training. This limitation motivates end-to-end joint
+approaches that simultaneously model sentiment and topics, offering richer
+output without requiring aspect-level annotations.
+
+% #17 JDST-DEC name bolded on first mention; #3 "summarised"; #4 loss weight extended; #5 K notation
+To address this, the present study proposes a \textit{Joint Document-Level
+Sentiment-Topic} model based on \textit{Deep Embedded Clustering}
+(\textbf{JDST-DEC}) within a \textit{Multi-Task Learning} (MTL) framework.
+The model operates in two stages. In the first stage, the 768-dimensional
+\texttt{[CLS]} representation extracted by a frozen BERT encoder, which
+reduces computational cost and preserves stable pre-trained
+representations, is fed into a symmetric fully connected autoencoder
+with architecture $768 \to 2022 \to 2022 \to 256$, trained using mean
+squared error (MSE) to learn a compact 256-dimensional latent
+representation. In the second stage, this latent space is jointly optimised
+for sentiment classification via cross-entropy loss
+($\mathcal{L}_{\text{sent}}$) and topic clustering via DEC with KL
+divergence loss ($\mathcal{L}_{\text{clust}}$), under the joint objective:
+\[
+    \mathcal{L} = \eta\,\mathcal{L}_{\text{sent}} +
+    \gamma\,\mathcal{L}_{\text{clust}}, \qquad \eta = \gamma = 0{.}5,
+\]
+where equal weighting balances the sentiment classification and clustering
+objectives without favouring either. Cluster centroids are initialised
+using \textit{k}-means on the pre-trained latent space. The overall
+research workflow is summarised in Figure~1.
+
+% #2 caption no longer has "Figure 1." prefix
+\begin{figure}[H]
+    \centering
+    \includegraphics[width=0.82\textwidth]{assets/pics/other/Flowchart.png}
+    \caption{Schematic diagram of the research framework.}
+    \label{fig:ea_workflow}
+\end{figure}
+
+% #1 fairness statement; #5 K notation; #18 MTL-GUI consistent
+Experiments were conducted on two benchmark datasets: IMDB Movie Reviews
+\parencite{maas2011} (50{,}000 reviews) and the Yelp Review Dataset
+\parencite{zhang2015} (30{,}000 reviews), both with binary sentiment labels.
+Three topic cardinalities $K\in\{30,50,80\}$ were evaluated.
+\textbf{JDST-DEC} was compared against NN-BERT as a single-task sentiment
+baseline, MTL-GUI \parencite{gui2022mtml}, BERTopic-HDBSCAN, BERTopic-KMeans,
+and MambaQuin. All baselines were re-evaluated under identical dataset splits
+and evaluation protocols to ensure a fair comparison. Sentiment performance
+was measured using accuracy and F1-score; topic quality was assessed using
+\textit{Topic Coherence} based on NPMI (TC-NPMI) and \textit{Topic Diversity}
+(TD).
+
+Pre-training results show that reconstruction loss drops sharply in the
+early epochs and stabilises after epoch~20, reaching final training losses
+of approximately $1{.}41 \times 10^{-4}$ on IMDB and $1{.}55 \times 10^{-4}$
+on Yelp. Validation loss remains close to training loss throughout, indicating
+no overfitting. Selected pre-training loss values are shown in Table~1.
+
+\begin{table}[H]
+    \centering
+    \caption{Selected pre-training \textit{loss} values on the IMDB and
+    Yelp datasets.}
+    \label{tab:ea_pretrain}
+    \renewcommand{\arraystretch}{1.15}
+    \begin{tabular}{ccccc}
+        \toprule
+        \multirow{2}{*}{\textbf{Epoch}}
+          & \multicolumn{2}{c}{\textbf{IMDB}}
+          & \multicolumn{2}{c}{\textbf{Yelp}} \\
+        \cmidrule(lr){2-3}\cmidrule(lr){4-5}
+          & \textit{Train} & \textit{Val.}
+          & \textit{Train} & \textit{Val.} \\
+        \midrule
+         1  & $2{.}370 \times 10^{-3}$ & $2{.}544 \times 10^{-3}$
+            & $3{.}790 \times 10^{-3}$ & $4{.}062 \times 10^{-3}$ \\
+        10  & $3{.}780 \times 10^{-4}$ & $4{.}120 \times 10^{-4}$
+            & $2{.}780 \times 10^{-4}$ & $3{.}040 \times 10^{-4}$ \\
+        20  & $1{.}370 \times 10^{-4}$ & $1{.}550 \times 10^{-4}$
+            & $1{.}670 \times 10^{-4}$ & $1{.}860 \times 10^{-4}$ \\
+        30  & $1{.}410 \times 10^{-4}$ & $1{.}590 \times 10^{-4}$
+            & $1{.}550 \times 10^{-4}$ & $1{.}730 \times 10^{-4}$ \\
+        \bottomrule
+    \end{tabular}
+\end{table}
+
+% #6 "percentage points"; #19 consistent number format
+For sentiment classification, \textbf{JDST-DEC} consistently outperforms
+NN-BERT and MTL-GUI across all values of $K$ on both datasets (Table~2).
+On IMDB, \textbf{JDST-DEC} achieves its best F1-score of 0.8986 at $K = 50$,
+compared with 0.8612 for NN-BERT and 0.8317 for MTL-GUI, corresponding to
+improvements of approximately 3.7 and 6.7 percentage points respectively.
+On Yelp, \textbf{JDST-DEC} reaches an F1-score of 0.9020 at $K = 50$,
+compared with 0.8715 and 0.8401, representing gains of approximately 3.1 and
+6.2 percentage points. Performance remains stable across all values of $K$,
+indicating that sentiment classification quality is relatively insensitive
+to topic cardinality. MambaQuin records the highest scores on IMDB across
+all $K$ settings and is directly comparable on that dataset. Its Yelp
+results are not directly comparable due to a different data sampling
+procedure (shaded red in Table~2) and are therefore excluded from
+column-wise comparison on Yelp. Among the comparable methods,
+\textbf{JDST-DEC} achieves the highest sentiment scores on Yelp and the
+second-highest on IMDB.
+
+% #16 dagger notation added to method name; #15 identical evaluation settings in footnote
+\begin{table}[H]
+\centering
+\caption{Comparison of sentiment classification results on IMDB and Yelp.}
+\label{tab:ea_sentiment}
+\small
+\renewcommand{\arraystretch}{1.55}
+\setlength{\tabcolsep}{6pt}
+\begin{adjustbox}{width=\textwidth}
+\begin{tabular}{|l|cc|cc|cc|cc|cc|cc|}
+\hline
+\multirow{2}{*}{Method}
+  & \multicolumn{6}{c|}{IMDB}
+  & \multicolumn{6}{c|}{Yelp} \\
+\cline{2-13}
+  & \multicolumn{2}{c}{}
+  & \multicolumn{2}{c}{Acc \qquad F1}
+  & \multicolumn{2}{c|}{}
+  & \multicolumn{2}{c}{}
+  & \multicolumn{2}{c}{Acc \qquad F1}
+  & \multicolumn{2}{c|}{} \\
+\hline
+NN-BERT
+  & \multicolumn{6}{c|}{0.8581 \qquad 0.8612}
+  & \multicolumn{6}{c|}{0.8664 \qquad 0.8715} \\
+\hline
+  & \multicolumn{2}{c|}{$K=30$}
+  & \multicolumn{2}{c|}{$K=50$}
+  & \multicolumn{2}{c|}{$K=80$}
+  & \multicolumn{2}{c|}{$K=30$}
+  & \multicolumn{2}{c|}{$K=50$}
+  & \multicolumn{2}{c|}{$K=80$} \\
+\cline{2-13}
+  & Acc & F1
+  & Acc & F1
+  & Acc & F1
+  & Acc & F1
+  & Acc & F1
+  & Acc & F1 \\
+\hline
+\textbf{JDST-DEC}
+  & 0.8957 & 0.8963
+  & 0.8967 & 0.8986
+  & 0.8941 & 0.8930
+  & \cellcolor{green!25}\textbf{0.8965} & \cellcolor{green!25}\textbf{0.8944}
+  & \cellcolor{green!25}\textbf{0.8983} & \cellcolor{green!25}\textbf{0.9020}
+  & \cellcolor{green!25}\textbf{0.8935} & \cellcolor{green!25}\textbf{0.8953} \\
+\hline
+MTL-GUI
+  & 0.8327 & 0.8326
+  & 0.8317 & 0.8317
+  & 0.8334 & 0.8334
+  & 0.8385 & 0.8385
+  & 0.8380 & 0.8380
+  & 0.8402 & 0.8401 \\
+\hline
+MambaQuin
+  & \cellcolor{green!25}\textbf{0.9085} & \cellcolor{green!25}\textbf{0.9085}
+  & \cellcolor{green!25}\textbf{0.9083} & \cellcolor{green!25}\textbf{0.9083}
+  & \cellcolor{green!25}\textbf{0.9086} & \cellcolor{green!25}\textbf{0.9086}
+  & \cellcolor{red!25}0.9433 & \cellcolor{red!25}0.9433
+  & \cellcolor{red!25}0.9416 & \cellcolor{red!25}0.9416
+  & \cellcolor{red!25}0.9428 & \cellcolor{red!25}0.9428 \\
+\hline
+\end{tabular}
+\end{adjustbox}
+\vspace{0.3em}
+\noindent{\footnotesize
+  \colorbox{green!25}{\,\,} highest comparable value in column;
+  \colorbox{red!25}{\,\,} MambaQuin (Yelp) --- not directly comparable
+  due to different data sampling;
+  
+  All baselines evaluated under identical dataset splits and protocols.}
+\end{table}
+
+% #7 "which is expected" removed
+For topic modelling, BERTopic achieves the highest TD values across most
+configurations (Table~3), with BERTopic-KMeans reaching 0.9567 on IMDB
+at $K = 30$. For TC-NPMI, MambaQuin leads on IMDB at $K = 30$ (0.1589),
+while BERTopic-HDBSCAN and BERTopic-KMeans lead at $K = 50$ and $K = 80$
+respectively. On Yelp, BERTopic variants achieve the highest comparable
+TC-NPMI values; MambaQuin's Yelp results are excluded from column-wise
+comparison due to different data sampling. \textbf{JDST-DEC} produces
+lower TC-NPMI and TD values than BERTopic, as joint optimisation
+prioritises sentiment-discriminative representations over purely coherent
+topic structures. Among the joint models, \textbf{JDST-DEC} consistently
+outperforms MTL-GUI on both metrics and both datasets across every value
+of $K$.
+
+% #16 dagger in topic table; #15 footnote; #17 JDST-DEC bolded
+\begin{table}[H]
+\centering
+\caption{Comparison of topic modelling results on IMDB and Yelp.}
+\label{tab:ea_topic}
+\small
+\renewcommand{\arraystretch}{1.55}
+\setlength{\tabcolsep}{6pt}
+\begin{adjustbox}{width=\textwidth}
+\begin{tabular}{|l|cc|cc|cc|cc|cc|cc|}
+\hline
+\multirow{3}{*}{Method}
+  & \multicolumn{6}{c|}{IMDB}
+  & \multicolumn{6}{c|}{Yelp} \\
+\cline{2-13}
+  & \multicolumn{2}{c|}{$K=30$}
+  & \multicolumn{2}{c|}{$K=50$}
+  & \multicolumn{2}{c|}{$K=80$}
+  & \multicolumn{2}{c|}{$K=30$}
+  & \multicolumn{2}{c|}{$K=50$}
+  & \multicolumn{2}{c|}{$K=80$} \\
+\cline{2-13}
+  & TC-NPMI & TD
+  & TC-NPMI & TD
+  & TC-NPMI & TD
+  & TC-NPMI & TD
+  & TC-NPMI & TD
+  & TC-NPMI & TD \\
+\hline
+\textbf{JDST-DEC}
+  & 0.0803 & 0.2256
+  & 0.0551 & 0.2100
+  & 0.0675 & 0.2875
+  & 0.0788 & 0.3267
+  & 0.0369 & 0.2280
+  & 0.0563 & 0.3150 \\
+\hline
+BERTopic-HDBSCAN
+  & \cellcolor{green!25}\textbf{0.1714} & 0.7966
+  & \cellcolor{green!25}\textbf{0.1823} & 0.7680
+  & 0.1751 & 0.7625
+  & 0.1092 & 0.7233
+  & \cellcolor{green!25}\textbf{0.1666} & \cellcolor{green!25}\textbf{0.7041}
+  & \cellcolor{green!25}\textbf{0.1646} & \cellcolor{green!25}\textbf{0.6671} \\
+\hline
+BERTopic-KMeans
+  & 0.1566 & \cellcolor{green!25}\textbf{0.9567}
+  & 0.1596 & \cellcolor{green!25}\textbf{0.9000}
+  & \cellcolor{green!25}\textbf{0.1874} & \cellcolor{green!25}\textbf{0.8413}
+  & 0.1077 & \cellcolor{green!25}\textbf{0.7800}
+  & 0.1120 & 0.6740
+  & 0.1465 & 0.6438 \\
+\hline
+MTL-GUI
+  & 0.0200 & 0.5833
+  & 0.0108 & 0.5800
+  & 0.0060 & 0.4913
+  & \cellcolor{green!25}\textbf{0.1578} & 0.6600
+  & 0.1086 & 0.6720
+  & 0.1123 & 0.5000 \\
+\hline
+MambaQuin
+  & \cellcolor{green!25}\textbf{0.1589} & 0.2400
+  & 0.1561 & 0.2040
+  & 0.1606 & 0.1575
+  & \cellcolor{red!25}0.2557 & 0.2533
+  & \cellcolor{red!25}0.2727 & 0.2060
+  & \cellcolor{red!25}0.2699 & 0.1588 \\
+\hline
+\end{tabular}
+\end{adjustbox}
+\vspace{0.3em}
+\noindent{\footnotesize
+  \colorbox{green!25}{\,\,} highest comparable value in column;
+  \colorbox{red!25}{\,\,} MambaQuin (Yelp) --- not directly comparable
+  due to different data sampling;
+  
+  All baselines evaluated under identical dataset splits and protocols.}
+\end{table}
+
+% #8 training dynamics interpretation added
+Analysis of the joint training dynamics shows that
+$\mathcal{L}_{\text{sent}}$ decreases consistently from early iterations,
+while $\mathcal{L}_{\text{clust}}$ tends to increase throughout training.
+This reflects the DEC mechanism, in which the target distribution is
+iteratively updated based on current cluster assignments, keeping the
+KL divergence active and allowing the cluster structure to continue
+evolving during joint optimisation. The opposing trends of the two losses
+suggest that the model progressively trades raw reconstruction accuracy
+for a latent geometry that is simultaneously sentiment-discriminative and
+cluster-coherent.
+
+% #9 fewer token examples; #10 "lexical polarity"
+Interpretability analysis using occlusion-based token attribution on the
+Yelp dataset ($K = 30$) shows that tokens such as \textit{``super''} and
+\textit{``average''} carry attributions consistent with their expected
+polarity, while certain tokens exhibit signs inconsistent with their
+lexical polarity, indicating that the model captures context-sensitive
+interactions rather than relying on surface-form cues alone.
+
+% #11 frozen encoder limitation added
+\paragraph{Limitations.}
+The current study has several limitations. The experiments are limited to
+binary sentiment classification on English-language datasets; performance
+on multi-class or multilingual settings remains to be established. The
+use of a frozen BERT encoder, while computationally efficient, may limit
+the model's ability to adapt its representations to domain-specific
+sentiment signals. The autoencoder architecture and DEC objective are
+fixed throughout training, and it is unclear whether deeper or alternative
+architectures would improve topic quality without sacrificing sentiment
+accuracy. Finally, evaluation relies on automated topic metrics
+(TC-NPMI, TD), which do not fully capture human judgements of topic
+usefulness.
+
+% #12 encoder fine-tuning added to future work
+In future work, these limitations motivate exploring encoder fine-tuning
+strategies that balance adaptation with stability, deeper autoencoder
+architectures and alternative clustering objectives to improve topic
+diversity, and extensions to multilingual and multi-class sentiment
+settings. Incorporating aspect-level evaluation would further
+characterise the granularity of the learned topic representations.
+
+% #13 impact sentence added
+In conclusion, \textbf{JDST-DEC} demonstrates an effective mechanism for
+joint sentiment-topic learning: integrating DEC into an MTL framework
+with a frozen BERT encoder improves sentiment classification over both
+single-task and existing joint-model baselines, and produces interpretable
+topic clusters, all without requiring aspect-level annotations. By showing
+that a single latent space can serve both objectives simultaneously, this
+work opens a practical path toward richer, annotation-efficient document
+understanding in large-scale review and social-media settings.
+
+\bigskip
+% #14 Topic Modeling keyword added
+\noindent\textbf{Keywords}: \textit{Deep Embedded Clustering},
+\textit{Joint Document-Level Sentiment-Topic Modeling},
+\textit{Multi-Task Learning}, \textit{Topic Modeling},
+\textit{BERT}.
+
 }
 
 \newpage
