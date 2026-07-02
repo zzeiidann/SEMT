@@ -2,14 +2,46 @@
 \chapter{\babTiga}
 %-----------------------------------------------------------------------------%
 
-Bab ini menjelaskan arsitektur dan metode yang digunakan dalam pengembangan model \textit{Joint Document-Level Sentiment-Topic} (JDST-DEC) berbasis \textit{multitask learning}. Sebelum membahas model JDST-DEC, terlebih dahulu dijelaskan komponen representasi teks menggunakan BERT pada Subbab~\ref{sec:bert}. Selanjutnya, alur pelatihan model \textit{multitask} dijelaskan pada Subbab~\ref{sec:alur_multitask}, yang mencakup implementasi \textit{autoencoder}, \textit{Deep Embedded Clustering} (DEC), serta arsitektur JDST-DEC secara keseluruhan. Interpretasi model menggunakan metode atribusi dibahas pada Subbab~\ref{sec:atribusi}, sedangkan evaluasi kualitas topik dijelaskan pada Subbab~\ref{sec:topic_eval}. Alur umum proses model dalam melakukan analisis sentimen dan pendeteksian topik secara simultan ditunjukkan pada Gambar~\ref{fig:alur_metode}.
+Bab ini menjelaskan metode yang digunakan dalam pengembangan model
+\textit{Joint Document-Level Sentiment-Topic} (JDST-DEC) berbasis
+\textit{multitask learning}. Pembahasan diawali dengan representasi teks
+menggunakan BERT pada Subbab~\ref{sec:bert} sebagai pembentuk representasi
+dokumen. Selanjutnya, Subbab~\ref{sec:shared_encoder} membahas proses
+\textit{pretraining autoencoder} untuk memperoleh \textit{shared encoder},
+sedangkan algoritma \textit{Deep Embedded Clustering} (DEC) dijelaskan pada
+Subbab~\ref{sec:dec}. Integrasi \textit{shared encoder},
+\textit{clustering head}, dan \textit{sentiment head} ke dalam model
+JDST-DEC beserta proses pelatihannya dibahas pada bagian pelatihan
+\textit{multitask}. Tahap terakhir menjelaskan interpretasi model
+menggunakan analisis atribusi token pada
+Subbab~\ref{sec:atribusi}. Alur keseluruhan metode penelitian ditunjukkan
+pada Gambar~\ref{fig:alur_metode}.
 
 \begin{figure}[H]
     \centering
-    \includegraphics[width=0.9\textwidth]{assets/pics/MTL/Alur2(Model).png}
+    \includegraphics[width=0.9\textwidth]{assets/pics/MTL/Final Model.png}
     \caption{Alur metode analisis sentimen dan pendeteksian topik}
     \label{fig:alur_metode}
 \end{figure}
+
+Perbedaan utama JDST-DEC dengan MTL-GUI \parencite{gui2022mtml}
+terletak pada mekanisme pembelajaran representasi untuk tugas
+klasifikasi sentimen dan pendeteksian topik. Pada MTL-GUI, kedua tugas
+dihubungkan melalui mekanisme \textit{mutual learning} yang
+meminimalkan divergensi antara \textit{attention vector} pada
+\textit{bidirectional GRU} berjenjang (klasifikasi sentimen) dan
+distribusi topik-kata pada \textit{Variational Autoencoder} (VAE)
+untuk pemodelan topik, sehingga kedua komponen tetap memiliki
+parameter yang terpisah.
+Sebaliknya, JDST-DEC menggunakan satu \textit{shared encoder} yang
+diperbarui secara bersamaan oleh fungsi \textit{loss} klasifikasi
+sentimen dan \textit{clustering}. Dengan mekanisme tersebut,
+representasi laten yang dihasilkan digunakan secara bersama oleh kedua
+tugas sehingga memuat informasi sentimen dan struktur klaster. Selain
+itu, JDST-DEC memanfaatkan representasi kontekstual dari BERT yang
+dibekukan sebagai masukan model, sedangkan MTL-GUI masih menggunakan
+\textit{embedding} statis dan GRU.
+
 
 %-----------------------------------------------------------------------------%
 \section{\textit{Bidirectional Encoder Representations from Transformers}
@@ -32,20 +64,40 @@ Pada penelitian ini, BERT digunakan melalui pendekatan \textit{feature-based} de
 Sebagai ilustrasi, misalkan kalimat \textit{input} yang digunakan adalah \textit{``pelayanan restoran ini sangat mengecewakan''}. Proses pembentukan representasi teks oleh BERT dilakukan melalui beberapa tahapan berikut.
 
 \begin{enumerate}
-    \item \textbf{Tokenisasi.} Kalimat dipecah menjadi token menggunakan \textit{WordPiece tokenizer}, lalu ditambahkan token khusus \texttt{[CLS]} di awal dan \texttt{[SEP]} di akhir:
+    \item \textbf{Tokenisasi.} Kalimat $\mathbf{x}$ dipecah menjadi token menggunakan \textit{WordPiece tokenizer}, kemudian ditambahkan token khusus \texttt{[CLS]} di awal dan \texttt{[SEP]} di akhir:
+    \begin{equation}
+        \mathbf{t} = \text{WordPiece}(\mathbf{x})
+        = [\texttt{[CLS]},\, t_1,\, t_2,\, \ldots,\, t_n,\, \texttt{[SEP]}]
+        \label{eq:tokenisasi}
+    \end{equation}
+    \noindent Untuk kalimat contoh, hasil tokenisasi berupa:
     \begin{center}
         \texttt{[[CLS], pelayanan, restoran, ini, sangat, mengecewakan, [SEP]]}.
     \end{center}
 
-    \item \textbf{\textit{Padding}.} Token \texttt{[PAD]} ditambahkan agar panjang seluruh urutan seragam, misalnya hingga 10 token:
+    \item \textbf{\textit{Padding}.} Barisan token $\mathbf{t}$ disesuaikan panjangnya menjadi panjang tetap $L$ dengan menambahkan token \texttt{[PAD]}:
+    \begin{equation}
+        \mathbf{t}' = \text{Pad}(\mathbf{t}, L), \qquad |\mathbf{t}'| = L
+        \label{eq:padding}
+    \end{equation}
+    \noindent Misalnya untuk $L = 10$, diperoleh:
     \begin{center}
         \texttt{[[CLS], pelayanan, restoran, ini, sangat, mengecewakan, [SEP],
         [PAD], [PAD], [PAD]]}.
     \end{center}
 
-    \item \textbf{\textit{Attention Mask}.} Dibuat \textit{attention mask} untuk membedakan token bermakna dengan token \textit{padding}. Token selain \texttt{[PAD]} diberi nilai 1 dan \texttt{[PAD]} diberi nilai 0:
+    \item \textbf{\textit{Attention Mask}.} Untuk membedakan token bermakna dengan token \textit{padding}, dibentuk vektor \textit{attention mask} $\mathbf{a} = [a_1, a_2, \ldots, a_L]$ dengan:
+    \begin{equation}
+        a_i =
+        \begin{cases}
+            1, & t'_i \neq \texttt{[PAD]} \\
+            0, & t'_i = \texttt{[PAD]}
+        \end{cases}
+        \label{eq:attention_mask}
+    \end{equation}
+    \noindent sehingga untuk contoh di atas diperoleh:
     \begin{center}
-        \textit{attention mask} $= [1, 1, 1, 1, 1, 1, 1, 0, 0, 0]$.
+        $\mathbf{a} = [1, 1, 1, 1, 1, 1, 1, 0, 0, 0]$.
     \end{center}
 
    \item \textbf{\textit{Embedding}.} Setiap token diubah menjadi vektor numerik melalui penjumlahan tiga komponen, yaitu \textit{token embedding}, \textit{segment embedding}, dan \textit{position embedding}.
@@ -111,26 +163,15 @@ Sebagai ilustrasi, misalkan kalimat \textit{input} yang digunakan adalah \textit
 \end{enumerate}
 
 %-----------------------------------------------------------------------------%
-\section{Alur Pelatihan Model \textit{Multitask}}
-\label{sec:alur_multitask}
+\section{\textit{Shared Encoder}}
+\label{sec:shared_encoder}
 %-----------------------------------------------------------------------------%
 
-Pelatihan model \textit{multitask} pada penelitian ini dilakukan dalam tiga tahap yang saling terhubung. 
-Tahap pertama adalah melatih \textit{autoencoder} secara \textit{unsupervised} untuk memperoleh representasi 
-laten yang digunakan sebagai bobot awal model. Tahap kedua, algoritma \textit{Deep Embedded Clustering} (DEC) 
-diterapkan pada representasi laten tersebut untuk menentukan inisialisasi \textit{centroid} klaster. Setelah 
-itu, tahap ketiga dilakukan pelatihan JDST-DEC secara \textit{joint}, dengan menggabungkan informasi dari 
-\textit{clustering head} dan \textit{sentiment head} ke dalam satu fungsi \textit{loss} selama proses optimasi.
-
-%-----------------------------------------------------------------------------%
-\subsection{Implementasi \textit{Autoencoder}}
-%-----------------------------------------------------------------------------%
-
-Pelatihan \textit{autoencoder} secara langsung pada representasi berdimensi tinggi 
-dapat menyebabkan representasi laten yang kurang stabil serta meningkatkan 
-risiko \textit{overfitting}. Oleh karena itu, sebelum pelatihan \textit{multitask}, \textit{autoencoder}
+Sebelum digunakan pada pelatihan \textit{multitask}, \textit{autoencoder}
 terlebih dahulu dilatih secara \textit{unsupervised} melalui proses
-\textit{pretraining} sebagai inisialisasi bobot awal.
+\textit{pretraining}. Tahap ini bertujuan memperoleh representasi laten
+yang lebih stabil dibandingkan jika \textit{encoder} langsung dilatih
+bersama kedua \textit{head} tanpa inisialisasi awal.
 
 Gambar~\ref{fig:autoencoder} menunjukkan ilustrasi arsitektur yang
 digunakan, mulai dari \textit{autoencoder} lengkap hingga komponen
@@ -156,11 +197,38 @@ digunakan, mulai dari \textit{autoencoder} lengkap hingga komponen
     \label{fig:autoencoder}
 \end{figure}
 
-Pada tahap \textit{pretraining}, \textit{autoencoder} dilatih secara \textit{unsupervised} untuk
-merekonstruksi kembali representasi input melalui representasi laten yang
-dihasilkan \textit{encoder}. Fungsi \textit{loss} yang digunakan adalah \textit{Mean
-Squared Error} (MSE) antara vektor \textit{input} asli dan hasil
-rekonstruksinya:
+\textit{Autoencoder} terdiri atas \textit{encoder} $f_\theta$ dan
+\textit{decoder} $g_\phi$. \textit{Encoder} berfungsi memetakan
+representasi \textit{input} $\mathbf{f}$ ke representasi laten
+$\mathbf{z}$ melalui beberapa lapisan \textit{linear} dengan fungsi
+aktivasi ReLU:
+
+\begin{equation}
+    \mathbf{z} = f_\theta(\mathbf{f})
+    \label{eq:encoder_output}
+\end{equation}
+
+\noindent \textit{Decoder} memiliki struktur yang simetris dengan
+\textit{encoder} dan bertugas mengembalikan $\mathbf{z}$ ke bentuk
+representasi awal:
+
+\begin{equation}
+    \hat{\mathbf{f}} = g_\phi(\mathbf{z})
+    \label{eq:decoder_output}
+\end{equation}
+
+\noindent sehingga proses rekonstruksi secara keseluruhan dapat
+dituliskan sebagai:
+
+\begin{equation}
+    \hat{\mathbf{f}} = g_\phi\!\left(f_\theta(\mathbf{f})\right)
+    \label{eq:autoencoder_composition}
+\end{equation}
+
+Pada tahap \textit{pretraining}, parameter $\theta$ dan $\phi$
+dioptimalkan bersama dengan meminimalkan selisih antara representasi
+\textit{input} asli dan hasil rekonstruksinya, menggunakan fungsi
+\textit{loss} \textit{Mean Squared Error} (MSE):
 
 \begin{equation}
     \mathcal{L}_{\text{MSE}} = \frac{1}{N} \sum_{i=1}^{N}
@@ -168,25 +236,31 @@ rekonstruksinya:
     \label{eq:mse}
 \end{equation}
 
-\noindent dengan $N$ adalah jumlah total sampel, $\mathbf{f}_i$ adalah
-vektor representasi BERT ke-$i$, dan $\hat{\mathbf{f}}_i$ adalah hasil
-rekonstruksinya.
+\noindent dengan $N$ adalah jumlah sampel, $\mathbf{f}_i$ adalah vektor
+representasi BERT ke-$i$, dan $\hat{\mathbf{f}}_i$ adalah hasil
+rekonstruksinya. Fungsi aktivasi ReLU digunakan pada seluruh lapisan
+tersembunyi karena sederhana secara komputasi dan membantu mengurangi
+masalah \textit{vanishing gradient}.
 
-Fungsi aktivasi yang digunakan pada lapisan \textit{encoder} dan
-\textit{decoder} adalah \textit{Rectified Linear Unit} (ReLU), yang
-dipilih karena kesederhanaannya, efisiensi komputasi, serta kemampuannya
-mengurangi permasalahan \textit{vanishing gradient} pada jaringan dalam.
+Setelah \textit{pretraining} selesai, \textit{decoder} $g_\phi$ tidak
+lagi digunakan, sedangkan parameter \textit{encoder} $\theta$
+dipertahankan sebagai inisialisasi awal untuk pelatihan
+\textit{multitask}. Dengan demikian, hanya fungsi $f_\theta$ yang
+digunakan pada tahap selanjutnya:
 
-Setelah \textit{pretraining} selesai, bobot \textit{encoder} digunakan
-sebagai inisialisasi untuk pelatihan \textit{multitask}. Pada tahap ini
-\textit{encoder} dipertahankan dan dioptimalkan bersama kedua
-\textit{head}, sedangkan \textit{decoder} tidak lagi digunakan.
-Representasi laten $\mathbf{z} = f_\theta(\mathbf{f})$ yang dihasilkan
-\textit{encoder} digunakan bersama oleh \textit{sentiment head} dan
-\textit{clustering head}.
+\begin{equation}
+    \mathbf{z} = f_\theta(\mathbf{f}), \qquad \mathbf{z} \in \mathbb{R}^{256}
+    \label{eq:shared_encoder_final}
+\end{equation}
+
+\noindent dengan dimensi representasi laten akhir yang dihasilkan
+\textit{encoder} ditetapkan sebesar 256. Representasi laten $\mathbf{z}$
+pada persamaan tersebut digunakan bersama oleh \textit{clustering head}
+dan \textit{sentiment head} pada tahap pelatihan \textit{multitask},
+sehingga \textit{encoder} ini disebut sebagai \textit{shared encoder}.
 
 %-----------------------------------------------------------------------------%
-\subsection{\textit{Deep Embedded Clustering} (DEC)}
+\section{\textit{Deep Embedded Clustering} (DEC)}
 \label{sec:dec}
 %-----------------------------------------------------------------------------%
 
@@ -197,58 +271,106 @@ assignment} yang menetapkan setiap sampel ke satu klaster, DEC
 menggunakan distribusi probabilistik sehingga setiap sampel memiliki
 derajat keanggotaan terhadap seluruh klaster.
 
-Proses DEC dimulai dengan inisialisasi \textit{centroid} menggunakan
-K-Means pada representasi laten awal hasil \textit{pretraining autoencoder}.
-Distribusi \textit{soft assignment} $q_{ij}$ untuk setiap data
-$\mathbf{z}_i$ terhadap \textit{centroid} $\boldsymbol{\mu}_j$ kemudian
-dihitung menggunakan distribusi Student's $t$:
+\subsection{Inisialisasi \textit{Centroid}}
+
+Proses DEC diawali dengan menentukan posisi awal \textit{centroid}
+$\{\boldsymbol{\mu}_j\}_{j=1}^{K}$ menggunakan algoritma K-Means
+terhadap representasi laten $\{\mathbf{z}_i\}_{i=1}^{N}$ hasil
+\textit{pretraining autoencoder}:
 
 \begin{equation}
-    q_{ij} = \frac{\left(1 + \left\|\mathbf{z}_i -
+    \{\boldsymbol{\mu}_j\}_{j=1}^{K} = \text{KMeans}\big(\{\mathbf{z}_i\}_{i=1}^{N},\, K\big)
+    \label{eq:kmeans_init}
+\end{equation}
+
+\noindent dengan $K$ adalah jumlah klaster. Posisi \textit{centroid} yang
+dihasilkan pada tahap ini menjadi titik awal sebelum diperbarui secara
+iteratif melalui tahap optimasi berikutnya.
+
+\subsection{Perhitungan \textit{Soft Assignment}}
+
+Dengan posisi \textit{centroid} awal telah diperoleh, setiap data laten
+$\mathbf{z}_i$ selanjutnya dipetakan menjadi distribusi probabilitas
+terhadap seluruh \textit{centroid} melalui fungsi
+$\text{SoftAssign}(\cdot)$, menggunakan distribusi Student's $t$:
+
+\begin{equation}
+    q_{ij} = \text{SoftAssign}(\mathbf{z}_i, \boldsymbol{\mu}_j)
+    = \frac{\left(1 + \left\|\mathbf{z}_i -
     \boldsymbol{\mu}_j\right\|^2\right)^{-1}}
     {\displaystyle\sum_{j'=1}^{K}\left(1 + \left\|\mathbf{z}_i -
     \boldsymbol{\mu}_{j'}\right\|^2\right)^{-1}}
     \label{eq:soft_assign}
 \end{equation}
 
-\noindent dengan $q_{ij}$ menyatakan probabilitas sampel $i$ termasuk
-klaster $j$, dan $K$ adalah jumlah klaster.
+\noindent dengan $q_{ij} \in [0,1]$ menyatakan probabilitas sampel
+ke-$i$ termasuk klaster ke-$j$. Melalui fungsi ini, setiap sampel tidak
+ditetapkan secara tegas ke satu klaster, melainkan memiliki derajat
+keanggotaan $q_{ij}$ terhadap seluruh $K$ klaster sekaligus.
 
-DEC kemudian membentuk distribusi target $p_{ij}$ berdasarkan
-distribusi \textit{soft assignment} $q_{ij}$ untuk menyesuaikan proses
-optimasi klaster. Misalkan $f_j = \sum_{i} q_{ij}$ adalah frekuensi
-\textit{soft} klaster $j$, maka:
+\subsection{Pembentukan Distribusi Target}
+
+Distribusi $q_{ij}$ yang dihasilkan pada tahap sebelumnya kemudian
+diteruskan ke fungsi $\text{Target}(\cdot)$ untuk ditransformasikan
+menjadi distribusi target $p_{ij}$ yang lebih terkonsentrasi pada
+klaster dengan tingkat kepercayaan tinggi. Dengan $f_j = \sum_{i} q_{ij}$
+sebagai frekuensi \textit{soft} klaster ke-$j$:
 
 \begin{equation}
-    p_{ij} = \frac{q_{ij}^2 \,/\, f_j}
+    p_{ij} = \text{Target}(q_{ij}) =
+    \frac{q_{ij}^2 \,/\, f_j}
     {\displaystyle\sum_{j'=1}^{K} q_{ij'}^2 \,/\, f_{j'}}
     \label{eq:target_dist}
 \end{equation}
 
-Pembagian dengan $f_j$ mencegah klaster berukuran besar mendominasi 
-proses optimasi, sedangkan pengkuadratan nilai $q_{ij}$ membuat 
-distribusi target lebih terkonsentrasi pada klaster yang memiliki 
-tingkat kepercayaan lebih tinggi. Optimasi dilakukan dengan meminimalkan
-\textit{Kullback-Leibler Divergence} antara distribusi target $P$ dan
-distribusi \textit{soft assignment} $Q$:
+\noindent Pembagian dengan $f_j$ mencegah klaster berukuran besar
+mendominasi proses optimasi, sedangkan pengkuadratan $q_{ij}$ membuat
+distribusi target lebih tegas dibandingkan distribusi \textit{soft
+assignment} asalnya. Distribusi target $P = \{p_{ij}\}$ inilah yang
+selanjutnya berperan mengarahkan pembaruan parameter pada tahap
+optimasi.
+
+\subsection{Optimasi}
+
+Dengan distribusi target $P$ dan distribusi \textit{soft assignment}
+$Q$ telah tersedia, parameter \textit{encoder} $\theta$ dan posisi
+\textit{centroid} $\{\boldsymbol{\mu}_j\}$ diperbarui secara bersamaan
+melalui fungsi $\text{Optimize}(\cdot)$, yaitu dengan meminimalkan
+\textit{Kullback-Leibler Divergence} antara $P$ dan $Q$:
 
 \begin{equation}
-    \mathcal{L}_{\text{KLD}} = \sum_{i}\sum_{j}
+    \big(\theta,\, \{\boldsymbol{\mu}_j\}\big)_{\text{baru}}
+    = \text{Optimize}(P, Q), \qquad
+    \mathcal{L}_{\text{KLD}}(P, Q) = \sum_{i}\sum_{j}
     p_{ij} \log\frac{p_{ij}}{q_{ij}}
     \label{eq:kld}
 \end{equation}
 
-Pada tahap inisialisasi DEC, fungsi \textit{loss}
-$\mathcal{L}_{\text{KLD}}$ digunakan
-untuk memperbarui parameter \textit{encoder} dan posisi
-\textit{centroid} sehingga representasi laten hasil
-\textit{pretraining autoencoder} semakin sesuai dengan struktur
-distribusi data sebelum digunakan pada tahap pelatihan
-\textit{joint}. Selanjutnya, pada setiap
-\textit{update interval}, label klaster hasil iterasi sebelumnya
-dibandingkan dengan label klaster terbaru. Pelatihan dihentikan
-apabila perubahan label klaster
-($\Delta_{\text{label}}$) berada di bawah batas toleransi $\tau$.
+\noindent Karena $\mathbf{z}_i = f_\theta(\mathbf{f}_i)$, pembaruan
+$\theta$ menyebabkan representasi laten ikut berubah, sehingga
+\textit{encoder} secara bertahap menghasilkan representasi yang
+semakin sesuai dengan struktur klaster yang terbentuk.
+
+\subsection{Kriteria Konvergensi}
+
+Setelah parameter diperbarui, label klaster hasil iterasi sebelumnya
+dibandingkan dengan label klaster terbaru,
+$y_{\text{cluster},i} = \arg\max_j\, q_{ij}$, untuk mengukur proporsi
+perubahan label pada iterasi saat ini:
+
+\begin{equation}
+    \Delta_{\text{label}} = \frac{1}{N} \sum_{i=1}^{N}
+    \mathbf{1}\!\left[y_{\text{prev},i} \neq y_{\text{cluster},i}\right]
+    \label{eq:delta_label}
+\end{equation}
+
+\noindent Keempat tahap di atas ($\text{SoftAssign} \to \text{Target}
+\to \text{Optimize} \to$ pemeriksaan konvergensi) diulang secara
+iteratif hingga $\Delta_{\text{label}}$ berada di bawah batas toleransi
+$\tau$, yang menandakan bahwa struktur klaster pada ruang laten telah
+stabil.
+
+Keseluruhan tahapan tersebut dirangkum pada algoritma berikut.
 
 \begin{table}[H]
 \centering
@@ -300,7 +422,7 @@ apabila perubahan label klaster
 \end{table}
 
 %-----------------------------------------------------------------------------%
-\subsection{Pelatihan \textit{Multitask}: JDST-DEC}
+\section{Pelatihan \textit{Multitask}: JDST-DEC}
 %-----------------------------------------------------------------------------%
 
 Pendekatan \textit{multitask} memungkinkan representasi laten dipelajari
@@ -313,7 +435,7 @@ mengoptimalkan kedua tugas secara terpisah. Kombinasi DEC dengan
 selanjutnya disebut JDST-DEC (\textit{Joint Document-level Sentiment-Topic}).
 
 %------- Clustering Head -------%
-\subsubsection{\textit{Clustering Head}}
+\subsection{\textit{Clustering Head}}
 
 Vektor laten $\mathbf{z}$ yang dihasilkan \textit{encoder} diteruskan ke
 \textit{clustering head} untuk pendeteksian topik. \textit{Clustering
@@ -379,7 +501,7 @@ menjadi distribusi target $p_{ij}$ (Persamaan~\ref{eq:target_dist}),
 dan label topik akhir diperoleh melalui $\arg\max_j\, q_{ij}$.
 
 %------- Sentiment Head -------%
-\subsubsection{Analisis Sentimen Menggunakan \textit{Sentiment Head}}
+\subsection{Analisis Sentimen Menggunakan \textit{Sentiment Head}}
 
 Vektor laten $\mathbf{z} \in \mathbb{R}^{256}$ yang dihasilkan
 \textit{encoder} diteruskan ke \textit{sentiment head} untuk
@@ -438,11 +560,34 @@ Gambar~\ref{fig:sentiment_head} mengilustrasikan arsitektur lengkapnya.
 \label{fig:sentiment_head}
 \end{figure}
 
-\noindent Proses klasifikasi dirumuskan sebagai:
+\noindent Secara formal, proses klasifikasi pada \textit{sentiment head}
+dituliskan sebagai komposisi tiga lapisan linear bertingkat. Lapisan
+tersembunyi pertama memetakan $\mathbf{z} \in \mathbb{R}^{256}$ menjadi
+$\mathbf{h}_1 \in \mathbb{R}^{256}$:
 
 \begin{equation}
-    \hat{\mathbf{y}} = \text{softmax}\!\left(\mathbf{W}_c \mathbf{z}
-    + \mathbf{b}_c\right)
+    \mathbf{h}_1 = \text{Dropout}\Big(\text{GELU}\big(\text{BN}
+    (\mathbf{W}_1 \mathbf{z} + \mathbf{b}_1)\big)\Big),
+    \qquad \mathbf{W}_1 \in \mathbb{R}^{256 \times 256}
+    \label{eq:sentiment_h1}
+\end{equation}
+
+\noindent Lapisan tersembunyi kedua memetakan $\mathbf{h}_1$ menjadi
+$\mathbf{h}_2 \in \mathbb{R}^{32}$:
+
+\begin{equation}
+    \mathbf{h}_2 = \text{Dropout}\Big(\text{GELU}\big(\text{BN}
+    (\mathbf{W}_2 \mathbf{h}_1 + \mathbf{b}_2)\big)\Big),
+    \qquad \mathbf{W}_2 \in \mathbb{R}^{32 \times 256}
+    \label{eq:sentiment_h2}
+\end{equation}
+
+\noindent Lapisan keluaran memetakan $\mathbf{h}_2$ menjadi distribusi
+probabilitas terhadap dua kelas sentimen:
+
+\begin{equation}
+    \hat{\mathbf{y}} = \text{softmax}\!\left(\mathbf{W}_c \mathbf{h}_2
+    + \mathbf{b}_c\right), \qquad \mathbf{W}_c \in \mathbb{R}^{2 \times 32}
     \label{eq:sentiment_cls}
 \end{equation}
 
@@ -466,7 +611,7 @@ kelas ke-$j$ dan 0 jika tidak, serta $\hat{y}_{ij}$ adalah probabilitas
 prediksi model.
 
 %-----------------------------------------------------------------------------%
-\subsubsection{Pelatihan \textit{Joint} dengan \textit{Multitask Loss}}
+\subsection{Pelatihan \textit{Joint} dengan \textit{Multitask Loss}}
 %-----------------------------------------------------------------------------%
 
 Pada tahap pelatihan \textit{joint}, model dioptimalkan menggunakan kombinasi berbobot antara \textit{clustering loss} dan \textit{sentiment loss}. Fungsi objektif total dirumuskan sebagai:
@@ -513,10 +658,10 @@ $(\mathbf{W}_c, \mathbf{b}_c)$ hanya diperbarui berdasarkan
     \label{eq:update_sentiment}
 \end{equation}
 
-Berbeda dengan kedua \textit{head}, parameter \textit{encoder}
+SubbabBerbeda dengan kedua \textit{head}, parameter \textit{encoder}
 $\theta$ menerima gabungan gradien dari kedua fungsi objektif karena
-representasi laten digunakan secara bersama oleh proses klasterisasi
-dan klasifikasi. Aturan pembaruan parameter \textit{encoder}
+representasi laten digunakan secara bersama oleh proses
+pendeteksian topik dan klasifikasi sentimen. Aturan pembaruan parameter \textit{encoder}
 dituliskan sebagai:
 
 \begin{equation}
@@ -538,86 +683,73 @@ dituliskan sebagai:
 
 Mekanisme ini serupa dengan IDEC \parencite{guo2017improved}, namun
 fungsi rekonstruksi pada IDEC digantikan oleh
-fungsi \textit{Cross-Entropy loss} sebagai \textit{auxiliary task}
-untuk analisis sentimen.
+fungsi \textit{Categorical Cross-Entropy loss} sebagai
+\textit{auxiliary task} untuk analisis sentimen.
 
 %------- Algoritma JDST-DEC -------%
-\subsubsection{Algoritma JDST-DEC}
+\subsection{Algoritma JDST-DEC}
 
 Tabel~\ref{tab:alg_jstdec} menyajikan prosedur lengkap pelatihan
 JDST-DEC. Algoritma ini mengasumsikan \textit{encoder} telah
 diinisialisasi melalui \textit{pretraining autoencoder} dan
 \textit{centroid} telah diinisialisasi menggunakan K-Means sebagaimana
-dijelaskan pada Subab~\ref{sec:dec}.
+dijelaskan pada Subbab~\ref{sec:dec}.
 
 \begin{table}[H]
 \centering
-\caption{Algoritma JDST-DEC (\textit{Joint Document-level Sentiment-Topic})}
-\label{tab:alg_jstdec}
+\caption{Algoritma \textit{Deep Embedded Clustering} (DEC)}
+\label{tab:alg_dec}
 \begin{tabular}{p{0.05\textwidth} p{0.85\textwidth}}
 \hline
-\multicolumn{2}{l}{\textbf{Algoritma} JDST-DEC} \\
+\multicolumn{2}{l}{\textbf{Algoritma} \textit{Deep Embedded Clustering} (DEC)} \\
 \hline
 \multicolumn{2}{l}{\textbf{INPUT} \hspace{1.2em}
-    Himpunan vektor BERT $\{\mathbf{f}_i\}_{i=1}^{N} \in \mathbb{R}^{768}$;
-    label sentimen $\{y_{\text{sentiment},i}\}$;} \\
+    Representasi laten $\{\mathbf{z}_i\}_{i=1}^{N} \in \mathbb{R}^{256}$
+    hasil \textit{pretraining autoencoder};} \\
 \multicolumn{2}{l}{\hspace{4.7em}
-    \textit{encoder} $f_\theta$ dan \textit{centroid}
-    $\{\boldsymbol{\mu}_j\}$ hasil inisialisasi DEC;} \\
+    jumlah klaster $K$; \textit{batch size} $b$;
+    batas toleransi konvergensi $\tau$;} \\
 \multicolumn{2}{l}{\hspace{4.7em}
-    parameter bobot \textit{loss} $\gamma$, $\eta$;
-    \textit{batch size} $b$; batas toleransi $\tau$;
-    $T_{\max}$} \\[2pt]
+    jumlah iterasi maksimum $T_{\max}$} \\[2pt]
 \multicolumn{2}{l}{\textbf{OUTPUT} \hspace{0.5em}
-    Representasi laten $\{\mathbf{z}_i\}$;
-    prediksi label klaster $\{y_{\text{cluster},i}\}$;
-    prediksi probabilitas sentimen
-    $\{\hat{\mathbf{y}}_i\}_{i=1}^{N}$} \\
+    Posisi \textit{centroid} $\{\boldsymbol{\mu}_j\}_{j=1}^{K}$;
+    label klaster $\{y_{\text{cluster},i}\}$} \\
 \hline
-1. & Hitung $q_{ij}^{(0)}$ dari \textit{centroid} inisialisasi DEC;
-     tetapkan $y_{\text{cluster},i} \leftarrow \arg\max_j\, q_{ij}^{(0)}$ \\[3pt]
+1. & Inisialisasi \textit{centroid} $\{\boldsymbol{\mu}_j\}_{j=1}^{K}$
+     menggunakan K-Means pada $\{\mathbf{z}_i\}$; hitung $q_{ij}^{(0)}$
+     menggunakan distribusi Student's $t$
+     (Persamaan~\ref{eq:soft_assign}); tetapkan
+     $y_{\text{cluster},i} \leftarrow \arg\max_j\, q_{ij}^{(0)}$ \\[3pt]
 2. & \textbf{FOR} iter $= 1$ hingga $T_{\max}$ \\[3pt]
    & \hspace{1em} 2.1 \hspace{0.5em}
      Simpan label klaster sebelumnya:
      $y_{\text{prev}} \leftarrow y_{\text{cluster}}$ \\[3pt]
    & \hspace{1em} 2.2 \hspace{0.5em}
-     Proyeksikan data ke ruang laten:
-     $\mathbf{z}_i = f_\theta(\mathbf{f}_i)$ \\[3pt]
-   & \hspace{1em} 2.3 \hspace{0.5em}
      Hitung \textit{soft assignment} $q_{ij}$ menggunakan
      distribusi Student's $t$ (Persamaan~\ref{eq:soft_assign}) \\[3pt]
-   & \hspace{1em} 2.4 \hspace{0.5em}
+   & \hspace{1em} 2.3 \hspace{0.5em}
      Perbarui label klaster:
      $y_{\text{cluster},i} \leftarrow \arg\max_j\, q_{ij}$ \\[3pt]
-   & \hspace{1em} 2.5 \hspace{0.5em}
+   & \hspace{1em} 2.4 \hspace{0.5em}
      Hitung distribusi target $p_{ij}$ berdasarkan $q_{ij}$
      (Persamaan~\ref{eq:target_dist}) \\[3pt]
+   & \hspace{1em} 2.5 \hspace{0.5em}
+     Perbarui parameter \textit{encoder} dan \textit{centroid}
+     dengan meminimalkan
+     $\mathcal{L}_{\text{KLD}}(P, Q)$ \\[3pt]
    & \hspace{1em} 2.6 \hspace{0.5em}
-     Hitung prediksi sentimen:
-     $\hat{\mathbf{y}}_i = \text{softmax}(\mathbf{W}_c\mathbf{z}_i +
-     \mathbf{b}_c)$ \\[3pt]
-   & \hspace{1em} 2.7 \hspace{0.5em}
-     Hitung \textit{joint loss}: \\
-   & \hspace{3em}
-     $\mathcal{L}_{\text{total}} =
-     \gamma \cdot \mathcal{L}_{\text{KLD}}(P, Q) +
-     \eta \cdot \mathcal{L}_{\text{CE}}(\mathbf{y}, \hat{\mathbf{y}})$ \\[6pt]
-   & \hspace{1em} 2.8 \hspace{0.5em}
-     Perbarui parameter \textit{encoder} menggunakan gradien
-     $\mathcal{L}_{\text{total}}$, parameter \textit{centroid} menggunakan
-     $\mathcal{L}_{\text{KLD}}$, serta parameter sentiment head
-    menggunakan $\mathcal{L}_{\text{CE}}$ \\[3pt]
-   & \hspace{1em} 2.9 \hspace{0.5em}
      Hitung perubahan label:
      $\Delta_{\text{label}} = \dfrac{1}{N}\displaystyle\sum_i
      \mathbf{1}[y_{\text{prev},i} \neq y_{\text{cluster},i}]$ \\[8pt]
-   & \hspace{1em} 2.10 \hspace{0.3em}
+   & \hspace{1em} 2.7 \hspace{0.5em}
      Jika $\Delta_{\text{label}} < \tau$, hentikan pelatihan \\[3pt]
 3. & \textbf{END FOR} \\[3pt]
-4. & Simpan bobot terbaik model berdasarkan metrik validasi \\
+4. & Kembalikan \textit{centroid} $\{\boldsymbol{\mu}_j\}$ dan
+     label klaster $\{y_{\text{cluster},i}\}$ \\
 \hline
 \end{tabular}
 \end{table}
+
 
 %-----------------------------------------------------------------------------%
 \section{Interpretasi Model dengan Analisis Atribusi Token}
@@ -634,20 +766,39 @@ Meskipun \textit{Integrated Gradients} dibahas pada tinjauan pustaka sebagai
 salah satu pendekatan interpretabilitas berbasis gradien, metode tersebut tidak
 diterapkan pada penelitian ini karena interpretasi difokuskan pada analisis
 perubahan prediksi akibat manipulasi token secara langsung pada tingkat masukan.
-Pendekatan ini dipilih untuk mengamati kontribusi masing-masing token terhadap hasil 
-prediksi setelah proses ekstraksi representasi teks selesai dilakukan sehingga 
-merefleksikan pengaruh setiap token terhadap keputusan model pada tingkat masukan. 
-Oleh karena itu, penelitian ini menggunakan metode \textit{occlusion-based token attribution} sebagai pendekatan interpretabilitas.
+Pendekatan ini dipilih karena memungkinkan pengamatan kontribusi
+masing-masing token terhadap perubahan hasil prediksi secara langsung
+pada tingkat masukan. Dengan demikian, pengaruh setiap token terhadap
+keputusan model dapat diinterpretasikan secara lebih jelas. Oleh karena
+itu, penelitian ini menggunakan metode
+\textit{occlusion-based token attribution} sebagai pendekatan
+interpretabilitas.
 
+Secara formal, probabilitas prediksi terhadap kelas $c$ untuk teks
+\textit{input} $\mathbf{x}$ didefinisikan sebagai komposisi fungsi dari
+BERT, \textit{shared encoder}, dan \textit{sentiment head}:
 
-Teks \textit{input} $\mathbf{x}$ diproses menggunakan BERT untuk menghasilkan 
-representasi dokumen, yang selanjutnya diproyeksikan ke ruang laten melalui \textit{encoder} 
-dan diteruskan ke \textit{sentiment head} guna memperoleh probabilitas \textit{baseline} $f_c(\mathbf{x})$ 
-terhadap kelas $c$. Selanjutnya, setiap token $x_i$ dalam teks, kecuali token spesial \texttt{[CLS]}, \texttt{[SEP]}, dan \texttt{[PAD]}, 
-digantikan dengan token \texttt{[MASK]} sehingga menghasilkan varian teks $\mathbf{x}_{\setminus i}$. 
-Varian tersebut kemudian diproses kembali melalui tahapan yang sama untuk memperoleh probabilitas 
-prediksi yang diperbarui, yaitu $f_c(\mathbf{x}_{\setminus i})$.
+\begin{equation}
+    f_c(\mathbf{x}) = \text{SentimentHead}_c\Big(f_\theta\big(\text{BERT}(\mathbf{x})\big)\Big)
+    \label{eq:fc_definition}
+\end{equation}
 
+\noindent Nilai $f_c(\mathbf{x})$ pada Persamaan~\ref{eq:fc_definition}
+inilah yang berperan sebagai probabilitas \textit{baseline} sebelum
+dilakukan manipulasi token. Selanjutnya, setiap token $x_i$ dalam teks,
+kecuali token spesial \texttt{[CLS]}, \texttt{[SEP]}, dan \texttt{[PAD]},
+digantikan dengan token \texttt{[MASK]} melalui fungsi $\text{Mask}(\cdot)$
+sehingga menghasilkan varian teks:
+
+\begin{equation}
+    \mathbf{x}_{\setminus i} = \text{Mask}(\mathbf{x}, i)
+    \label{eq:mask_definition}
+\end{equation}
+
+\noindent Varian $\mathbf{x}_{\setminus i}$ tersebut kemudian diproses
+kembali melalui fungsi $f_c(\cdot)$ yang sama pada Persamaan~\ref{eq:fc_definition}
+untuk memperoleh probabilitas prediksi yang diperbarui, yaitu
+$f_c(\mathbf{x}_{\setminus i})$.
 
 Skor atribusi token $x_i$ terhadap kelas $c$ dihitung sebagai selisih antara
 probabilitas prediksi sebelum dan sesudah token dimask:
@@ -700,74 +851,3 @@ pada klaster ke-$k$:
 \noindent Dalam implementasinya, kosakata yang dievaluasi dibatasi pada \textit{top-N}
 kata berdasarkan nilai TF-IDF pada masing-masing klaster, sehingga perhitungan atribusi
 difokuskan pada kata-kata yang paling merepresentasikan karakteristik tiap klaster.
-
-%-----------------------------------------------------------------------------%
-\section{Evaluasi Topik}
-\label{sec:topic_eval}
-%-----------------------------------------------------------------------------%
-
-Evaluasi kualitas topik dilakukan menggunakan tiga metrik kuantitatif, yaitu \textit{topic coherence}, \textit{topic diversity}, dan \textit{topic coverage}. Ketiga metrik dihitung langsung dari teks asli dan hasil pengelompokan klaster tanpa bergantung pada model eksternal.
-
-%-----------------------------------------------------------------------------%
-\subsection{\textit{Topic Coherence} Berbasis NPMI}
-\label{sec:coherence}
-%-----------------------------------------------------------------------------%
-
-\textit{Topic coherence} mengukur sejauh mana kata-kata teratas suatu topik sering muncul bersama dalam korpus. Metrik yang digunakan adalah \textit{Normalized Pointwise Mutual Information} (NPMI) untuk mengukur ko-okurrens antar pasangan kata dalam klaster yang sama.
-
-Misalkan $\mathcal{D}_k$ adalah himpunan teks dalam klaster $k$ dan $\{w_1, w_2, \ldots, w_N\}$ adalah $N$ kata teratas dari klaster tersebut berdasarkan frekuensi kemunculan setelah pemfilteran \textit{stop words}. Untuk setiap pasangan kata $(w_i, w_j)$ dengan $i < j$, probabilitas kemunculan masing-masing kata dan ko-okurrensnya didefinisikan sebagai:
-
-\begin{align}
-    p(w_i) &= \frac{|\{d \in \mathcal{D}_k : w_i \in d\}|}{|\mathcal{D}_k|}, \\[4pt]
-    p(w_j) &= \frac{|\{d \in \mathcal{D}_k : w_j \in d\}|}{|\mathcal{D}_k|}, \\[4pt]
-    p(w_i, w_j) &= \frac{|\{d \in \mathcal{D}_k :
-        w_i \in d \text{ dan } w_j \in d\}|}{|\mathcal{D}_k|}.
-\end{align}
-
-Nilai \textit{Pointwise Mutual Information} (PMI) antara dua kata dihitung sebagai:
-
-\begin{equation}
-    \mathrm{PMI}(w_i, w_j) = \log \frac{p(w_i, w_j) + \varepsilon}
-    {p(w_i) \cdot p(w_j) + \varepsilon}
-    \label{eq:pmi}
-\end{equation}
-
-\noindent dengan $\varepsilon = 10^{-10}$ untuk menghindari pembagian dengan nol. Selanjutnya, PMI dinormalisasi menggunakan probabilitas ko-okurrens sebagai pembagi:
-
-\begin{equation}
-    \mathrm{NPMI}(w_i, w_j) = \frac{\mathrm{PMI}(w_i, w_j)}
-    {-\log\bigl(p(w_i, w_j) + \varepsilon\bigr)}
-    \label{eq:npmi}
-\end{equation}
-
-Nilai NPMI berada pada rentang $[-1, 1]$: mendekati $1$ berarti ko-okurrens tinggi, $0$ berarti independen, dan negatif berarti kata-kata jarang muncul bersama. Skor \textit{topic coherence} untuk klaster $k$ adalah rata-rata NPMI atas semua pasangan kata teratas:
-
-\begin{equation}
-    \mathrm{TC}_k = \frac{1}{\binom{N}{2}} \sum_{j=2}^{N} \sum_{i=1}^{j-1}
-        \mathrm{NPMI}(w_i, w_j)
-    \label{eq:tc_cluster}
-\end{equation}
-
-Skor koherensi keseluruhan diperoleh dengan merata-ratakan $\mathrm{TC}_k$ di seluruh klaster:
-
-\begin{equation}
-    \overline{\mathrm{TC}} = \frac{1}{K} \sum_{k=1}^{K} \mathrm{TC}_k
-    \label{eq:tc_mean}
-\end{equation}
-
-Metrik ini hanya dihitung untuk klaster dengan setidaknya dua kata teratas yang unik; klaster yang tidak memenuhi syarat diberi nilai koherensi $0$.
-
-%-----------------------------------------------------------------------------%
-\subsection{\textit{Topic Diversity}}
-\label{sec:diversity}
-%-----------------------------------------------------------------------------%
-
-\textit{Topic diversity} mengukur seberapa berbeda kosakata antarklaster. Misalkan $\mathcal{W}_k$ adalah himpunan $N$ kata teratas dari klaster $k$, himpunan kata unik di seluruh klaster $\mathcal{U} = \bigcup_{k=1}^{K} \mathcal{W}_k$, dan total kata termasuk duplikat adalah $\sum_{k=1}^{K} |\mathcal{W}_k|$. \textit{Topic diversity} didefinisikan sebagai:
-
-\begin{equation}
-    \mathrm{TD} = \frac{|\mathcal{U}|}{\displaystyle\sum_{k=1}^{K}
-    |\mathcal{W}_k|}
-    \label{eq:td}
-\end{equation}
-
-Nilai $\mathrm{TD} = 1$ berarti seluruh kata teratas antarkelas unik, sedangkan nilai rendah menunjukkan banyak tumpang tindih kosakata.

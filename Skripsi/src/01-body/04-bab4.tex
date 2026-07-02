@@ -7,9 +7,8 @@ Sentiment-Topic} berbasis \textit{Multi-Task Learning} yang diusulkan.
 Data yang digunakan berasal dari dataset IMDB dan Yelp yang telah melalui
 tahap prapengolahan dan pembagian data. Kinerja model dievaluasi dari dua
 aspek, yaitu analisis sentimen dan pendeteksian topik. Pada analisis
-sentimen, performa diukur menggunakan metrik \textit{accuracy},
-\textit{precision}, \textit{recall}, dan \textit{F1-score}. Pada
-pendeteksian topik, kualitas topik dinilai menggunakan metrik
+sentimen, performa diukur menggunakan metrik \textit{accuracy} dan 
+\textit{F1-score}. Pada pendeteksian topik, kualitas topik dinilai menggunakan metrik
 \textit{Topic Coherence} berbasis NPMI dan \textit{Topic Diversity}.
 Hasil interpretasi model melalui analisis atribusi token juga dipaparkan
 untuk menggambarkan karakteristik linguistik tiap klaster topik.
@@ -341,6 +340,13 @@ Setelah prapengolahan, data dari kedua dataset dibagi menjadi data latih
 digunakan oleh \parencite{gowandi2021}. Pembagian ini dilakukan agar proses
 pelatihan dan evaluasi model dapat dilakukan secara terpisah.
 
+Pada tahap pra-pelatihan \textit{autoencoder}, 10\% dari data latih
+dialokasikan sebagai data validasi untuk memantau proses pelatihan melalui
+nilai \textit{validation loss}. Data validasi tidak digunakan untuk
+memperbarui parameter model maupun sebagai data evaluasi akhir, sedangkan
+data uji hanya digunakan untuk mengevaluasi performa model setelah proses
+pelatihan selesai.
+
 Data latih digunakan sebagai masukan dalam proses optimasi parameter model,
 baik pada komponen analisis sentimen maupun pendeteksian topik. Data uji
 digunakan untuk mengukur performa model pada data yang belum pernah dilihat
@@ -513,13 +519,13 @@ Tabel~\ref{tab:config_nnbert}.
 \subsubsection{BERTopic}
 %-----------------------------------------------------------------------------%
 
-BERTopic digunakan sebagai model pembanding pada tugas pendeteksian topik.
-Model ini memanfaatkan representasi semantik berbasis BERT untuk memperoleh
-representasi dokumen, kemudian dilanjutkan dengan reduksi dimensi menggunakan
-UMAP sebelum proses pembentukan topik dilakukan melalui algoritma
-klasterisasi. Pada penelitian ini digunakan dua pendekatan klasterisasi,
-yaitu HDBSCAN dan K-Means, untuk mengevaluasi pengaruh metode pembentukan
-klaster terhadap kualitas topik yang dihasilkan.Ringkasan konfigurasi yang digunakan ditunjukkan pada
+BERTopic digunakan sebagai model pembanding pada tugas pendeteksian topik. 
+Model ini memanfaatkan representasi semantik berbasis BERT untuk memperoleh 
+representasi dokumen, kemudian dilanjutkan dengan reduksi dimensi menggunakan 
+UMAP sebelum pembentukan topik dilakukan melalui algoritma klasterisasi. 
+Pada penelitian ini, BERTopic diimplementasikan menggunakan dua algoritma 
+klasterisasi, yaitu HDBSCAN dan K-Means, untuk mengevaluasi pengaruh metode 
+pembentukan klaster terhadap kualitas topik yang dihasilkan.Konfigurasi model BERTopic ditunjukkan pada
 Tabel~\ref{tab:config_bertopic}.
 
 \begin{table}[H]
@@ -564,6 +570,114 @@ agar perbandingan antar metode dilakukan pada ruang solusi yang setara,
 sehingga perbedaan hasil yang diperoleh lebih merefleksikan kemampuan model
 dalam membentuk representasi topik dibandingkan pengaruh jumlah topik yang
 digunakan.
+
+%-----------------------------------------------------------------------------%
+\subsubsection{MTL-GUI}
+%-----------------------------------------------------------------------------%
+
+MTL-GUI digunakan sebagai model pembanding utama pada tugas analisis sentimen
+dan pendeteksian topik secara simultan \parencite{gui2022mtml}. Model ini
+menggunakan \textit{Hierarchical Attention Network} (HAN) berbasis GRU sebagai
+\textit{shared encoder} untuk membangun representasi dokumen bersama, yang
+kemudian digunakan secara langsung untuk klasifikasi sentimen. Untuk
+pendeteksian topik, representasi yang sama diproses lebih lanjut menggunakan
+\textit{Variational Autoencoder} (VAE) sebelum dikelompokkan menggunakan
+K-Means. Kedua tugas dihubungkan melalui mekanisme \textit{attention sharing}
+yang mendorong konsistensi antara bobot atensi kata pada HAN dan distribusi
+kata pada model topik.
+
+Konfigurasi komponen HAN ditunjukkan pada Tabel~\ref{tab:config_mtlgui_han},
+konfigurasi VAE pada Tabel~\ref{tab:config_mtlgui_vae}, dan konfigurasi
+pelatihan pada Tabel~\ref{tab:config_mtlgui_train}.
+
+\begin{table}[H]
+    \centering
+    \caption{Konfigurasi komponen HAN pada MTL-GUI}
+    \label{tab:config_mtlgui_han}
+    \renewcommand{\arraystretch}{1.15}
+    \begin{tabular}{L{5.0cm} L{6.5cm}}
+        \toprule
+        \textbf{Parameter} & \textbf{Nilai} \\
+        \midrule
+        Dimensi \textit{embedding}          & 200 \\
+        \textit{Word-level} GRU             & Bidireksional, 2 lapisan \\
+        Ukuran \textit{hidden word} GRU     & 150 (300 setelah konkatenasi) \\
+        \textit{Sent-level} GRU             & Bidireksional, 1 lapisan \\
+        Ukuran \textit{hidden sent} GRU     & 150 (300 setelah konkatenasi) \\
+        \textit{Classifier}                 & FC, 2 lapisan \\
+        Dimensi tersembunyi \textit{classifier} & 100 \\
+        Fungsi aktivasi                     & LeakyReLU, Tanh \\
+        \textit{Dropout}                    & 0{,}3 \\
+        Dimensi \textit{output}             & 2 kelas \\
+        \bottomrule
+    \end{tabular}
+\end{table}
+
+\begin{table}[H]
+    \centering
+    \caption{Konfigurasi komponen VAE pada MTL-GUI}
+    \label{tab:config_mtlgui_vae}
+    \renewcommand{\arraystretch}{1.15}
+    \begin{tabular}{L{5.0cm} L{6.5cm}}
+        \toprule
+        \textbf{Parameter} & \textbf{Nilai} \\
+        \midrule
+        Dimensi \textit{input} (BoW)        & 5.000 \\
+        Dimensi \textit{hidden encoder}     & 500 \\
+        Jumlah topik ($K$)                  & 30, 50, 80 \\
+        Lapisan \textit{generator}          & 4 lapisan (tanh) \\
+        Fungsi aktivasi \textit{output}     & Softmax \\
+        \textit{Dropout}                    & 0{,}2 \\
+        Fungsi \textit{loss} topik          & ELBO (NLL + KLD) \\
+        \bottomrule
+    \end{tabular}
+\end{table}
+
+Komponen VAE pada MTL-GUI dilatih dengan memaksimalkan
+\textit{Evidence Lower Bound} (ELBO), yaitu batas bawah dari
+\textit{log-likelihood} data yang umum digunakan pada VAE karena
+\textit{likelihood} sebenarnya tidak dapat dihitung secara langsung
+\parencite{kingma2013auto}:
+
+\[
+\text{ELBO} = \mathbb{E}_{q(z|x)}[\log p(x|z)] - D_{KL}\big(q(z|x)\,\|\,p(z)\big).
+\]
+
+\noindent Suku pertama merupakan \textit{Negative Log-Likelihood} (NLL)
+yang mengukur kualitas rekonstruksi dokumen dari ruang laten $z$,
+sedangkan suku kedua adalah KL Divergence yang menjaga distribusi laten
+$q(z|x)$ tetap mendekati distribusi \textit{prior} $p(z)$. Fungsi
+\textit{loss} yang dioptimalkan merupakan negasi dari ELBO, sehingga
+pada Tabel~\ref{tab:config_mtlgui_vae} dituliskan sebagai penjumlahan
+NLL dan KLD.
+
+\begin{table}[H]
+    \centering
+    \caption{Konfigurasi pelatihan MTL-GUI}
+    \label{tab:config_mtlgui_train}
+    \renewcommand{\arraystretch}{1.15}
+    \begin{tabular}{L{5.0cm} L{6.5cm}}
+        \toprule
+        \textbf{Parameter} & \textbf{Nilai} \\
+        \midrule
+        Ukuran kosakata                         & 12.000 \\
+        Ukuran kosakata topik                   & 5.000 \\
+        Fungsi \textit{loss} sentimen           & \textit{Cross-Entropy} \\
+        Fungsi \textit{loss} \textit{attention sharing} & KL Divergence \\
+        Bobot \textit{loss} sentimen ($w_c$)    & 9{,}0 \\
+        Bobot \textit{loss} topik ($w_t$)       & 1{,}0 \\
+        Interval \textit{attention sharing}     & Setiap 50 langkah \\
+        \textit{Optimizer}                      & Adam \\
+        \textit{Learning rate} utama            & $1 \times 10^{-3}$ \\
+        \textit{Learning rate attention}        & $1 \times 10^{-4}$ \\
+        \textit{Weight decay}                   & $1 \times 10^{-8}$ \\
+        \textit{Batch size}                     & 32 \\
+        Epoch                                   & 50 \\
+        \bottomrule
+    \end{tabular}
+\end{table}
+
+Secara keseluruhan, konfigurasi ini digunakan sebagai pengaturan standar dalam eksperimen MTL-GUI.
 
 %-----------------------------------------------------------------------------%
 \section{Analisis Kinerja Model}
@@ -663,11 +777,8 @@ merekonstruksi representasi BERT dengan baik pada kedua dataset.
 
 Kinerja \textit{joint training} dievaluasi pada dua aspek utama, yaitu
 klasifikasi sentimen dan pemodelan topik. Evaluasi membandingkan
-JDST-DEC dengan beberapa model pembanding, yaitu NN-BERT, MTL GUI
-\parencite{gui2022mtml}, BERTopic-HDBSCAN, BERTopic-KMeans, dan
-MambaQuin. Khusus pada dataset Yelp, hasil MambaQuin tidak sepenuhnya
-dapat dibandingkan secara langsung karena menggunakan proses
-\textit{sampling} data yang berbeda.
+JDST-DEC dengan beberapa model pembanding, yaitu NN-BERT, MTL-GUI
+\parencite{gui2022mtml}, BERTopic-HDBSCAN, dan BERTopic-KMeans.
 
 %-----------------------------------------------------------------------------%
 \subsubsection{Klasifikasi Sentimen}
@@ -723,16 +834,7 @@ NN-BERT
   & Acc & F1 \\
 \hline
 
-JDST-DEC
-  & 0.8957 & 0.8963
-  & 0.8967 & 0.8986
-  & 0.8941 & 0.8930
-  & 0.8965 & 0.8944
-  & 0.8983 & 0.9020
-  & 0.8935 & 0.8953 \\
-\hline
-
-MTL GUI
+MTL-GUI
   & 0.8327 & 0.8326
   & 0.8317 & 0.8317
   & 0.8334 & 0.8334
@@ -741,34 +843,31 @@ MTL GUI
   & 0.8402 & 0.8401 \\
 \hline
 
-MambaQuin
-  & \textbf{0.9085} & \textbf{0.9085}
-  & \textbf{0.9083} & \textbf{0.9083}
-  & \textbf{0.9086} & \textbf{0.9086}
-  & \textbf{0.9433} & \textbf{0.9433}
-  & \textbf{0.9416} & \textbf{0.9416}
-  & \textbf{0.9428} & \textbf{0.9428} \\
+JDST-DEC
+  & \textbf{0.8957} & \textbf{0.8963}
+  & \textbf{0.8967} & \textbf{0.8986}
+  & \textbf{0.8941} & \textbf{0.8930}
+  & \textbf{0.8965} & \textbf{0.8944}
+  & \textbf{0.8983} & \textbf{0.9020}
+  & \textbf{0.8935} & \textbf{0.8953} \\
 \hline
 
 \end{tabular}
 \end{adjustbox}
 \end{table}
 
-Berdasarkan Tabel~\ref{tab:sentiment}, MambaQuin memperoleh nilai
-\textit{accuracy} dan F1-score tertinggi pada seluruh konfigurasi.
-Namun, hasil MambaQuin pada dataset Yelp tidak sepenuhnya dapat
-dibandingkan secara langsung karena menggunakan proses
-\textit{sampling} data yang berbeda.
+Berdasarkan Tabel~\ref{tab:sentiment}, JDST-DEC memperoleh nilai
+\textit{accuracy} dan F1-score tertinggi di antara model yang
+dievaluasi pada pengaturan eksperimen yang sama. Pada dataset IMDB,
+JDST-DEC memperoleh F1-score terbaik sebesar 0.8986 pada $K=50$, lebih
+tinggi dibandingkan NN-BERT (0.8612) dan MTL-GUI (0.8317). Sementara
+itu, pada dataset Yelp, JDST-DEC mencapai F1-score sebesar 0.9020 pada
+$K=50$, melampaui NN-BERT (0.8715) dan MTL-GUI (0.8401).
 
-Di antara model yang dievaluasi pada pengaturan eksperimen yang sama,
-JDST-DEC secara konsisten mengungguli NN-BERT dan MTL GUI. Pada dataset
-IMDB, JDST-DEC memperoleh F1-score terbaik sebesar 0.8986 pada $K=50$,
-lebih tinggi dibandingkan NN-BERT (0.8612) dan MTL GUI (0.8317).
-Sementara itu, pada dataset Yelp, JDST-DEC mencapai F1-score sebesar
-0.9020 pada $K=50$, melampaui NN-BERT (0.8715) dan MTL GUI (0.8401).
-Perubahan jumlah topik dari $K=30$ hingga $K=80$ juga hanya memberikan
-perbedaan performa yang kecil, sehingga menunjukkan bahwa kinerja
-JDST-DEC relatif stabil terhadap variasi jumlah topik.
+Selain itu, perubahan jumlah topik dari $K=30$ hingga $K=80$ hanya
+memberikan perbedaan performa yang relatif kecil. Hal ini menunjukkan
+bahwa kinerja JDST-DEC tetap stabil terhadap variasi jumlah topik,
+baik pada dataset IMDB maupun Yelp.
 
 %-----------------------------------------------------------------------------%
 \subsubsection{Pemodelan Topik}
@@ -810,21 +909,13 @@ NN-BERT tidak diikutsertakan karena tidak memiliki komponen pemodelan topik.
   & TC-NPMI & TD
   & TC-NPMI & TD \\
 \hline
-JDST-DEC
-  & 0.0803 & 0.2256
-  & 0.0551 & 0.2100
-  & 0.0675 & 0.2875
-  & 0.0788 & 0.3267
-  & 0.0369 & 0.2280
-  & 0.0563 & 0.3150 \\
-\hline
 BERTopic-HDBSCAN
-  & 0.1714 & 0.7966
+  & \textbf{0.1714} & 0.7966
   & \textbf{0.1823} & 0.7680
   & 0.1751 & 0.7625
   & 0.1092 & 0.7233
-  & 0.1666 & \textbf{0.7041}
-  & 0.1646 & \textbf{0.6671} \\
+  & \textbf{0.1666} & \textbf{0.7041}
+  & \textbf{0.1646} & \textbf{0.6671} \\
 \hline
 BERTopic-KMeans
   & 0.1566 & \textbf{0.9567}
@@ -834,21 +925,21 @@ BERTopic-KMeans
   & 0.1120 & 0.6740
   & 0.1465 & 0.6438 \\
 \hline
-MTL GUI
+MTL-GUI
   & 0.0200 & 0.5833
   & 0.0108 & 0.5800
   & 0.0060 & 0.4913
-  & 0.1578 & 0.6600
+  & \textbf{0.1578} & 0.6600
   & 0.1086 & 0.6720
   & 0.1123 & 0.5000 \\
 \hline
-MambaQuin
-  & \textbf{0.1589} & 0.2400
-  & 0.1561 & 0.2040
-  & 0.1606 & 0.1575
-  & \textbf{0.2557} & 0.2533
-  & \textbf{0.2727} & 0.2060
-  & \textbf{0.2699} & 0.1588 \\
+JDST-DEC
+  & 0.0803 & 0.2256
+  & 0.0551 & 0.2100
+  & 0.0675 & 0.2875
+  & 0.0788 & 0.3267
+  & 0.0369 & 0.2280
+  & 0.0563 & 0.3150 \\
 \hline
 \end{tabular}
 \end{adjustbox}
@@ -862,13 +953,12 @@ BERTopic-KMeans memperoleh TD tertinggi pada $K=30$ sebesar 0.7800,
 sedangkan BERTopic-HDBSCAN unggul pada $K=50$ dan $K=80$ dengan nilai
 masing-masing 0.7041 dan 0.6671.
 
-Untuk metrik TC-NPMI, MambaQuin memperoleh nilai tertinggi pada IMDB
-$K=30$ sebesar 0.1589, sedangkan BERTopic-HDBSCAN dan BERTopic-KMeans
-masing-masing unggul pada IMDB $K=50$ (0.1823) dan $K=80$ (0.1874). Pada
-dataset Yelp, MambaQuin memperoleh TC-NPMI tertinggi pada seluruh
-konfigurasi, yaitu 0.2557, 0.2727, dan 0.2699. Namun, hasil MambaQuin
-pada dataset Yelp tidak sepenuhnya dapat dibandingkan secara langsung
-karena menggunakan proses \textit{sampling} data yang berbeda.
+Untuk metrik TC-NPMI, BERTopic-HDBSCAN memperoleh nilai tertinggi pada
+IMDB sebesar 0.1714 ($K=30$) dan 0.1823 ($K=50$), sedangkan
+BERTopic-KMeans menghasilkan nilai tertinggi pada IMDB $K=80$ sebesar
+0.1874. Pada dataset Yelp, BERTopic-HDBSCAN memperoleh TC-NPMI
+tertinggi pada $K=30$ (0.1092) dan $K=50$ (0.1666), sedangkan
+BERTopic-KMeans unggul pada $K=80$ dengan nilai 0.1465.
 
 %-----------------------------------------------------------------------------%
 \subsection{Analisis Multiloss}

@@ -39,8 +39,9 @@ Analisis sentimen umumnya dilakukan melalui dua pendekatan
 \parencite{pang2002thumbs}. Pendekatan berbasis leksikon menggunakan
 kamus sentimen yang berisi kata-kata beserta nilai sentimennya untuk
 menentukan sentimen suatu teks. Pendekatan berbasis \textit{machine
-learning} melatih model pada data berlabel agar dapat mempelajari pola
-bahasa yang berkorelasi dengan sentimen tertentu. Pendekatan ini lebih
+learning} melatih model pada data ulasan berlabel sentimen, seperti
+ulasan produk atau layanan, agar dapat mempelajari pola bahasa yang
+berkorelasi dengan sentimen tertentu. Pendekatan ini lebih
 mampu menangani variasi bahasa, konteks, dan domain yang beragam,
 terutama pada data berskala besar. Penelitian ini menggunakan pendekatan
 berbasis \textit{machine learning} sebagai landasan utama.
@@ -183,8 +184,9 @@ dari input $\mathbf{x}$ melalui seluruh lapisan jaringan secara berurutan.
 Fungsi aktivasi digunakan dalam \textit{neural network} untuk memberikan
 sifat nonlinier pada model. Tanpa fungsi aktivasi, output jaringan hanya
 merupakan transformasi linier dari input sehingga tidak mampu menangkap
-pola yang kompleks \parencite{goodfellow2016}. Berikut adalah fungsi
-aktivasi yang digunakan dalam penelitian ini.
+pola yang kompleks \parencite{goodfellow2016}. Pada penelitian ini, digunakan tiga fungsi aktivasi utama,
+yaitu \textit{softmax}, ReLU, dan GELU, yang masing-masing dijelaskan
+berikut.
 
 %-------------------------------------------------------------------------%
 \subsubsection{\textit{Softmax}}
@@ -302,7 +304,7 @@ $\hat{y}_{ij}$ adalah probabilitas prediksi model untuk sampel ke-$i$
 pada kelas ke-$j$.
 
 %-------------------------------------------------------------------------%
-\subsection{Backpropagation}
+\subsection{\textit{Backpropagation}}
 %-------------------------------------------------------------------------%
 
 Setelah nilai \textit{loss} diperoleh, langkah berikutnya dalam proses
@@ -497,10 +499,9 @@ minimum pada titik kompleksitas optimal.
 \end{figure}
 
 Untuk mencegah \textit{overfitting}, salah satu teknik yang digunakan
-adalah \textit{weight decay} atau $L_2$ \textit{regularization}. Teknik
-ini menambahkan penalti pada fungsi \textit{loss} yang proporsional
-terhadap besar bobot model, sehingga model cenderung menghasilkan bobot
-bernilai kecil:
+adalah \textit{weight decay} atau $L_2$ \textit{regularization}, yang
+menambahkan penalti pada fungsi \textit{loss} proporsional terhadap besar
+bobot model:
 
 \begin{equation}
     \tilde{L}(\mathbf{w}) = L(\mathbf{w}) + \frac{\lambda}{2}
@@ -512,63 +513,237 @@ bernilai kecil:
 $\|\mathbf{w}\|^2$ adalah jumlah kuadrat seluruh bobot dalam model, dan
 $\lambda$ adalah skalar yang mengontrol kekuatan penalti.
 
+Teknik lain yang digunakan adalah \textit{dropout}, yang menonaktifkan
+neuron secara acak selama pelatihan agar jaringan tidak terlalu
+bergantung pada neuron tertentu \parencite{srivastava2014dropout}. Untuk
+vektor aktivasi $\mathbf{h} \in \mathbb{R}^p$, setiap neuron ke-$i$
+dikalikan dengan variabel acak Bernoulli:
+
+\begin{equation}
+    m_i \sim \text{Bernoulli}(1 - p_{\text{drop}}), \qquad
+    \tilde{h}_i = \frac{m_i}{1 - p_{\text{drop}}} \cdot h_i.
+    \label{eq:dropout}
+\end{equation}
+
+\noindent dengan $p_{\text{drop}} \in [0,1]$ adalah probabilitas neuron
+dinonaktifkan, dan faktor $1/(1-p_{\text{drop}})$ menyeimbangkan skala
+aktivasi akibat neuron yang dinonaktifkan. Pada tahap evaluasi,
+\textit{dropout} tidak diterapkan dan seluruh neuron digunakan
+sepenuhnya ($\tilde{\mathbf{h}} = \mathbf{h}$).
+
+Teknik lain yang juga memberikan efek regularisasi adalah \textit{Batch
+Normalization} (BatchNorm), yang menormalisasi aktivasi berdasarkan
+statistik \textit{mini-batch} untuk mempercepat dan menstabilkan
+pelatihan \parencite{ioffe2015batch}. Untuk aktivasi
+$\mathcal{B} = \{h_1, \ldots, h_m\}$ pada satu \textit{mini-batch}:
+
+\begin{equation}
+    \hat{h}_i = \frac{h_i - \mu_{\mathcal{B}}}
+    {\sqrt{\sigma_{\mathcal{B}}^2 + \epsilon}}, \qquad
+    \text{BN}(h_i) = \gamma \hat{h}_i + \beta.
+    \label{eq:batchnorm}
+\end{equation}
+
+\noindent dengan $\mu_{\mathcal{B}}$ dan $\sigma_{\mathcal{B}}^2$
+masing-masing adalah rata-rata dan variansi \textit{batch}, $\epsilon$
+adalah skalar kecil pencegah pembagian dengan nol, serta $\gamma$ dan
+$\beta$ adalah parameter skala dan pergeseran yang dipelajari agar
+kapasitas representasi jaringan tetap terjaga. Pada tahap evaluasi,
+$\mu_{\mathcal{B}}$ dan $\sigma_{\mathcal{B}}^2$ digantikan dengan
+estimasi rata-rata bergerak yang dikumpulkan selama pelatihan.
+
 %-------------------------------------------------------------------------%
 \subsection{Metrik Evaluasi}
 %-------------------------------------------------------------------------%
 
-Setelah model dilatih, performa klasifikasinya diukur menggunakan data yang
-belum pernah dilihat selama pelatihan. Dasar dari evaluasi ini adalah
-\textit{confusion matrix}, yaitu tabel yang membandingkan prediksi model
-terhadap label aktual. Dari tabel ini diperoleh empat komponen dasar:
-\textit{True Positive} (TP) yaitu sampel positif yang diprediksi benar,
-\textit{True Negative} (TN) yaitu sampel negatif yang diprediksi benar,
-\textit{False Positive} (FP) yaitu sampel negatif yang salah diprediksi
-sebagai positif, dan \textit{False Negative} (FN) yaitu sampel positif
-yang salah diprediksi sebagai negatif.
+Tahap evaluasi bertujuan untuk mengukur kinerja model pada tugas
+klasifikasi sentimen maupun klasterisasi topik. Evaluasi klasifikasi
+dilakukan menggunakan metrik yang diturunkan dari
+\textit{confusion matrix}, sedangkan evaluasi hasil klasterisasi topik
+dilakukan menggunakan metrik \textit{topic coherence} dan
+\textit{topic diversity}. Masing-masing metrik dijelaskan pada
+subsubbab berikut.
 
-Dari keempat komponen tersebut, diturunkan empat metrik utama. Akurasi
-mengukur proporsi keseluruhan prediksi yang benar:
+%-------------------------------------------------------------------------%
+\subsubsection{Metrik Evaluasi Klasifikasi}
+%-------------------------------------------------------------------------%
+
+Setelah model dilatih, performa klasifikasi dievaluasi menggunakan data
+yang tidak digunakan selama proses pelatihan. Evaluasi didasarkan pada
+\textit{confusion matrix}, yaitu tabel yang membandingkan hasil prediksi
+model dengan label aktual. Dari tabel tersebut diperoleh empat komponen
+dasar, yaitu \textit{True Positive} (TP), \textit{True Negative} (TN),
+\textit{False Positive} (FP), dan \textit{False Negative} (FN). TP
+menunjukkan jumlah sampel positif yang diprediksi dengan benar, TN
+menunjukkan jumlah sampel negatif yang diprediksi dengan benar, FP
+menunjukkan jumlah sampel negatif yang salah diprediksi sebagai positif,
+sedangkan FN menunjukkan jumlah sampel positif yang salah diprediksi
+sebagai negatif.
+
+Berdasarkan keempat komponen tersebut, digunakan empat metrik evaluasi
+utama, yaitu akurasi, \textit{precision}, \textit{recall}, dan
+F1-\textit{Score}.
+
+Akurasi mengukur proporsi keseluruhan prediksi yang benar terhadap seluruh
+sampel pengujian.
 
 \begin{equation}
-    \text{Accuracy} = \frac{TP + TN}{TP + TN + FP + FN}.
+    \text{Accuracy} =
+    \frac{TP + TN}{TP + TN + FP + FN}
     \label{eq:accuracy}
 \end{equation}
 
-\textit{Precision} mengukur seberapa tepat model ketika menyatakan sesuatu
-sebagai positif, artinya dari semua yang diprediksi positif, berapa banyak
-yang benar-benar positif:
+\textit{Precision} mengukur ketepatan model ketika memprediksi suatu
+sampel sebagai kelas positif, yaitu proporsi prediksi positif yang benar.
 
 \begin{equation}
-    \text{Precision} = \frac{TP}{TP + FP}.
+    \text{Precision} =
+    \frac{TP}{TP + FP}
     \label{eq:precision}
 \end{equation}
 
-\textit{Recall} mengukur seberapa lengkap model dalam menangkap semua
-sampel positif yang ada, artinya dari semua yang sebenarnya positif,
-berapa banyak yang berhasil ditemukan:
+\textit{Recall} mengukur kemampuan model dalam menemukan seluruh sampel
+positif yang sebenarnya.
 
 \begin{equation}
-    \text{Recall} = \frac{TP}{TP + FN}.
+    \text{Recall} =
+    \frac{TP}{TP + FN}
     \label{eq:recall}
 \end{equation}
 
-Kedua metrik ini sering kali saling bertentangan. Model dengan
-\textit{precision} tinggi cenderung memiliki \textit{recall} rendah, dan
-sebaliknya. F1-\textit{Score} menggabungkan keduanya melalui rata-rata
-harmonik:
+Karena \textit{precision} dan \textit{recall} sering kali saling
+berkompromi, keduanya dikombinasikan menggunakan F1-\textit{Score},
+yaitu rata-rata harmonik antara kedua metrik tersebut.
 
 \begin{equation}
-    \text{F1-Score} = 2 \times
-    \frac{\text{Precision} \times \text{Recall}}{\text{Precision} +
-    \text{Recall}} = \frac{2 \times TP}{2 \times TP + FP + FN}.
+    \text{F1-Score}
+    =
+    2
+    \times
+    \frac{\text{Precision} \times \text{Recall}}
+    {\text{Precision} + \text{Recall}}
+    =
+    \frac{2TP}{2TP + FP + FN}
     \label{eq:f1score}
 \end{equation}
 
-F1-\textit{Score} berguna pada dataset yang tidak seimbang karena tidak
-memberikan bobot berlebihan pada kelas yang mendominasi.
+F1-\textit{Score} memberikan ukuran yang lebih seimbang dibandingkan
+akurasi, terutama pada dataset yang memiliki distribusi kelas tidak
+seimbang.
 
 %-------------------------------------------------------------------------%
-\section{Autoencoder}
+\subsubsection{Metrik Evaluasi Topik}
+\label{sec:topic_eval}
+%-------------------------------------------------------------------------%
+
+Kualitas hasil klasterisasi topik dapat dievaluasi menggunakan berbagai
+metrik kuantitatif. Pada penelitian ini digunakan dua metrik, yaitu
+\textit{topic coherence} dan \textit{topic diversity}. Kedua metrik
+dihitung langsung dari dokumen hasil klasterisasi tanpa memerlukan model
+eksternal.
+
+\textit{Topic coherence} mengukur sejauh mana kata-kata teratas dalam
+suatu topik memiliki keterkaitan semantik melalui kemunculan bersama
+(\textit{co-occurrence}) pada dokumen yang sama. Penelitian ini
+menggunakan metrik \textit{Normalized Pointwise Mutual Information}
+(NPMI). Misalkan $\mathcal{D}_k$ adalah himpunan dokumen pada klaster
+ke-$k$ dan $\{w_1,w_2,\ldots,w_N\}$ merupakan $N$ kata teratas pada
+klaster tersebut setelah proses penghapusan \textit{stop words}.
+Probabilitas kemunculan setiap kata dan probabilitas kemunculan
+bersamanya didefinisikan sebagai
+
+\begin{align}
+    p(w_i)
+    &= \frac{|\{d \in \mathcal{D}_k : w_i \in d\}|}
+    {|\mathcal{D}_k|},\\[4pt]
+    p(w_j)
+    &= \frac{|\{d \in \mathcal{D}_k : w_j \in d\}|}
+    {|\mathcal{D}_k|},\\[4pt]
+    p(w_i,w_j)
+    &= \frac{|\{d \in \mathcal{D}_k :
+    w_i \in d \text{ dan } w_j \in d\}|}
+    {|\mathcal{D}_k|}.
+\end{align}
+
+Nilai \textit{Pointwise Mutual Information} (PMI) dihitung sebagai
+
+\begin{equation}
+    \mathrm{PMI}(w_i,w_j)
+    =
+    \log
+    \frac{p(w_i,w_j)+\varepsilon}
+    {p(w_i)p(w_j)+\varepsilon}
+    \label{eq:pmi}
+\end{equation}
+
+dengan $\varepsilon = 10^{-10}$ digunakan untuk menghindari pembagian
+dengan nol. Selanjutnya nilai PMI dinormalisasi menjadi NPMI.
+
+\begin{equation}
+    \mathrm{NPMI}(w_i,w_j)
+    =
+    \frac{\mathrm{PMI}(w_i,w_j)}
+    {-\log(p(w_i,w_j)+\varepsilon)}
+    \label{eq:npmi}
+\end{equation}
+
+Nilai NPMI berada pada rentang $[-1,1]$, di mana nilai yang semakin
+mendekati $1$ menunjukkan bahwa kedua kata semakin sering muncul
+bersama. Skor \textit{topic coherence} untuk setiap klaster dihitung
+sebagai rata-rata nilai NPMI seluruh pasangan kata.
+
+\begin{equation}
+    \mathrm{TC}_k
+    =
+    \frac{1}{\binom{N}{2}}
+    \sum_{j=2}^{N}
+    \sum_{i=1}^{j-1}
+    \mathrm{NPMI}(w_i,w_j)
+    \label{eq:tc_cluster}
+\end{equation}
+
+Nilai koherensi keseluruhan diperoleh melalui rata-rata seluruh klaster.
+
+\begin{equation}
+    \overline{\mathrm{TC}}
+    =
+    \frac{1}{K}
+    \sum_{k=1}^{K}
+    \mathrm{TC}_k
+    \label{eq:tc_mean}
+\end{equation}
+
+Apabila suatu klaster memiliki kurang dari dua kata unik, maka nilai
+koherensinya ditetapkan sebesar $0$.
+
+\textit{Topic diversity} mengukur tingkat keberagaman kosakata antar
+topik. Semakin sedikit kata yang muncul berulang pada topik berbeda,
+semakin tinggi nilai \textit{topic diversity}. Misalkan $\mathcal{W}_k$
+adalah himpunan $N$ kata teratas pada klaster ke-$k$, sedangkan himpunan
+seluruh kata unik didefinisikan sebagai
+
+\[
+\mathcal{U}
+=
+\bigcup_{k=1}^{K}\mathcal{W}_k.
+\]
+
+Nilai \textit{topic diversity} dihitung menggunakan
+
+\begin{equation}
+    \mathrm{TD}
+    =
+    \frac{|\mathcal{U}|}
+    {\displaystyle\sum_{k=1}^{K}|\mathcal{W}_k|}
+    \label{eq:td}
+\end{equation}
+
+Nilai $\mathrm{TD}=1$ menunjukkan bahwa seluruh kata teratas dari setiap
+topik berbeda satu sama lain, sedangkan nilai yang semakin kecil
+menunjukkan semakin banyak kosakata yang tumpang tindih antar topik.
+
+%-------------------------------------------------------------------------%
+\section{\textit{Autoencoder}}
 %-------------------------------------------------------------------------%
 
 Pemahaman tentang arsitektur \textit{feed-forward neural network} menjadi
@@ -1111,7 +1286,7 @@ fleksibel namun membutuhkan lebih banyak parameter dan pengaturan
 $\lambda$ yang tepat.
 
 %-------------------------------------------------------------------------%
-\section{Clustering}
+\section{\textit{Clustering}}
 %-------------------------------------------------------------------------%
 
 \textit{Clustering} merupakan teknik \textit{unsupervised learning} yang
@@ -1184,6 +1359,13 @@ data dialokasikan ke klaster dengan \textit{centroid} terdekat:
     \end{cases}
     \label{eq:assignment_step}
 \end{equation}
+
+\noindent dengan $\arg\min_j \|\mathbf{x}_n - \boldsymbol{\mu}_j\|^2$
+menyatakan indeks $j$ yang meminimalkan nilai
+$\|\mathbf{x}_n - \boldsymbol{\mu}_j\|^2$, yaitu indeks \textit{centroid}
+terdekat terhadap titik data $\mathbf{x}_n$. Notasi $\arg\max$ yang
+digunakan pada bagian-bagian selanjutnya memiliki pengertian yang serupa,
+yaitu mengembalikan indeks yang memaksimalkan suatu fungsi.
 
 Pada tahap kedua (\textit{update step}), \textit{centroid} setiap klaster
 diperbarui menjadi rata-rata dari seluruh titik yang menjadi anggotanya:

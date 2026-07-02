@@ -2,62 +2,152 @@
 \chapter{\babSatu}
 %-----------------------------------------------------------------------------%
 
-
 %-----------------------------------------------------------------------------%
 \section{Latar Belakang}
 %-----------------------------------------------------------------------------%
 
-Dunia kontemporer dibanjiri oleh arus deras informasi tekstual yang dihasilkan setiap saat, bersumber dari platform media sosial, ulasan daring, artikel berita, repositori ilmiah, dan banyak lagi. Kumpulan data tekstual masif ini, yang sebagian besar tidak terstruktur, mengandung potensi pengetahuan yang signifikan mengenai sentimen masyarakat, dinamika pasar, hingga tren diskursus publik. Akan tetapi, volume dan keragaman data tersebut menjadikan analisis manual suatu hal yang tidak praktis dan efisien. Menjawab tantangan ini, disiplin \textit{Natural Language Processing} (NLP), sebagai bagian dari kecerdasan artifisial yang menjembatani komunikasi antara mesin dan bahasa alami manusia, hadir menawarkan metodologi komputasional untuk mengolah dan memahami data linguistik dalam skala besar.
+Perkembangan platform digital seperti media sosial, situs ulasan, dan portal
+berita telah menyebabkan peningkatan yang sangat besar pada data teks tidak
+terstruktur yang dihasilkan setiap harinya. Setiap hari, jutaan pengguna
+menghasilkan teks yang berisi opini, emosi, dan pandangan mereka terhadap
+berbagai isu, sehingga membentuk kumpulan data yang sangat besar dan kaya
+informasi \parencite{andreotta2019}. Kondisi ini membuka peluang besar untuk
+menganalisis opini publik dan tren sosial, tetapi di sisi lain juga menimbulkan
+tantangan karena proses analisis manual menjadi tidak lagi efektif. Sebagian
+besar data yang tersedia di internet bersifat tidak terstruktur, sehingga
+membutuhkan pendekatan komputasional seperti \textit{text mining} dan
+\textit{Natural Language Processing} (NLP) agar data tersebut dapat diproses
+dan dimanfaatkan dengan baik \parencite{nikhil2015}.
 
 \bigskip
 
-Dalam spektrum kapabilitas NLP, dua teknik yang memiliki relevansi tinggi untuk mengekstrak makna dari himpunan data tekstual adalah analisis sentimen (\textit{Sentiment Analysis}) dan pemodelan topik (\textit{Topic Modeling}) \parencite{blei2003latent}. Analisis sentimen secara khusus dirancang untuk menyelidiki dan menentukan muatan subjektif atau nada emosional yang terkandung dalam suatu teks, lalu menggolongkannya sebagai ekspresi positif, negatif, ataupun netral. Pengaplikasian teknik ini sangat berharga untuk melacak citra merek, menganalisis tanggapan konsumen, memetakan opini publik terkait isu tertentu, serta mengidentifikasi ujaran problematik. Kemampuan mengukur sentimen secara kolektif memberikan landasan bagi entitas bisnis maupun riset untuk memahami persepsi dan mengambil langkah strategis.
+Salah satu bidang utama dalam NLP yang terus berkembang adalah analisis
+sentimen. Analisis ini bertujuan untuk mengidentifikasi serta mengelompokkan
+opini dan emosi yang terkandung dalam teks \parencite{pang2008opinion}. Dalam
+konteks \textit{machine learning}, analisis sentimen termasuk dalam kategori
+\textit{supervised learning}, khususnya masalah klasifikasi, sehingga
+membutuhkan data yang sudah memiliki label sentimen untuk proses pelatihannya
+\parencite{murfi2018}. Salah satu pendekatan yang paling umum digunakan adalah
+\textit{document-level sentiment analysis}, yaitu pendekatan yang mengasumsikan
+bahwa satu dokumen hanya memiliki satu sentimen dominan secara keseluruhan,
+seperti positif, negatif, atau netral \parencite{pang2008opinion}. Metode ini
+banyak digunakan karena lebih sederhana dalam pemodelan dan lebih efisien dalam
+proses anotasi data, karena setiap dokumen hanya memerlukan satu label
+sentimen. Hal ini membuat pendekatan tersebut sering diterapkan dalam analisis
+opini berskala besar, seperti pada dataset IMDB dan Yelp
+\parencite{zhang2018, maas2011learning, zhang2015character}.
 
 \bigskip
 
-Di sisi lain, pemodelan topik menangani tugas komplementer, yakni mengungkap tema-tema atau pokok bahasan esensial yang tersembunyi (\textit{latent thematic structures}) di dalam koleksi dokumen berjumlah besar, atau sering disebut \textit{corpora} \parencite{blei2003latent}. Berbeda dengan fokus pada nuansa afektif per teks, tujuan utama pemodelan topik adalah menyajikan intisari tematik dari keseluruhan data. Kegunaannya terbentang luas, mulai dari fasilitasi eksplorasi dan pengorganisasian arsip digital, identifikasi pola baru dalam korpus literatur atau berita, hingga penyempurnaan sistem rekomendasi konten dan pemahaman struktur narasi dalam skala makro. Dengan mengabstraksikan topik-topik dominan, metode ini membantu mereduksi kompleksitas informasi dan menyajikan gambaran umum konten. Walaupun memiliki fokus yang berbeda, kedua pendekatan ini berpotensi menghasilkan pemahaman yang lebih komprehensif jika diintegrasikan, menyingkap \textit{apa} subjek pembicaraan sekaligus \textit{bagaimana} pandangan atau perasaan terhadap subjek tersebut.
+Namun demikian, pendekatan \textit{document-level sentiment analysis} memiliki
+keterbatasan karena menganggap bahwa seluruh isi dokumen memiliki karakter
+emosi yang seragam. Dalam praktiknya, satu dokumen sering kali membahas
+beberapa aspek atau topik yang berbeda, bahkan dengan polaritas sentimen yang
+tidak sama. Akibatnya, informasi sentimen yang lebih detail dapat terabaikan
+\parencite{pang2008opinion}. Hal ini kemudian mendorong munculnya pendekatan
+\textit{Topic-Level Sentiment Analysis} (TLSA), yaitu metode yang berfokus
+pada pengidentifikasian sentimen terhadap topik tertentu di dalam sebuah
+dokumen \parencite{titov2008}. Pendekatan ini memungkinkan analisis yang lebih
+rinci sehingga lebih berguna untuk berbagai kebutuhan seperti evaluasi produk,
+layanan, maupun kebijakan publik.
 
 \bigskip
 
-Pendekatan tradisional dalam pemodelan topik, seperti \textit{Latent Dirichlet Allocation} (LDA), umumnya berbasis probabilistik dan mengandalkan metode faktorisasi matriks untuk mengidentifikasi distribusi kata dalam topik \parencite{blei2003latent, blei2012probabilistic}. Meskipun metode ini telah terbukti efektif dalam banyak kasus, keterbatasannya dalam menangkap hubungan semantik yang kompleks dalam teks membuatnya kurang optimal untuk tugas yang lebih kompleks, seperti klasifikasi sentimen yang dilakukan secara simultan dengan deteksi topik. Salah satu kelemahan utama pendekatan probabilistik seperti LDA adalah skalabilitasnya yang terbatas, terutama saat diaplikasikan pada \textit{dataset} berukuran besar dengan dimensi fitur tinggi \parencite{boydgraber2017synthetic}. Selain itu, model berbasis probabilistik sering kali memerlukan waktu komputasi yang signifikan dan sulit diadaptasi untuk menangani data teks modern yang bersifat dinamis dan tidak terstruktur \parencite{mcauliffe2008supervised}.
+Perkembangan dalam TLSA kemudian menghasilkan berbagai model yang mencoba
+menggabungkan pembelajaran topik dan sentimen secara bersamaan. Salah satu
+model awal yang menjadi dasar adalah \textit{Joint Sentiment-Topic} (JST),
+yang memperluas \textit{Latent Dirichlet Allocation} (LDA) dengan menambahkan
+dimensi sentimen sehingga kedua aspek tersebut dapat dipelajari dalam satu
+model probabilistik \parencite{lin2009joint, blei2012probabilistic}. Setelah
+itu, dikembangkan \textit{Topic Sentiment Latent Dirichlet Allocation} (TSLDA)
+yang berusaha meningkatkan kemampuan model dalam menangkap hubungan antara
+topik dan sentimen pada berbagai kondisi data \parencite{nguyen2015tslda}.
+Meskipun demikian, model-model ini masih berbasis \textit{bag-of-words},
+sehingga belum mampu menangkap hubungan semantik antar kata secara mendalam.
+Untuk mengatasi hal tersebut, dikembangkan \textit{Topic Sentiment model with
+Word Embedding} (TSWE) yang menggabungkan representasi \textit{word embedding}
+agar kesamaan makna antar kata dapat ikut dipertimbangkan dalam proses
+pemodelan \parencite{fu2016tswe}. Pendekatan ini kemudian diperluas melalui
+\textit{Embedding-enhanced JST} (ELJST) yang menggabungkan
+\textit{word embedding} dengan pendekatan berbasis \textit{skip-gram} untuk
+menghasilkan representasi yang lebih stabil dan koheren
+\parencite{sengupta2021eljst}.
 
 \bigskip
 
-Dalam klasifikasi sentimen, pendekatan berbasis pembelajaran mendalam (\textit{deep learning}) telah menunjukkan keunggulan signifikan dibandingkan metode tradisional. Salah satu model yang paling efektif adalah \textit{Bidirectional Encoder Representations from Transformers} (BERT), yang mampu memahami konteks kata dalam teks dengan mempertimbangkan hubungan antar kata di kedua arah (\textit{bidirectional}) \parencite{devlin2018bert}. BERT telah banyak digunakan dalam tugas-tugas NLP dan terbukti unggul dalam klasifikasi sentimen, menghasilkan akurasi yang lebih tinggi dibandingkan pendekatan berbasis fitur atau metode statistik konvensional \parencite{sun2019fine}.
+Walaupun TLSA mampu memberikan hasil analisis yang lebih rinci, penerapannya
+cenderung lebih kompleks karena membutuhkan proses anotasi yang lebih sulit
+serta pemodelan yang lebih berat. Sebagai alternatif, pendekatan
+\textit{document-level sentiment analysis} tetap dikembangkan dengan
+menambahkan informasi topik ke dalam proses pemodelannya. Dalam konteks ini,
+terdapat dua pendekatan utama, yaitu \textit{Separate Document-Level
+Sentiment-Topic Model} (SDST) dan \textit{Joint Document-Level Sentiment-Topic
+Model} (JDST). Pada pendekatan SDST, proses deteksi topik dan klasifikasi
+sentimen dilakukan secara terpisah menggunakan model yang berbeda, sehingga
+keduanya tidak saling memengaruhi secara langsung \parencite{sengupta2021eljst}.
+Sementara itu, JDST mencoba menggabungkan kedua proses tersebut dalam satu
+kerangka pelatihan sehingga informasi topik dan sentimen dapat saling
+berinteraksi selama proses pembelajaran.
 
 \bigskip
 
-Seiring dengan berkembangnya model \textit{deep learning}, pendekatan berbasis jaringan saraf telah terbukti lebih unggul dalam menangani data teks yang tidak terstruktur dibandingkan metode berbasis probabilistik seperti LDA \parencite{mikolov2013efficient}. Model \textit{neural network} dapat mengekstrak representasi semantik yang lebih kaya dan menangkap hubungan kontekstual antar kata dalam teks dengan lebih baik \parencite{zhang2020neural}. Selain itu, pendekatan \textit{neural network} dapat mengatasi keterbatasan skalabilitas pada metode probabilistik karena dapat memanfaatkan arsitektur yang lebih efisien seperti \textit{transformers} dan teknik \textit{embedding} untuk mengurangi dimensi data \parencite{vaswani2017attention}.
+Salah satu implementasi JDST berbasis \textit{deep learning} diperkenalkan oleh
+Gui et al. (2022) melalui pendekatan \textit{Multi-Task Mutual Learning}
+(MTL-GUI). Model ini menggunakan representasi bersama yang dibangun dengan
+\textit{Hierarchical Attention Network} berbasis GRU
+\parencite{chung2014empirical}. Representasi tersebut digunakan langsung untuk
+klasifikasi sentimen, sedangkan untuk pemodelan topik, representasi yang sama
+diproses lebih lanjut menggunakan \textit{Variational Autoencoder} (VAE)
+sebelum kemudian dikelompokkan menggunakan K-Means. Pendekatan ini mampu
+meningkatkan performa pada kedua tugas, baik sentimen maupun topik. Namun,
+proses pembentukan topik masih dilakukan setelah representasi utama diperoleh,
+sehingga struktur klaster belum benar-benar dipelajari secara langsung selama
+proses pelatihan berlangsung. Hal ini menyebabkan hubungan antara representasi
+laten dan struktur topik belum sepenuhnya optimal.
 
 \bigskip
 
-Salah satu pendekatan berbasis \textit{neural network} yang semakin populer dalam pemodelan topik adalah \textit{BERTopic}. Berbeda dengan LDA yang hanya mengandalkan distribusi kata untuk menentukan topik, \textit{BERTopic} memanfaatkan representasi teks dari model \textit{transformer} seperti BERT untuk menangkap hubungan semantik yang lebih dalam antar kata \parencite{grootendorst2022bertopic}. Metode ini menggabungkan \textit{embedding} berbasis \textit{transformer} dengan teknik klasterisasi seperti \textit{UMAP} dan \textit{HDBSCAN} untuk mengidentifikasi topik secara lebih akurat dan stabil, bahkan dalam \textit{dataset} berukuran besar atau dengan struktur yang kompleks. Keunggulan utama \textit{BERTopic} dibandingkan LDA adalah kemampuannya dalam menangani variasi bahasa yang lebih luas, memahami sinonim dan kontekstualisasi kata, serta tidak bergantung pada asumsi distribusi kata seperti pada metode probabilistik \parencite{grootendorst2022bertopic}.
+Dalam pembelajaran representasi data, \textit{autoencoder} sering digunakan
+sebagai metode untuk mereduksi dimensi sambil tetap mempertahankan informasi
+penting dari data masukan \parencite{hinton2006reducing}. Pengembangan lebih
+lanjut dari metode ini adalah \textit{Deep Embedded Clustering} (DEC), yang
+menggabungkan proses klasterisasi langsung ke dalam ruang laten autoencoder.
+Dengan pendekatan ini, representasi data dan proses pengelompokan dapat
+dipelajari secara bersamaan dalam satu proses pelatihan
+\parencite{xie2016unsupervised}. Hal ini membuat ruang laten yang dihasilkan
+tidak hanya padat secara representasi, tetapi juga memiliki struktur yang lebih
+sesuai untuk proses pengelompokan.
 
 \bigskip
 
-Namun demikian, sebagian besar metode pemodelan topik modern seperti \textit{BERTopic} masih berfokus pada pemisahan topik semata tanpa mempertimbangkan aspek lain seperti sentimen atau struktur laten yang lebih dalam secara eksplisit. Selain itu, integrasi antara pemodelan topik dan klasifikasi sentimen masih sering dilakukan secara terpisah, sehingga informasi semantik yang berharga dalam teks belum sepenuhnya dimanfaatkan secara terpadu. Pemisahan ini mengakibatkan redundansi komputasi dan hilangnya peluang untuk memanfaatkan sinergi antara kedua tugas dalam satu arsitektur model yang kohesif.
+Berdasarkan perkembangan tersebut, penelitian ini mengusulkan model
+\textit{Joint Document-Level Sentiment-Topic} berbasis
+\textit{Deep Embedded Clustering} (JDST-DEC). Model ini menggunakan representasi
+dari BERT yang telah dibekukan (\textit{frozen}) sebagai input utama, kemudian
+diproyeksikan ke dalam ruang laten melalui \textit{shared encoder}. Berbeda
+dengan pendekatan sebelumnya yang memisahkan proses klasterisasi dan
+klasifikasi, model ini menggabungkan \textit{clustering head} berbasis DEC dan
+\textit{sentiment head} dalam satu proses pelatihan yang berjalan secara
+bersamaan. Dengan demikian, ruang laten yang dihasilkan dapat secara simultan
+mendukung klasifikasi sentimen dan pembentukan topik yang lebih terstruktur.
+Dalam kerangka ini, tugas topik tidak dianggap sebagai output utama, melainkan
+sebagai \textit{auxiliary task} yang membantu membentuk struktur ruang laten
+agar lebih terorganisir dan lebih mudah diinterpretasikan
+\parencite{caruana1997multitask}.
 
 \bigskip
 
-Dalam konteks pembelajaran representasi untuk data teks berdimensi tinggi, \textit{Autoencoder} telah menunjukkan kemampuannya sebagai teknik pembelajaran tanpa supervisi (\textit{unsupervised learning}) yang efektif untuk reduksi dimensi dan ekstraksi fitur \parencite{hinton2006reducing}. \textit{Autoencoder} bekerja dengan cara mempelajari representasi laten (\textit{latent representation}) yang lebih kompak dari data masukan melalui proses \textit{encoding} dan \textit{decoding}. Arsitektur ini memaksa model untuk mengekstrak informasi paling esensial dari data dengan mengompresi masukan ke dalam ruang dimensi yang lebih rendah, kemudian merekonstruksi kembali data asli dari representasi tersebut. Proses ini memungkinkan model untuk menangkap struktur intrinsik dan pola-pola penting dalam data teks, sekaligus mengurangi \textit{noise} dan redundansi fitur.
-
-\bigskip
-
-Berbeda dengan teknik reduksi dimensi tradisional seperti \textit{Principal Component Analysis} (PCA) yang bersifat linear, \textit{Autoencoder} mampu menangkap hubungan non-linear yang kompleks dalam data \parencite{hinton2006reducing}. Hal ini sangat penting dalam pemrosesan teks, di mana hubungan antar kata dan dokumen seringkali bersifat non-linear dan kontekstual. \textit{Autoencoder} juga memiliki fleksibilitas arsitektur yang memungkinkan penyesuaian kedalaman jaringan sesuai dengan kompleksitas data dan tugas yang dihadapi. Dalam konteks NLP, penggunaan \textit{Autoencoder} telah terbukti efektif untuk berbagai aplikasi, termasuk pembelajaran representasi dokumen, deteksi anomali dalam teks, dan ekstraksi fitur untuk tugas-tugas \textit{downstream} seperti klasifikasi dan klasterisasi \parencite{vincent2010stacked}.
-
-\bigskip
-
-Untuk menjawab keterbatasan integrasi antara pemodelan topik dan klasifikasi sentimen, penelitian ini bertujuan untuk mengembangkan pendekatan pemodelan topik yang lebih terintegrasi melalui kombinasi metode representasi laten berbasis \textit{Autoencoder} dan teknik \textit{Deep Embedded Clustering} (DEC). Dengan memanfaatkan \textit{Autoencoder} sebagai komponen \textit{encoder} untuk menghasilkan representasi teks yang lebih efisien dan bermakna, serta DEC untuk melakukan klasterisasi yang mempertahankan struktur semantik dalam ruang laten, model diharapkan mampu mengidentifikasi topik-topik secara lebih akurat dan representatif. \textit{Autoencoder} dalam penelitian ini berfungsi sebagai fondasi untuk pembelajaran representasi yang \textit{robust}, yang kemudian dioptimalkan lebih lanjut melalui proses klasterisasi DEC untuk menghasilkan pembagian topik yang lebih koheren dan terpisah dengan baik.
-
-\bigskip
-
-Lebih lanjut, penelitian ini mengusulkan pengembangan arsitektur \textit{multi-task learning} (MTL) yang memungkinkan integrasi klasifikasi sentimen dan pemodelan topik secara bersamaan dalam satu kerangka kerja. Pendekatan MTL memiliki keunggulan dalam memanfaatkan hubungan implisit antara tugas-tugas terkait untuk meningkatkan generalisasi model \parencite{caruana1997multitask}. Dalam konteks penelitian ini, klasifikasi sentimen dan pemodelan topik memiliki keterkaitan semantik yang kuat; sentimen suatu teks seringkali berkorelasi dengan topik yang dibahas, dan pemahaman topik dapat membantu dalam identifikasi sentimen yang lebih akurat. Dengan berbagi representasi laten yang sama melalui \textit{Autoencoder}, kedua tugas dapat saling memperkaya dan menghasilkan performa yang lebih baik dibandingkan jika dilatih secara terpisah.
-
-\bigskip
-
-Pendekatan ini diharapkan dapat meningkatkan efisiensi dan efektivitas analisis teks dengan memanfaatkan representasi laten yang sama untuk dua tugas sekaligus, mengurangi redundansi komputasi, serta memberikan kontribusi terhadap pengembangan model-model NLP yang lebih adaptif dan skalabel. Dengan mengintegrasikan \textit{Autoencoder} untuk pembelajaran representasi, DEC untuk klasterisasi topik, dan arsitektur MTL untuk klasifikasi sentimen simultan, penelitian ini berupaya menghadirkan solusi komprehensif yang mengatasi keterbatasan pendekatan-pendekatan sebelumnya dalam pemrosesan bahasa alami.
-
-
+Model yang diusulkan diuji menggunakan dataset IMDB dan Yelp dengan beberapa
+variasi jumlah topik ($K = 30, 50, 80$) \parencite{maas2011learning,
+zhang2015character}. Evaluasi dilakukan pada dua aspek utama, yaitu klasifikasi
+sentimen dan kualitas topik. Untuk evaluasi sentimen, digunakan metrik seperti
+\textit{accuracy}, \textit{precision}, \textit{recall}, dan \textit{F1-score}
+\parencite{sokolova2009}. Sementara itu, kualitas topik diukur menggunakan
+\textit{topic coherence} berbasis NPMI serta \textit{topic diversity} untuk
+melihat keberagaman hasil klaster \parencite{ocallaghan2015, dieng2020topic}.
+Model JDST-DEC kemudian dibandingkan dengan beberapa metode pembanding, yaitu
+NN-BERT, MTL-GUI, BERTopic-HDBSCAN, dan BERTopic-KMeans
+\parencite{gui2022mtml, grootendorst2022bertopic}.
 
 %-----------------------------------------------------------------------------%
 \section{Rumusan Permasalahan}

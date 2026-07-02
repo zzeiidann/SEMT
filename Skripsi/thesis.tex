@@ -18,7 +18,7 @@
 \usepackage{lineno}
 \usepackage{multirow}
 
-\usepackage{caption}
+% \usepackage{caption}
 \usepackage{booktabs}
 \usepackage{graphicx}
 \usepackage{float} 
@@ -123,6 +123,14 @@ extendedchars=false
 
 % Load konfigurasi LaTeX untuk tipe laporan thesis
 \usepackage{_internals/uithesis}
+
+% Fix penomoran tabel dan gambar dengan prefix chapter
+\makeatletter
+\renewcommand{\thetable}{\thechapter.\arabic{table}}
+\@addtoreset{table}{chapter}
+\renewcommand{\thefigure}{\thechapter.\arabic{figure}}
+\@addtoreset{figure}{chapter}
+\makeatother
 
 % Daftar pemenggalan suku kata dan istilah dalam LaTeX
 \input{_internals/hype.indonesia}

@@ -79,12 +79,12 @@ Experiments were conducted on two benchmark datasets: IMDB Movie Reviews
 \parencite{zhang2015} (30{,}000 reviews), both with binary sentiment labels.
 Three topic cardinalities $K\in\{30,50,80\}$ were evaluated.
 \textbf{JDST-DEC} was compared against NN-BERT as a single-task sentiment
-baseline, MTL-GUI \parencite{gui2022mtml}, BERTopic-HDBSCAN, BERTopic-KMeans,
-and MambaQuin. All baselines were re-evaluated under identical dataset splits
-and evaluation protocols to ensure a fair comparison. Sentiment performance
-was measured using accuracy and F1-score; topic quality was assessed using
-\textit{Topic Coherence} based on NPMI (TC-NPMI) and \textit{Topic Diversity}
-(TD).
+baseline, MTL-GUI \parencite{gui2022mtml}, BERTopic-HDBSCAN, and
+BERTopic-KMeans. All baselines were re-evaluated under identical dataset
+splits and evaluation protocols to ensure a fair comparison. Sentiment
+performance was measured using accuracy and F1-score; topic quality was
+assessed using \textit{Topic Coherence} based on NPMI (TC-NPMI) and
+\textit{Topic Diversity} (TD).
 
 Pre-training results show that reconstruction loss drops sharply in the
 early epochs and stabilises after epoch~20, reaching final training losses
@@ -129,14 +129,11 @@ On Yelp, \textbf{JDST-DEC} reaches an F1-score of 0.9020 at $K = 50$,
 compared with 0.8715 and 0.8401, representing gains of approximately 3.1 and
 6.2 percentage points. Performance remains stable across all values of $K$,
 indicating that sentiment classification quality is relatively insensitive
-to topic cardinality. MambaQuin records the highest scores on IMDB across
-all $K$ settings and is directly comparable on that dataset. Its Yelp
-results are not directly comparable due to a different data sampling
-procedure (shaded red in Table~2) and are therefore excluded from
-column-wise comparison on Yelp. Among the comparable methods,
-\textbf{JDST-DEC} achieves the highest sentiment scores on Yelp and the
-second-highest on IMDB.
+to topic cardinality. Among the compared methods,
+\textbf{JDST-DEC} achieves the highest sentiment scores on Yelp and
+competitive results on IMDB.
 
+% #16 dagger notation added to method name; #15 identical evaluation settings in footnote
 % #16 dagger notation added to method name; #15 identical evaluation settings in footnote
 \begin{table}[H]
 \centering
@@ -152,11 +149,11 @@ second-highest on IMDB.
   & \multicolumn{6}{c|}{IMDB}
   & \multicolumn{6}{c|}{Yelp} \\
 \cline{2-13}
-  & \multicolumn{2}{c}{}
-  & \multicolumn{2}{c}{Acc \qquad F1}
   & \multicolumn{2}{c|}{}
-  & \multicolumn{2}{c}{}
-  & \multicolumn{2}{c}{Acc \qquad F1}
+  & \multicolumn{2}{c|}{Acc \qquad F1}
+  & \multicolumn{2}{c|}{}
+  & \multicolumn{2}{c|}{}
+  & \multicolumn{2}{c|}{Acc \qquad F1}
   & \multicolumn{2}{c|}{} \\
 \hline
 NN-BERT
@@ -177,14 +174,6 @@ NN-BERT
   & Acc & F1
   & Acc & F1 \\
 \hline
-\textbf{JDST-DEC}
-  & 0.8957 & 0.8963
-  & 0.8967 & 0.8986
-  & 0.8941 & 0.8930
-  & \cellcolor{green!25}\textbf{0.8965} & \cellcolor{green!25}\textbf{0.8944}
-  & \cellcolor{green!25}\textbf{0.8983} & \cellcolor{green!25}\textbf{0.9020}
-  & \cellcolor{green!25}\textbf{0.8935} & \cellcolor{green!25}\textbf{0.8953} \\
-\hline
 MTL-GUI
   & 0.8327 & 0.8326
   & 0.8317 & 0.8317
@@ -193,21 +182,19 @@ MTL-GUI
   & 0.8380 & 0.8380
   & 0.8402 & 0.8401 \\
 \hline
-MambaQuin
-  & \cellcolor{green!25}\textbf{0.9085} & \cellcolor{green!25}\textbf{0.9085}
-  & \cellcolor{green!25}\textbf{0.9083} & \cellcolor{green!25}\textbf{0.9083}
-  & \cellcolor{green!25}\textbf{0.9086} & \cellcolor{green!25}\textbf{0.9086}
-  & \cellcolor{red!25}0.9433 & \cellcolor{red!25}0.9433
-  & \cellcolor{red!25}0.9416 & \cellcolor{red!25}0.9416
-  & \cellcolor{red!25}0.9428 & \cellcolor{red!25}0.9428 \\
+\textbf{JDST-DEC}
+  & \cellcolor{green!25}\textbf{0.8957} & \cellcolor{green!25}\textbf{0.8963}
+  & \cellcolor{green!25}\textbf{0.8967} & \cellcolor{green!25}\textbf{0.8986}
+  & \cellcolor{green!25}\textbf{0.8941} & \cellcolor{green!25}\textbf{0.8930}
+  & \cellcolor{green!25}\textbf{0.8965} & \cellcolor{green!25}\textbf{0.8944}
+  & \cellcolor{green!25}\textbf{0.8983} & \cellcolor{green!25}\textbf{0.9020}
+  & \cellcolor{green!25}\textbf{0.8935} & \cellcolor{green!25}\textbf{0.8953} \\
 \hline
 \end{tabular}
 \end{adjustbox}
 \vspace{0.3em}
 \noindent{\footnotesize
-  \colorbox{green!25}{\,\,} highest comparable value in column;
-  \colorbox{red!25}{\,\,} MambaQuin (Yelp) --- not directly comparable
-  due to different data sampling;
+  \colorbox{green!25}{\,\,} highest value in column;
   
   All baselines evaluated under identical dataset splits and protocols.}
 \end{table}
@@ -215,16 +202,14 @@ MambaQuin
 % #7 "which is expected" removed
 For topic modelling, BERTopic achieves the highest TD values across most
 configurations (Table~3), with BERTopic-KMeans reaching 0.9567 on IMDB
-at $K = 30$. For TC-NPMI, MambaQuin leads on IMDB at $K = 30$ (0.1589),
-while BERTopic-HDBSCAN and BERTopic-KMeans lead at $K = 50$ and $K = 80$
-respectively. On Yelp, BERTopic variants achieve the highest comparable
-TC-NPMI values; MambaQuin's Yelp results are excluded from column-wise
-comparison due to different data sampling. \textbf{JDST-DEC} produces
-lower TC-NPMI and TD values than BERTopic, as joint optimisation
-prioritises sentiment-discriminative representations over purely coherent
-topic structures. Among the joint models, \textbf{JDST-DEC} consistently
-outperforms MTL-GUI on both metrics and both datasets across every value
-of $K$.
+at $K = 30$. For TC-NPMI, BERTopic-HDBSCAN leads at $K = 30$ and $K = 50$
+on IMDB, while BERTopic-KMeans leads at $K = 80$. On Yelp, BERTopic
+variants achieve the highest TC-NPMI values across all settings.
+\textbf{JDST-DEC} produces lower TC-NPMI and TD values than BERTopic, as
+joint optimisation prioritises sentiment-discriminative representations
+over purely coherent topic structures. Among the joint models,
+\textbf{JDST-DEC} consistently outperforms MTL-GUI on both metrics and
+both datasets across every value of $K$.
 
 % #16 dagger in topic table; #15 footnote; #17 JDST-DEC bolded
 \begin{table}[H]
@@ -255,14 +240,6 @@ of $K$.
   & TC-NPMI & TD
   & TC-NPMI & TD \\
 \hline
-\textbf{JDST-DEC}
-  & 0.0803 & 0.2256
-  & 0.0551 & 0.2100
-  & 0.0675 & 0.2875
-  & 0.0788 & 0.3267
-  & 0.0369 & 0.2280
-  & 0.0563 & 0.3150 \\
-\hline
 BERTopic-HDBSCAN
   & \cellcolor{green!25}\textbf{0.1714} & 0.7966
   & \cellcolor{green!25}\textbf{0.1823} & 0.7680
@@ -287,21 +264,19 @@ MTL-GUI
   & 0.1086 & 0.6720
   & 0.1123 & 0.5000 \\
 \hline
-MambaQuin
-  & \cellcolor{green!25}\textbf{0.1589} & 0.2400
-  & 0.1561 & 0.2040
-  & 0.1606 & 0.1575
-  & \cellcolor{red!25}0.2557 & 0.2533
-  & \cellcolor{red!25}0.2727 & 0.2060
-  & \cellcolor{red!25}0.2699 & 0.1588 \\
+\textbf{JDST-DEC}
+  & 0.0803 & 0.2256
+  & 0.0551 & 0.2100
+  & 0.0675 & 0.2875
+  & 0.0788 & 0.3267
+  & 0.0369 & 0.2280
+  & 0.0563 & 0.3150 \\
 \hline
 \end{tabular}
 \end{adjustbox}
 \vspace{0.3em}
 \noindent{\footnotesize
-  \colorbox{green!25}{\,\,} highest comparable value in column;
-  \colorbox{red!25}{\,\,} MambaQuin (Yelp) --- not directly comparable
-  due to different data sampling;
+  \colorbox{green!25}{\,\,} highest value in column;
   
   All baselines evaluated under identical dataset splits and protocols.}
 \end{table}
@@ -366,5 +341,9 @@ understanding in large-scale review and social-media settings.
 \textit{BERT}.
 
 }
+
+% Restore chapter-prefixed numbering after abstract
+\renewcommand{\thetable}{\thechapter.\arabic{table}}
+\renewcommand{\thefigure}{\thechapter.\arabic{figure}}
 
 \newpage
