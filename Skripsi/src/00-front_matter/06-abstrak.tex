@@ -3,49 +3,46 @@
 
 {
 \setlength{\parindent}{0pt}
-
 \noindent
 Nama: \penulis\par
 Program Studi: \program\par
 Judul: \judul\par
+\medskip
 
-\bigskip
+\noindent
+Pertumbuhan data teks dari platform digital, seperti ulasan produk dan media
+sosial, mendorong kebutuhan akan metode otomatis yang mampu menganalisis
+sentimen dan mengidentifikasi topik secara bersamaan. Pendekatan analisis
+sentimen konvensional umumnya mengasumsikan satu sentimen untuk setiap
+dokumen sehingga belum mampu merepresentasikan ulasan yang membahas lebih
+dari satu topik. Penelitian ini mengembangkan model \textit{Joint
+Document-Level Sentiment--Topic} berbasis \textit{Deep Embedded Clustering}
+(JDST-DEC) yang mengintegrasikan analisis sentimen dan pemodelan topik
+secara \textit{end-to-end} dalam kerangka \textit{Multi-Task Learning}
+(MTL), menggunakan satu \textit{shared encoder} berbasis BERT dan DEC
+sebagai \textit{topic head} untuk membentuk representasi topik dari
+representasi laten yang dihasilkan encoder. Pelatihan dilakukan dalam dua
+tahap, yaitu pra-pelatihan \textit{autoencoder} untuk membentuk representasi
+laten, kemudian optimisasi gabungan menggunakan \textit{sentiment loss}
+berbasis \textit{cross-entropy} dan \textit{clustering loss} berbasis KL
+\textit{divergence}. Evaluasi dilakukan pada dataset IMDB dan Yelp dengan
+variasi jumlah topik $K=30$, $50$, dan $80$. Pada tugas klasifikasi
+sentimen, JDST-DEC memperoleh F1-\textit{score} terbaik sebesar 0{,}8986
+pada IMDB dan 0{,}9020 pada Yelp ($K=50$), lebih tinggi dibandingkan
+NN-BERT (0{,}8612 dan 0{,}8715). Pada tugas pemodelan topik, JDST-DEC
+menghasilkan kualitas topik yang lebih baik dibandingkan MTL-GUI pada
+beberapa konfigurasi, namun masih berada di bawah BERTopic-KMeans
+berdasarkan metrik \textit{Topic Coherence} (TC-NPMI) dan \textit{Topic
+Diversity}. Hasil ini menunjukkan bahwa \textit{Deep Embedded Clustering}
+berhasil diintegrasikan ke dalam kerangka JDST dan mampu meningkatkan
+performa klasifikasi sentimen dibandingkan model \textit{single-task},
+meskipun kualitas representasi topik masih berada di bawah metode
+pemodelan topik khusus.
+\medskip
 
-Pertumbuhan data teks dari platform digital, seperti ulasan produk dan
-media sosial, mendorong kebutuhan akan metode otomatis yang mampu
-menganalisis sentimen dan mengidentifikasi topik secara bersamaan.
-Pendekatan analisis sentimen konvensional umumnya mengasumsikan satu
-sentimen untuk setiap dokumen sehingga belum mampu merepresentasikan
-ulasan yang membahas lebih dari satu topik. Penelitian ini mengembangkan
-model \textit{Joint Document-level Sentiment--Topic} berbasis
-\textit{Deep Embedded Clustering} (JDST-DEC) yang mengintegrasikan
-\textit{Deep Embedded Clustering} (DEC) ke dalam kerangka
-\textit{Multi-Task Learning} (MTL) dengan encoder BERT yang dibekukan.
-Pelatihan dilakukan dalam dua tahap, yaitu pra-pelatihan
-\textit{autoencoder} untuk membentuk representasi laten dari
-\textit{embedding} \texttt{[CLS]} BERT, kemudian dilanjutkan dengan
-optimasi gabungan fungsi \textit{loss} sentimen berbasis
-\textit{cross-entropy} dan \textit{loss} klasterisasi berbasis
-KL \textit{divergence}. Evaluasi dilakukan pada dataset IMDB dan Yelp
-dengan variasi jumlah topik $K=30$, $50$, dan $80$. Pada tugas klasifikasi sentimen,
-JDST-DEC memperoleh F1-\textit{score}
-terbaik sebesar 0{,}8986 pada dataset IMDB dan 0{,}9020 pada dataset
-Yelp pada konfigurasi $K=50$, lebih tinggi dibandingkan NN-BERT yang
-memperoleh 0{,}8612 dan 0{,}8715. Pada tugas pemodelan topik, BERTopic
-menghasilkan nilai \textit{Topic Coherence} dan \textit{Topic Diversity}
-yang lebih tinggi dibandingkan JDST-DEC. Meskipun demikian, JDST-DEC
-tetap mampu menghasilkan kualitas topik yang memadai sambil melakukan
-klasifikasi sentimen dan pemodelan topik secara simultan dalam satu
-kerangka \textit{Multi-Task Learning}. Secara keseluruhan, hasil
-penelitian menunjukkan bahwa pendekatan yang diusulkan mampu
-meningkatkan performa klasifikasi sentimen dibandingkan pendekatan
-\textit{single-task}, meskipun kualitas pemodelan topik masih dapat
-ditingkatkan.
-
-\bigskip
-
+\noindent
 \textbf{Kata kunci}: \textit{Deep Embedded Clustering},
-\textit{Joint Document-level Sentiment--Topic Modeling},
+\textit{Joint Document-Level Sentiment--Topic Modeling},
 \textit{Multi-Task Learning}, \textit{BERT}.
 }
 

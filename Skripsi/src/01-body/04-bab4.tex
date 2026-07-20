@@ -3,8 +3,8 @@
 %-----------------------------------------------------------------------------%
 
 Bab ini membahas hasil simulasi dan analisis kinerja model \textit{Joint
-Sentiment-Topic} berbasis \textit{Multi-Task Learning} yang diusulkan.
-Data yang digunakan berasal dari dataset IMDB dan Yelp yang telah melalui
+Document-Level Sentiment-Topic} (JDST-DEC) berbasis \textit{Multi-Task
+Learning} yang diusulkan. Data yang digunakan berasal dari dataset IMDB dan Yelp yang telah melalui
 tahap prapengolahan dan pembagian data. Kinerja model dievaluasi dari dua
 aspek, yaitu analisis sentimen dan pendeteksian topik. Pada analisis
 sentimen, performa diukur menggunakan metrik \textit{accuracy} dan 
@@ -519,13 +519,11 @@ Tabel~\ref{tab:config_nnbert}.
 \subsubsection{BERTopic}
 %-----------------------------------------------------------------------------%
 
-BERTopic digunakan sebagai model pembanding pada tugas pendeteksian topik. 
-Model ini memanfaatkan representasi semantik berbasis BERT untuk memperoleh 
-representasi dokumen, kemudian dilanjutkan dengan reduksi dimensi menggunakan 
-UMAP sebelum pembentukan topik dilakukan melalui algoritma klasterisasi. 
-Pada penelitian ini, BERTopic diimplementasikan menggunakan dua algoritma 
-klasterisasi, yaitu HDBSCAN dan K-Means, untuk mengevaluasi pengaruh metode 
-pembentukan klaster terhadap kualitas topik yang dihasilkan.Konfigurasi model BERTopic ditunjukkan pada
+BERTopic digunakan sebagai model pembanding pada tugas pendeteksian topik.
+Model ini memanfaatkan representasi semantik berbasis BERT untuk memperoleh
+representasi dokumen, kemudian dilanjutkan dengan reduksi dimensi menggunakan
+UMAP sebelum pembentukan topik dilakukan menggunakan algoritma K-Means.
+Konfigurasi model BERTopic ditunjukkan pada
 Tabel~\ref{tab:config_bertopic}.
 
 \begin{table}[H]
@@ -547,14 +545,9 @@ Tabel~\ref{tab:config_bertopic}.
             & \texttt{min\_dist}      & 0{,}0 \\
             & Metrik                  & Kosinus \\
         \midrule
-        \multirow{4}{*}{HDBSCAN}
-            & \texttt{min\_cluster\_size}  & 10 \\
-            & \texttt{min\_samples}        & 5 \\
-            & Metrik                       & Euclidean \\
-            & \texttt{prediction\_data}    & \texttt{True} \\
-        \midrule
-        {K-Means}
-            & \texttt{n\_clusters}         & 30, 50, 80 \\
+        \multirow{2}{*}{K-Means}
+            & \texttt{n\_clusters}    & 30, 50, 80 \\
+            & \texttt{random\_state}  & 42 \\
         \midrule
         \multirow{3}{*}{Topik}
             & Jumlah topik ($K$)   & 30, 50, 80 \\
@@ -778,7 +771,7 @@ merekonstruksi representasi BERT dengan baik pada kedua dataset.
 Kinerja \textit{joint training} dievaluasi pada dua aspek utama, yaitu
 klasifikasi sentimen dan pemodelan topik. Evaluasi membandingkan
 JDST-DEC dengan beberapa model pembanding, yaitu NN-BERT, MTL-GUI
-\parencite{gui2022mtml}, BERTopic-HDBSCAN, dan BERTopic-KMeans.
+\parencite{gui2022mtml}, dan BERTopic-KMeans.
 
 %-----------------------------------------------------------------------------%
 \subsubsection{Klasifikasi Sentimen}
@@ -909,21 +902,13 @@ NN-BERT tidak diikutsertakan karena tidak memiliki komponen pemodelan topik.
   & TC-NPMI & TD
   & TC-NPMI & TD \\
 \hline
-BERTopic-HDBSCAN
-  & \textbf{0.1714} & 0.7966
-  & \textbf{0.1823} & 0.7680
-  & 0.1751 & 0.7625
-  & 0.1092 & 0.7233
-  & \textbf{0.1666} & \textbf{0.7041}
-  & \textbf{0.1646} & \textbf{0.6671} \\
-\hline
 BERTopic-KMeans
-  & 0.1566 & \textbf{0.9567}
-  & 0.1596 & \textbf{0.9000}
+  & \textbf{0.1566} & \textbf{0.9567}
+  & \textbf{0.1596} & \textbf{0.9000}
   & \textbf{0.1874} & \textbf{0.8413}
   & 0.1077 & \textbf{0.7800}
-  & 0.1120 & 0.6740
-  & 0.1465 & 0.6438 \\
+  & \textbf{0.1120} & \textbf{0.6740}
+  & \textbf{0.1465} & \textbf{0.6438} \\
 \hline
 MTL-GUI
   & 0.0200 & 0.5833
@@ -945,23 +930,26 @@ JDST-DEC
 \end{adjustbox}
 \end{table}
 
-Berdasarkan Tabel~\ref{tab:topic}, BERTopic memperoleh nilai
-\textit{Topic Diversity} (TD) tertinggi pada sebagian besar konfigurasi.
-Pada dataset IMDB, BERTopic-KMeans menghasilkan TD tertinggi sebesar
-0.9567 ($K=30$), 0.9000 ($K=50$), dan 0.8413 ($K=80$). Pada dataset Yelp,
-BERTopic-KMeans memperoleh TD tertinggi pada $K=30$ sebesar 0.7800,
-sedangkan BERTopic-HDBSCAN unggul pada $K=50$ dan $K=80$ dengan nilai
-masing-masing 0.7041 dan 0.6671.
+Berdasarkan Tabel~\ref{tab:topic}, BERTopic-KMeans menghasilkan nilai
+\textit{Topic Diversity} (TD) tertinggi pada seluruh konfigurasi dataset
+IMDB, yaitu sebesar 0.9567 ($K=30$), 0.9000 ($K=50$), dan 0.8413 ($K=80$).
+Pada dataset Yelp, BERTopic-KMeans juga memperoleh nilai TD tertinggi pada
+$K=30$ sebesar 0.7800, sedangkan MTL-GUI memberikan nilai yang sebanding
+pada $K=50$ sebesar 0.6720 dan BERTopic-KMeans tetap sedikit lebih unggul
+dengan nilai 0.6740. Pada $K=80$, BERTopic-KMeans kembali menghasilkan
+nilai TD tertinggi sebesar 0.6438.
 
-Untuk metrik TC-NPMI, BERTopic-HDBSCAN memperoleh nilai tertinggi pada
-IMDB sebesar 0.1714 ($K=30$) dan 0.1823 ($K=50$), sedangkan
-BERTopic-KMeans menghasilkan nilai tertinggi pada IMDB $K=80$ sebesar
-0.1874. Pada dataset Yelp, BERTopic-HDBSCAN memperoleh TC-NPMI
-tertinggi pada $K=30$ (0.1092) dan $K=50$ (0.1666), sedangkan
-BERTopic-KMeans unggul pada $K=80$ dengan nilai 0.1465.
+Untuk metrik TC-NPMI, BERTopic-KMeans memperoleh nilai tertinggi pada
+seluruh konfigurasi dataset IMDB, yaitu sebesar 0.1566 ($K=30$), 0.1596
+($K=50$), dan 0.1874 ($K=80$). Pada dataset Yelp, MTL-GUI menghasilkan
+TC-NPMI tertinggi pada $K=30$ sebesar 0.1578, sedangkan BERTopic-KMeans
+memperoleh nilai tertinggi pada $K=50$ dan $K=80$, masing-masing sebesar
+0.1120 dan 0.1465. Hasil ini menunjukkan bahwa BERTopic-KMeans secara umum
+mampu menghasilkan topik yang lebih beragam dan memiliki koherensi yang
+kompetitif dibandingkan model pembanding lainnya.
 
 %-----------------------------------------------------------------------------%
-\subsection{Analisis Multiloss}
+\subsection{Analisis \textit{Multiloss}}
 %-----------------------------------------------------------------------------%
 
 Proses \textit{joint training} pada JDST-DEC mengoptimasi dua komponen

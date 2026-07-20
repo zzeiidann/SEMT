@@ -9,34 +9,31 @@
 Berdasarkan hasil penelitian yang telah dilakukan, dapat ditarik kesimpulan sebagai berikut.
 
 \begin{enumerate}
-    \item Model berbasis \textit{Fully Neural Network} JST-DEC berhasil dikembangkan
-    untuk menangani klasifikasi sentimen dan pemodelan topik secara simultan dalam
-    satu \textit{framework} terpadu. Arsitektur yang dibangun mengintegrasikan
-    \textit{autoencoder} sebagai komponen reduksi dimensi dan \textit{Deep Embedded
-    Clustering} (DEC) sebagai komponen pemodelan topik, dengan \textit{sentiment
-    head} berbasis \textit{fully connected} untuk tugas klasifikasi sentimen.
+    \item Model \textit{Joint Document-Level Sentiment-Topic Model} (JDST-DEC) berhasil dikembangkan dengan mengintegrasikan
+     analisis sentimen dan pemodelan topik secara \textit{end-to-end} dalam satu kerangka \textit{multi-task learning}.
+      Model memanfaatkan satu \textit{shared encoder} yang dipelajari secara bersama melalui 
+      optimisasi \textit{sentiment loss} dan \textit{clustering loss}, sehingga mampu menghasilkan representasi 
+      laten yang digunakan secara simultan oleh \textit{sentiment head} dan \textit{topic head} berbasis \textit{Deep Embedded Clustering} (DEC).
 
-    \item Pendekatan \textit{Multi-Task Learning} (MTL) pada JDST-DEC mampu
-    meningkatkan performa klasifikasi sentimen dibandingkan pendekatan
-    \textit{single-task}. Model memperoleh F1-score terbaik sebesar
-    0{,}8986 pada dataset IMDb dan 0{,}9020 pada dataset Yelp, lebih tinggi
-    dibandingkan NN-BERT yang memperoleh F1-score sebesar 0{,}8612 dan
-    0{,}8715.
+    \item Penerapan \textit{Deep Embedded Clustering} (DEC) pada \textit{topic head} berhasil membentuk representasi 
+    topik dari representasi laten yang dihasilkan oleh \textit{shared encoder}. DEC mereduksi representasi BERT dari 
+    768 dimensi menjadi 256 dimensi menggunakan \textit{autoencoder}, kemudian melakukan pembentukan klaster melalui 
+    mekanisme \textit{soft assignment}. Pada evaluasi kualitas topik, JDST-DEC memperoleh nilai TC-NPMI tertinggi 
+    sebesar 0{,}0803 pada dataset IMDB dan 0{,}0788 pada dataset Yelp. Hasil tersebut menunjukkan bahwa DEC mampu
+     diintegrasikan dalam kerangka \textit{joint modelling}, meskipun kualitas topik yang dihasilkan masih dapat ditingkatkan.
 
-    \item Penerapan \textit{autoencoder} berhasil mereduksi dimensi representasi
-    BERT dari 768 menjadi 256 dimensi. Proses pra-pelatihan menunjukkan
-    konvergensi yang stabil pada kedua dataset, dengan nilai MSE akhir sebesar
-    $1{,}41 \times 10^{-4}$ pada IMDb dan $1{,}55 \times 10^{-4}$ pada Yelp,
-    tanpa indikasi \textit{overfitting}.
+    \item Pada tugas analisis sentimen, JDST-DEC memberikan performa yang lebih baik dibandingkan metode sebelumnya.
+     Model secara konsisten memperoleh nilai \textit{accuracy} dan F1-score yang lebih tinggi dibandingkan NN-BERT 
+     pada seluruh konfigurasi jumlah topik ($K=30$, $50$, dan $80$). Nilai F1-score terbaik yang diperoleh 
+     mencapai 0{,}8986 pada dataset IMDB dan 0{,}9020 pada dataset Yelp, lebih tinggi dibandingkan NN-BERT yang 
+     masing-masing memperoleh 0{,}8612 dan 0{,}8715. Hasil tersebut menunjukkan bahwa penerapan \textit{multi-task learning} 
+     tidak menurunkan performa analisis sentimen, tetapi justru memberikan peningkatan dibandingkan model \textit{single-task}.
 
-    \item JST-DEC mengungguli NN-BERT pada tugas analisis sentimen, namun
-    menghasilkan kualitas topik yang lebih rendah dibandingkan BERTopic.
-    Nilai TC-NPMI tertinggi JST-DEC mencapai 0{,}0803 pada IMDb dan 0{,}0788
-    pada Yelp, sedangkan BERTopic memperoleh hingga 0{,}1874 dan 0{,}1666.
-    Demikian pula pada metrik \textit{Topic Diversity}, JDST-DEC masih
-    tertinggal dibandingkan BERTopic. Meskipun demikian, JDST-DEC tetap
-    mampu menghasilkan topik yang memadai sambil melakukan klasifikasi
-    sentimen secara simultan dalam satu model.
+    \item Pada tugas pemodelan topik, JDST-DEC menunjukkan kualitas topik yang lebih baik dibandingkan MTL-GUI pada
+     beberapa konfigurasi jumlah topik, namun masih berada di bawah BERTopic-KMeans berdasarkan metrik TC-NPMI maupun \textit{Topic Diversity}. 
+     BERTopic-KMeans memperoleh TC-NPMI tertinggi sebesar 0{,}1874 pada IMDB dan 0{,}1465 pada Yelp, sedangkan nilai \textit{Topic Diversity} 
+     tertinggi mencapai 0{,}9567 pada IMDB dan 0{,}7800 pada Yelp. Hasil tersebut menunjukkan bahwa meskipun DEC berhasil diintegrasikan 
+     ke dalam model JDST, kualitas representasi topik yang dihasilkan masih belum mampu melampaui metode pemodelan topik khusus.
 \end{enumerate}
 
 
@@ -48,11 +45,11 @@ Berdasarkan hasil dan keterbatasan pada penelitian ini, beberapa saran untuk
 penelitian selanjutnya adalah sebagai berikut.
 
 \begin{enumerate}
-    \item Mengeksplorasi metode inisialisasi klaster selain
-    \textit{K-Means}, seperti HDBSCAN, untuk memperoleh struktur klaster yang
-    lebih sesuai terhadap karakteristik data. Saran ini didasarkan pada hasil
-    perbandingan yang menunjukkan adanya perbedaan kualitas klaster pada
-    beberapa konfigurasi yang diuji.
+   \item Mengeksplorasi pengembangan arsitektur \textit{topic head} berbasis
+    \textit{Deep Embedded Clustering} untuk meningkatkan kualitas representasi
+    topik. Pengembangan dapat dilakukan melalui modifikasi struktur
+    \textit{autoencoder}, mekanisme pembentukan distribusi target, maupun strategi
+    optimisasi klaster.
 
     \item Mengeksplorasi pengembangan arsitektur \textit{sentiment head} untuk
     mendukung keseimbangan proses optimisasi antara tugas analisis sentimen

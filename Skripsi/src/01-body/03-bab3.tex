@@ -658,7 +658,7 @@ $(\mathbf{W}_c, \mathbf{b}_c)$ hanya diperbarui berdasarkan
     \label{eq:update_sentiment}
 \end{equation}
 
-SubbabBerbeda dengan kedua \textit{head}, parameter \textit{encoder}
+Berbeda dengan kedua \textit{head}, parameter \textit{encoder}
 $\theta$ menerima gabungan gradien dari kedua fungsi objektif karena
 representasi laten digunakan secara bersama oleh proses
 pendeteksian topik dan klasifikasi sentimen. Aturan pembaruan parameter \textit{encoder}
@@ -697,55 +697,84 @@ dijelaskan pada Subbab~\ref{sec:dec}.
 
 \begin{table}[H]
 \centering
-\caption{Algoritma \textit{Deep Embedded Clustering} (DEC)}
-\label{tab:alg_dec}
+\caption{Algoritma Pelatihan \textit{Multitask} JDST-DEC}
+\label{tab:alg_jstdec}
 \begin{tabular}{p{0.05\textwidth} p{0.85\textwidth}}
 \hline
-\multicolumn{2}{l}{\textbf{Algoritma} \textit{Deep Embedded Clustering} (DEC)} \\
+\multicolumn{2}{l}{\textbf{Algoritma} Pelatihan \textit{Multitask} JDST-DEC} \\
 \hline
 \multicolumn{2}{l}{\textbf{INPUT} \hspace{1.2em}
-    Representasi laten $\{\mathbf{z}_i\}_{i=1}^{N} \in \mathbb{R}^{256}$
-    hasil \textit{pretraining autoencoder};} \\
+    Representasi BERT $\{\mathbf{f}_i\}_{i=1}^{N}$; label sentimen
+    $\{\mathbf{y}_i\}_{i=1}^{N}$;} \\
 \multicolumn{2}{l}{\hspace{4.7em}
-    jumlah klaster $K$; \textit{batch size} $b$;
+    \textit{centroid} awal $\{\boldsymbol{\mu}_j\}_{j=1}^{K}$
+    hasil K-Means; bobot \textit{loss} $\gamma$, $\eta$;} \\
+\multicolumn{2}{l}{\hspace{4.7em}
+    \textit{learning rate} $\lambda$; \textit{batch size} $m$;
     batas toleransi konvergensi $\tau$;} \\
 \multicolumn{2}{l}{\hspace{4.7em}
-    jumlah iterasi maksimum $T_{\max}$} \\[2pt]
+    interval pembaruan target $U$; jumlah iterasi maksimum $T_{\max}$} \\[2pt]
 \multicolumn{2}{l}{\textbf{OUTPUT} \hspace{0.5em}
-    Posisi \textit{centroid} $\{\boldsymbol{\mu}_j\}_{j=1}^{K}$;
+    Parameter \textit{encoder} $\theta$; parameter \textit{sentiment head}
+    $(\mathbf{W}_c, \mathbf{b}_c)$;} \\
+\multicolumn{2}{l}{\hspace{4.7em}
+    posisi \textit{centroid} $\{\boldsymbol{\mu}_j\}_{j=1}^{K}$;
     label klaster $\{y_{\text{cluster},i}\}$} \\
 \hline
-1. & Inisialisasi \textit{centroid} $\{\boldsymbol{\mu}_j\}_{j=1}^{K}$
-     menggunakan K-Means pada $\{\mathbf{z}_i\}$; hitung $q_{ij}^{(0)}$
-     menggunakan distribusi Student's $t$
-     (Persamaan~\ref{eq:soft_assign}); tetapkan
+1. & Hitung representasi laten awal $\mathbf{z}_i = f_\theta(\mathbf{f}_i)$
+     untuk seluruh sampel; hitung $q_{ij}^{(0)}$ menggunakan distribusi
+     Student's $t$ (Persamaan~\ref{eq:soft_assign}); tetapkan
      $y_{\text{cluster},i} \leftarrow \arg\max_j\, q_{ij}^{(0)}$ \\[3pt]
 2. & \textbf{FOR} iter $= 1$ hingga $T_{\max}$ \\[3pt]
    & \hspace{1em} 2.1 \hspace{0.5em}
+     \textbf{IF} iter $\bmod U = 0$ \textbf{THEN} \\[3pt]
+   & \hspace{2em} a. \hspace{0.5em}
      Simpan label klaster sebelumnya:
      $y_{\text{prev}} \leftarrow y_{\text{cluster}}$ \\[3pt]
-   & \hspace{1em} 2.2 \hspace{0.5em}
-     Hitung \textit{soft assignment} $q_{ij}$ menggunakan
-     distribusi Student's $t$ (Persamaan~\ref{eq:soft_assign}) \\[3pt]
-   & \hspace{1em} 2.3 \hspace{0.5em}
-     Perbarui label klaster:
+   & \hspace{2em} b. \hspace{0.5em}
+     Hitung ulang $q_{ij}$ untuk seluruh sampel
+     (Persamaan~\ref{eq:soft_assign}) dan perbarui
      $y_{\text{cluster},i} \leftarrow \arg\max_j\, q_{ij}$ \\[3pt]
-   & \hspace{1em} 2.4 \hspace{0.5em}
+   & \hspace{2em} c. \hspace{0.5em}
      Hitung distribusi target $p_{ij}$ berdasarkan $q_{ij}$
      (Persamaan~\ref{eq:target_dist}) \\[3pt]
-   & \hspace{1em} 2.5 \hspace{0.5em}
-     Perbarui parameter \textit{encoder} dan \textit{centroid}
-     dengan meminimalkan
-     $\mathcal{L}_{\text{KLD}}(P, Q)$ \\[3pt]
-   & \hspace{1em} 2.6 \hspace{0.5em}
+   & \hspace{2em} d. \hspace{0.5em}
      Hitung perubahan label:
      $\Delta_{\text{label}} = \dfrac{1}{N}\displaystyle\sum_i
      \mathbf{1}[y_{\text{prev},i} \neq y_{\text{cluster},i}]$ \\[8pt]
-   & \hspace{1em} 2.7 \hspace{0.5em}
+   & \hspace{2em} e. \hspace{0.5em}
      Jika $\Delta_{\text{label}} < \tau$, hentikan pelatihan \\[3pt]
+   & \hspace{1em} 2.2 \hspace{0.5em}
+     Ambil satu \textit{mini-batch} berukuran $m$ dari data \\[3pt]
+   & \hspace{1em} 2.3 \hspace{0.5em}
+     \textbf{Forward pass:} hitung $\mathbf{z}_i = f_\theta(\mathbf{f}_i)$,
+     $q_{ij}$ (\textit{clustering head}, Persamaan~\ref{eq:soft_assign}),
+     dan $\hat{\mathbf{y}}_i$ (\textit{sentiment head},
+     Persamaan~\ref{eq:sentiment_cls}) untuk setiap sampel dalam
+     \textit{batch} \\[3pt]
+   & \hspace{1em} 2.4 \hspace{0.5em}
+     Hitung $\mathcal{L}_{\text{KLD}}(P, Q)$
+     (Persamaan~\ref{eq:kld}) dan $\mathcal{L}_{\text{CE}}(\mathbf{y}, \hat{\mathbf{y}})$
+     (Persamaan~\ref{eq:ce_loss}) \\[3pt]
+   & \hspace{1em} 2.5 \hspace{0.5em}
+     Hitung \textit{loss} total:
+     $\mathcal{L}_{\text{total}} = \gamma \, \mathcal{L}_{\text{KLD}} +
+     \eta \, \mathcal{L}_{\text{CE}}$ (Persamaan~\ref{eq:total_loss}) \\[3pt]
+   & \hspace{1em} 2.6 \hspace{0.5em}
+     Perbarui \textit{centroid} $\boldsymbol{\mu}_j$ menggunakan gradien
+     $\mathcal{L}_{\text{KLD}}$ (Persamaan~\ref{eq:update_centroid}) \\[3pt]
+   & \hspace{1em} 2.7 \hspace{0.5em}
+     Perbarui parameter \textit{sentiment head} $(\mathbf{W}_c, \mathbf{b}_c)$
+     menggunakan gradien $\mathcal{L}_{\text{CE}}$
+     (Persamaan~\ref{eq:update_sentiment}) \\[3pt]
+   & \hspace{1em} 2.8 \hspace{0.5em}
+     Perbarui parameter \textit{encoder} $\theta$ menggunakan gradien
+     gabungan $\gamma \, \partial \mathcal{L}_{\text{KLD}} / \partial\theta +
+     \eta \, \partial \mathcal{L}_{\text{CE}} / \partial\theta$
+     (Persamaan~\ref{eq:update_encoder}) \\[3pt]
 3. & \textbf{END FOR} \\[3pt]
-4. & Kembalikan \textit{centroid} $\{\boldsymbol{\mu}_j\}$ dan
-     label klaster $\{y_{\text{cluster},i}\}$ \\
+4. & Kembalikan $\theta$, $(\mathbf{W}_c, \mathbf{b}_c)$,
+     $\{\boldsymbol{\mu}_j\}$, dan $\{y_{\text{cluster},i}\}$ \\
 \hline
 \end{tabular}
 \end{table}

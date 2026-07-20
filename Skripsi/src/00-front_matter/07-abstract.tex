@@ -8,14 +8,12 @@
 \setcounter{figure}{0}
 \setcounter{table}{0}
 
-\vspace*{0.2cm}
+\vspace*{-1cm}
 {
-\setlength{\parindent}{0pt}
+\setlength{\parindent}{1.5em}
 
 \begin{center}
-{\large\textbf{EXTENDED ABSTRACT}}
 
-\medskip
 {\normalsize\textbf{Undergraduate Thesis}}
 
 \medskip
@@ -24,7 +22,7 @@
 \medskip
 \textbf{Student Name} : \penulis \\
 \textbf{Student ID Number (NPM)} : 2206051462 \\
-\textbf{Study Program} : \program
+\textbf{Study Program} : Undergraduate Study Program of Statistics
 \end{center}
 
 \bigskip
@@ -68,23 +66,23 @@ research workflow is summarised in Figure~1.
 % #2 caption no longer has "Figure 1." prefix
 \begin{figure}[H]
     \centering
-    \includegraphics[width=0.82\textwidth]{assets/pics/other/Flowchart.png}
+    \includegraphics[width=0.82\textwidth]{assets/pics/other/EngFlowchart.png}
     \caption{Schematic diagram of the research framework.}
     \label{fig:ea_workflow}
 \end{figure}
 
+% FIXED #2: removed BERTopic-HDBSCAN from baseline list (dropped from evaluation, table 3 no longer includes it)
 % #1 fairness statement; #5 K notation; #18 MTL-GUI consistent
 Experiments were conducted on two benchmark datasets: IMDB Movie Reviews
-\parencite{maas2011} (50{,}000 reviews) and the Yelp Review Dataset
-\parencite{zhang2015} (30{,}000 reviews), both with binary sentiment labels.
+(50{,}000 reviews) and the Yelp Review Dataset
+(30{,}000 reviews), both with binary sentiment labels.
 Three topic cardinalities $K\in\{30,50,80\}$ were evaluated.
 \textbf{JDST-DEC} was compared against NN-BERT as a single-task sentiment
-baseline, MTL-GUI \parencite{gui2022mtml}, BERTopic-HDBSCAN, and
-BERTopic-KMeans. All baselines were re-evaluated under identical dataset
-splits and evaluation protocols to ensure a fair comparison. Sentiment
-performance was measured using accuracy and F1-score; topic quality was
-assessed using \textit{Topic Coherence} based on NPMI (TC-NPMI) and
-\textit{Topic Diversity} (TD).
+baseline, MTL-GUI, and BERTopic-KMeans. All
+baselines were re-evaluated under identical dataset splits and evaluation
+protocols to ensure a fair comparison. Sentiment performance was measured
+using accuracy and F1-score; topic quality was assessed using \textit{Topic
+Coherence} based on NPMI (TC-NPMI) and \textit{Topic Diversity} (TD).
 
 Pre-training results show that reconstruction loss drops sharply in the
 early epochs and stabilises after epoch~20, reaching final training losses
@@ -119,6 +117,7 @@ no overfitting. Selected pre-training loss values are shown in Table~1.
     \end{tabular}
 \end{table}
 
+% FIXED #4: "competitive results on IMDB" -> JDST-DEC is actually highest on IMDB too (Table 2)
 % #6 "percentage points"; #19 consistent number format
 For sentiment classification, \textbf{JDST-DEC} consistently outperforms
 NN-BERT and MTL-GUI across all values of $K$ on both datasets (Table~2).
@@ -129,11 +128,10 @@ On Yelp, \textbf{JDST-DEC} reaches an F1-score of 0.9020 at $K = 50$,
 compared with 0.8715 and 0.8401, representing gains of approximately 3.1 and
 6.2 percentage points. Performance remains stable across all values of $K$,
 indicating that sentiment classification quality is relatively insensitive
-to topic cardinality. Among the compared methods,
-\textbf{JDST-DEC} achieves the highest sentiment scores on Yelp and
-competitive results on IMDB.
+to topic cardinality. Among the compared methods, \textbf{JDST-DEC} achieves
+the highest sentiment scores on both IMDB and Yelp across every value of
+$K$.
 
-% #16 dagger notation added to method name; #15 identical evaluation settings in footnote
 % #16 dagger notation added to method name; #15 identical evaluation settings in footnote
 \begin{table}[H]
 \centering
@@ -194,22 +192,23 @@ MTL-GUI
 \end{adjustbox}
 \vspace{0.3em}
 \noindent{\footnotesize
-  \colorbox{green!25}{\,\,} highest value in column;
-  
-  All baselines evaluated under identical dataset splits and protocols.}
+  \colorbox{green!25}{\,\,} highest value in column}
 \end{table}
 
+% FIXED #2 + #1: removed BERTopic-HDBSCAN mentions; kept BERTopic-KMeans only (matches Table 3)
+% FIXED #1: corrected MTL-GUI comparison claim to match Table 3 (JDST-DEC only wins on IMDB TC-NPMI, loses on TD and on Yelp)
 % #7 "which is expected" removed
-For topic modelling, BERTopic achieves the highest TD values across most
-configurations (Table~3), with BERTopic-KMeans reaching 0.9567 on IMDB
-at $K = 30$. For TC-NPMI, BERTopic-HDBSCAN leads at $K = 30$ and $K = 50$
-on IMDB, while BERTopic-KMeans leads at $K = 80$. On Yelp, BERTopic
-variants achieve the highest TC-NPMI values across all settings.
-\textbf{JDST-DEC} produces lower TC-NPMI and TD values than BERTopic, as
-joint optimisation prioritises sentiment-discriminative representations
-over purely coherent topic structures. Among the joint models,
-\textbf{JDST-DEC} consistently outperforms MTL-GUI on both metrics and
-both datasets across every value of $K$.
+For topic modelling, BERTopic-KMeans achieves the highest TD values across
+all configurations (Table~3), reaching 0.9567 on IMDB at $K = 30$. For
+TC-NPMI, BERTopic-KMeans also leads across all configurations on IMDB,
+while on Yelp, MTL-GUI leads at $K = 30$ and BERTopic-KMeans leads at
+$K = 50$ and $K = 80$. \textbf{JDST-DEC} produces lower TC-NPMI and TD
+values than BERTopic-KMeans across all configurations, as joint
+optimisation prioritises sentiment-discriminative representations over
+purely coherent topic structures. Among the joint models, \textbf{JDST-DEC}
+outperforms MTL-GUI on TC-NPMI on IMDB, but MTL-GUI achieves higher TD on
+IMDB and higher TC-NPMI and TD on Yelp, indicating that the relative
+topic quality of the two joint models varies by dataset and metric.
 
 % #16 dagger in topic table; #15 footnote; #17 JDST-DEC bolded
 \begin{table}[H]
@@ -240,21 +239,13 @@ both datasets across every value of $K$.
   & TC-NPMI & TD
   & TC-NPMI & TD \\
 \hline
-BERTopic-HDBSCAN
-  & \cellcolor{green!25}\textbf{0.1714} & 0.7966
-  & \cellcolor{green!25}\textbf{0.1823} & 0.7680
-  & 0.1751 & 0.7625
-  & 0.1092 & 0.7233
-  & \cellcolor{green!25}\textbf{0.1666} & \cellcolor{green!25}\textbf{0.7041}
-  & \cellcolor{green!25}\textbf{0.1646} & \cellcolor{green!25}\textbf{0.6671} \\
-\hline
 BERTopic-KMeans
-  & 0.1566 & \cellcolor{green!25}\textbf{0.9567}
-  & 0.1596 & \cellcolor{green!25}\textbf{0.9000}
+  & \cellcolor{green!25}\textbf{0.1566} & \cellcolor{green!25}\textbf{0.9567}
+  & \cellcolor{green!25}\textbf{0.1596} & \cellcolor{green!25}\textbf{0.9000}
   & \cellcolor{green!25}\textbf{0.1874} & \cellcolor{green!25}\textbf{0.8413}
   & 0.1077 & \cellcolor{green!25}\textbf{0.7800}
-  & 0.1120 & 0.6740
-  & 0.1465 & 0.6438 \\
+  & \cellcolor{green!25}\textbf{0.1120} & \cellcolor{green!25}\textbf{0.6740}
+  & \cellcolor{green!25}\textbf{0.1465} & \cellcolor{green!25}\textbf{0.6438} \\
 \hline
 MTL-GUI
   & 0.0200 & 0.5833
@@ -276,9 +267,7 @@ MTL-GUI
 \end{adjustbox}
 \vspace{0.3em}
 \noindent{\footnotesize
-  \colorbox{green!25}{\,\,} highest value in column;
-  
-  All baselines evaluated under identical dataset splits and protocols.}
+  \colorbox{green!25}{\,\,} highest value in column}
 \end{table}
 
 % #8 training dynamics interpretation added
@@ -291,47 +280,47 @@ KL divergence active and allowing the cluster structure to continue
 evolving during joint optimisation. The opposing trends of the two losses
 suggest that the model progressively trades raw reconstruction accuracy
 for a latent geometry that is simultaneously sentiment-discriminative and
-cluster-coherent.
-
-% #9 fewer token examples; #10 "lexical polarity"
-Interpretability analysis using occlusion-based token attribution on the
+cluster-coherent. Interpretability analysis using occlusion-based token attribution on the
 Yelp dataset ($K = 30$) shows that tokens such as \textit{``super''} and
 \textit{``average''} carry attributions consistent with their expected
 polarity, while certain tokens exhibit signs inconsistent with their
 lexical polarity, indicating that the model captures context-sensitive
 interactions rather than relying on surface-form cues alone.
 
-% #11 frozen encoder limitation added
-\paragraph{Limitations.}
-The current study has several limitations. The experiments are limited to
-binary sentiment classification on English-language datasets; performance
-on multi-class or multilingual settings remains to be established. The
-use of a frozen BERT encoder, while computationally efficient, may limit
-the model's ability to adapt its representations to domain-specific
-sentiment signals. The autoencoder architecture and DEC objective are
-fixed throughout training, and it is unclear whether deeper or alternative
-architectures would improve topic quality without sacrificing sentiment
-accuracy. Finally, evaluation relies on automated topic metrics
-(TC-NPMI, TD), which do not fully capture human judgements of topic
-usefulness.
+% % #11 frozen encoder limitation added
+% \paragraph{Limitations.}
+% The current study has several limitations. The experiments are limited to
+% binary sentiment classification on English-language datasets; performance
+% on multi-class or multilingual settings remains to be established. The
+% use of a frozen BERT encoder, while computationally efficient, may limit
+% the model's ability to adapt its representations to domain-specific
+% sentiment signals. The autoencoder architecture and DEC objective are
+% fixed throughout training, and it is unclear whether deeper or alternative
+% architectures would improve topic quality without sacrificing sentiment
+% accuracy. Finally, evaluation relies on automated topic metrics
+% (TC-NPMI, TD), which do not fully capture human judgements of topic
+% usefulness.
 
-% #12 encoder fine-tuning added to future work
-In future work, these limitations motivate exploring encoder fine-tuning
-strategies that balance adaptation with stability, deeper autoencoder
-architectures and alternative clustering objectives to improve topic
-diversity, and extensions to multilingual and multi-class sentiment
-settings. Incorporating aspect-level evaluation would further
-characterise the granularity of the learned topic representations.
+% % #12 encoder fine-tuning added to future work
+% In future work, these limitations motivate exploring encoder fine-tuning
+% strategies that balance adaptation with stability, deeper autoencoder
+% architectures and alternative clustering objectives to improve topic
+% diversity, and extensions to multilingual and multi-class sentiment
+% settings. Incorporating aspect-level evaluation would further
+% characterise the granularity of the learned topic representations.
 
+% FIXED #3: removed "and produces interpretable topic clusters" from the concluding claim, since interpretability is exploratory (Section 4.7 discussion) and not part of the thesis's stated research questions/objectives, consistent with the Kesimpulan in Bab 5
 % #13 impact sentence added
 In conclusion, \textbf{JDST-DEC} demonstrates an effective mechanism for
 joint sentiment-topic learning: integrating DEC into an MTL framework
 with a frozen BERT encoder improves sentiment classification over both
-single-task and existing joint-model baselines, and produces interpretable
-topic clusters, all without requiring aspect-level annotations. By showing
-that a single latent space can serve both objectives simultaneously, this
-work opens a practical path toward richer, annotation-efficient document
-understanding in large-scale review and social-media settings.
+single-task and existing joint-model baselines, without requiring
+aspect-level annotations, although the resulting topic representations
+remain below the quality achieved by a dedicated topic modelling method
+such as BERTopic-KMeans. By showing that a single latent space can serve
+both objectives simultaneously, this work opens a practical path toward
+richer, annotation-efficient document understanding in large-scale review
+and social-media settings.
 
 \bigskip
 % #14 Topic Modeling keyword added

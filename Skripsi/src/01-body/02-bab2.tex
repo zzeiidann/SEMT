@@ -770,7 +770,7 @@ Gambar~\ref{fig:autoencoder_architecture}.
 \end{figure}
 
 %-------------------------------------------------------------------------%
-\subsection{Encoder dan Decoder}
+\subsection{\textit{Encoder} dan \textit{Decoder}}
 %-------------------------------------------------------------------------%
 
 Secara formal, misalkan $\mathbf{x} \in \mathbb{R}^D$ adalah vektor input
@@ -834,163 +834,117 @@ $\theta'$ diperbarui secara bersama-sama menggunakan
 \label{sec:bert}
 %-------------------------------------------------------------------------%
 
-\textit{Bidirectional Encoder Representations from Transformers} (BERT)
-merupakan model bahasa yang diperkenalkan oleh \parencite{devlin2018bert}.
-Berbeda dari model bahasa sebelumnya yang membaca teks secara satu arah,
-BERT memahami makna suatu kata dengan mempertimbangkan konteks dari kiri
-maupun kanan secara bersamaan. Kemampuan ini dimungkinkan oleh arsitekturnya
-yang didasarkan pada \textit{Transformer Encoder}, yaitu mekanisme yang
-memungkinkan setiap token menghitung relevansinya terhadap token lain dalam
-kalimat secara paralel.
+\textit{Bidirectional Encoder Representations from Transformers} (BERT) merupakan model bahasa berbasis \textit{Transformer} yang diperkenalkan oleh \parencite{devlin2018bert}. Berbeda dengan pendekatan sebelumnya yang umumnya memodelkan bahasa secara satu arah, BERT menghasilkan representasi kontekstual dua arah dengan memanfaatkan mekanisme \textit{self-attention}. Melalui mekanisme tersebut, setiap token dapat memperhatikan informasi dari token lain dalam urutan teks, baik yang berada di sisi kiri maupun kanan.
 
-Sebelum digunakan, BERT dilatih pada korpus teks berskala besar, yaitu
-Wikipedia bahasa Inggris dan BookCorpus. Pada penelitian ini, bobot BERT
-yang sudah terlatih tidak diperbarui selama pelatihan. BERT digunakan
-murni sebagai ekstraktor fitur yang dibekukan (\textit{frozen}), sehingga
-representasi yang dihasilkan langsung digunakan sebagai fitur untuk tahap
-berikutnya.
-
-%-------------------------------------------------------------------------%
-\subsection{Arsitektur BERT}
-%-------------------------------------------------------------------------%
-
-Arsitektur BERT tersusun dari $L$ lapisan \textit{Transformer Encoder}
-yang identik, masing-masing terdiri dari dua sub-lapisan: \textit{Multi-Head
-Self-Attention} dan \textit{Position-wise Feed-Forward Network}. Keluaran
-setiap lapisan, seperti ditunjukkan pada Gambar~\ref{fig:bert_architecture},
-dihitung sebagai:
-
-\begin{align}
-    \mathbf{H}^{(\ell)} &= \text{LayerNorm}\!\left(\mathbf{H}^{(\ell-1)}
-    + \text{MultiHeadAttention}(\mathbf{H}^{(\ell-1)})\right), \\
-    \mathbf{H}^{(\ell)}_{\text{out}} &= \text{LayerNorm}\!\left(
-    \mathbf{H}^{(\ell)} + \text{FFN}(\mathbf{H}^{(\ell)})\right).
-\end{align}
-
-\noindent dengan $\mathbf{H}^{(\ell)}$ adalah matriks \textit{hidden state} pada
-lapisan ke-$\ell$, dan $\text{LayerNorm}$ adalah normalisasi lapisan yang
-membantu stabilitas pelatihan. Jumlah lapisan $L$, dimensi
-\textit{hidden state} $H$, dan jumlah \textit{attention head} $A$
-bergantung pada varian model yang dipilih.
-
-\begin{figure}[H]
-    \centering
-    \includegraphics[width=0.7\textwidth]{assets/pics/BERT/bert_architecture.png}
-    \caption{Arsitektur BERT dengan beberapa lapisan \textit{Transformer
-    Encoder} \parencite{devlin2018bert}}
-    \label{fig:bert_architecture}
-\end{figure}
-
-%-------------------------------------------------------------------------%
-\subsection{Mekanisme \textit{Self-Attention}}
-%-------------------------------------------------------------------------%
-
-BERT menggunakan mekanisme \textit{self-attention} untuk menentukan
-seberapa penting suatu kata terhadap kata-kata lain dalam kalimat yang
-sama. Input $\mathbf{X} \in \mathbb{R}^{n \times d}$ dengan $n$ token dan
-dimensi $d$ diproyeksikan ke tiga representasi melalui matriks bobot yang
-dipelajari saat pelatihan, yaitu \textit{query} $\mathbf{Q}$, \textit{key}
-$\mathbf{K}$, dan \textit{value} $\mathbf{V}$:
-
-\begin{align}
-    \mathbf{Q} &= \mathbf{X}\mathbf{W}_Q \in \mathbb{R}^{n \times d_k}, \\
-    \mathbf{K} &= \mathbf{X}\mathbf{W}_K \in \mathbb{R}^{n \times d_k}, \\
-    \mathbf{V} &= \mathbf{X}\mathbf{W}_V \in \mathbb{R}^{n \times d_v}.
-\end{align}
-
-\noindent dengan $\mathbf{W}_Q, \mathbf{W}_K \in \mathbb{R}^{d \times d_k}$ dan
-$\mathbf{W}_V \in \mathbb{R}^{d \times d_v}$ adalah matriks bobot yang
-dapat dipelajari. \textit{Query} merepresentasikan kata yang sedang
-mencari konteks, \textit{key} merepresentasikan kata-kata yang berpotensi
-menjadi konteks, dan \textit{value} adalah informasi yang diambil apabila
-konteks tersebut dianggap relevan.
-
-Skor relevansi antara setiap pasangan kata dihitung melalui perkalian
-\textit{query} dan \textit{key}, lalu dinormalisasi dengan $\sqrt{d_k}$
-untuk menjaga skala nilai. Hasilnya kemudian diubah menjadi distribusi
-probabilitas menggunakan \textit{softmax}:
-
-\begin{equation}
-    \text{Attention}(\mathbf{Q}, \mathbf{K}, \mathbf{V})
-    = \text{softmax}\!\left(\frac{\mathbf{Q}\mathbf{K}^\top}{\sqrt{d_k}}
-    \right)\mathbf{V}.
-    \label{eq:attention}
-\end{equation}
-
-Untuk meningkatkan kemampuan representasi, BERT menjalankan mekanisme
-\textit{attention} ini secara paralel sebanyak $h$ kali pada
-\textit{subspace} yang berbeda, yang disebut \textit{Multi-Head Attention}.
-Setiap hasil digabungkan dan diproyeksikan kembali ke dimensi semula:
-
-\begin{equation}
-    \text{MultiHead}(\mathbf{Q}, \mathbf{K}, \mathbf{V})
-    = \text{Concat}(\text{head}_1, \ldots, \text{head}_h)\,\mathbf{W}_O.
-\end{equation}
-
-\noindent dengan $\text{head}_i = \text{Attention}(\mathbf{Q}\mathbf{W}_Q^i,\,
-\mathbf{K}\mathbf{W}_K^i,\, \mathbf{V}\mathbf{W}_V^i)$. Pada BERT-Base,
-$h = 12$ dan $d_k = d_v = 64$.
+BERT dilatih menggunakan korpus Wikipedia bahasa Inggris dan BookCorpus melalui dua tugas pra-pelatihan, yaitu \textit{Masked Language Modeling} (MLM) dan \textit{Next Sentence Prediction} (NSP). Pada penelitian ini, model BERT hasil pra-pelatihan digunakan tanpa proses \textit{fine-tuning}. Seluruh parameter BERT dipertahankan tetap (\textit{frozen}), sehingga keluaran representasinya digunakan secara langsung sebagai fitur numerik untuk tahap pemodelan berikutnya.
 
 %-------------------------------------------------------------------------%
 \subsection{Representasi Input BERT}
+\label{subsec:bert_input}
 %-------------------------------------------------------------------------%
 
-Sebelum teks dapat diproses oleh BERT, setiap token perlu diubah menjadi
-vektor numerik. BERT merepresentasikan setiap token sebagai penjumlahan
-dari tiga jenis \textit{embedding} yang masing-masing membawa informasi
-berbeda:
+Setiap token hasil tokenisasi pada input BERT terlebih dahulu diubah menjadi vektor numerik. Representasi awal setiap token diperoleh dari penjumlahan tiga komponen \textit{embedding}, yaitu:
 
 \begin{equation}
-    \mathbf{E}_i = \mathbf{E}_{\text{token}}^{(i)}
-    + \mathbf{E}_{\text{segment}}^{(i)}
-    + \mathbf{E}_{\text{position}}^{(i)}.
+\mathbf{E}_i = \mathbf{E}_{\text{token}}^{(i)} + \mathbf{E}_{\text{segment}}^{(i)} + \mathbf{E}_{\text{position}}^{(i)}.
 \end{equation}
 
-\textit{Token embedding} merepresentasikan makna semantik dari setiap kata
-atau \textit{subword}. BERT menggunakan tokenisasi WordPiece dengan
-kosakata sebesar 30.000 token, sehingga kata yang tidak dikenal dapat
-diurai menjadi unit yang lebih kecil. \textit{Segment embedding} menandai
-asal kalimat dari setiap token, yang berguna ketika \textit{input} terdiri
-dari dua kalimat. \textit{Position embedding} merepresentasikan posisi
-setiap token dalam urutan, sebab mekanisme \textit{self-attention} pada
-dasarnya tidak mengandung informasi urutan. Berbeda dari Transformer asli
-yang menggunakan rumus sinusoidal, BERT mempelajari \textit{position
-embedding} langsung dari data dengan panjang urutan maksimum token.
-Ilustrasi representasi input BERT ditunjukkan pada
-Gambar~\ref{fig:bert_input}.
+Komponen pertama, \textit{token embedding}, memberikan representasi semantik dari token atau \textit{subword} yang diperoleh melalui proses tokenisasi WordPiece. Komponen kedua, \textit{segment embedding}, memberikan informasi mengenai segmen atau pasangan kalimat tempat suatu token berada dan terutama digunakan ketika \textit{input} terdiri dari dua kalimat. Sementara itu, \textit{position embedding} memberikan informasi mengenai posisi token dalam urutan teks. Berbeda dengan Transformer awal yang menggunakan fungsi sinusoidal untuk menentukan posisi token, BERT mempelajari parameter posisi tersebut secara langsung selama proses pra-pelatihan.
 
 \begin{figure}[H]
-    \centering
-    \includegraphics[width=0.9\textwidth]{assets/pics/BERT/bert_representation.png}
-    \caption{Representasi \textit{input} BERT yang terdiri dari
-    \textit{token}, \textit{segment}, dan \textit{position embedding}
-    \parencite{devlin2018bert}}
-    \label{fig:bert_input}
+\centering
+\includegraphics[width=0.9\textwidth]{assets/pics/BERT/bert_representation.png}
+\caption{Representasi \textit{input} BERT yang terdiri dari \textit{token}, \textit{segment}, dan \textit{position embedding} \parencite{devlin2018bert}}
+\label{fig:bert_input}
 \end{figure}
 
-Selain token biasa, BERT menyisipkan token khusus \texttt{[CLS]} di awal
-setiap urutan \textit{input}. Token ini dirancang untuk mengakumulasi
-informasi dari seluruh token dalam kalimat melalui lapisan-lapisan
-\textit{self-attention}. Pada penelitian ini, representasi token
-\texttt{[CLS]} pada lapisan terakhir BERT inilah yang digunakan sebagai
-vektor fitur untuk setiap ulasan.
-
-Pada penelitian ini, BERT digunakan sepenuhnya sebagai ekstraktor fitur
-dengan bobot yang dibekukan. Setiap ulasan teks dimasukkan ke dalam BERT
-dengan panjang maksimum token, kemudian representasi \textit{hidden state}
-pada posisi token \texttt{[CLS]} dari lapisan terakhir diambil sebagai
-fitur:
+Selain token hasil tokenisasi, BERT menambahkan token khusus \texttt{[CLS]} pada awal urutan \textit{input}. Representasi token tersebut kemudian diproses bersama token lainnya melalui seluruh lapisan \textit{Transformer Encoder} sehingga dapat digunakan sebagai representasi agregat dari urutan teks. Gabungan seluruh vektor $\mathbf{E}_i$ menjadi masukan awal bagi tumpukan \textit{Transformer Encoder}:
 
 \begin{equation}
-    \mathbf{f} = \mathbf{H}^{(L)}_{[\text{CLS}]} \in \mathbb{R}^{d}.
+\mathbf{H}^{(0)} = \mathbf{E} = [\mathbf{E}_{[\text{CLS}]}, \mathbf{E}_1, \mathbf{E}_2, \ldots, \mathbf{E}_n].
 \end{equation}
 
-\noindent dengan $\mathbf{H}^{(L)}_{[\text{CLS}]}$ adalah vektor \textit{hidden
-state} token \texttt{[CLS]} pada lapisan ke-$L$, dan $d$ adalah dimensi
-\textit{hidden state} yang bergantung pada varian model yang digunakan.
-Vektor $\mathbf{f}$ ini selanjutnya menjadi representasi numerik dari
-setiap ulasan dan digunakan sebagai masukan \textit{autoencoder} pada
-tahap berikutnya.
+%-------------------------------------------------------------------------%
+\subsection{Arsitektur BERT}
+\label{subsec:bert_arch}
+%-------------------------------------------------------------------------%
+
+Representasi awal $\mathbf{H}^{(0)}$ dilewatkan melalui $L$ lapisan \textit{Transformer Encoder} yang memiliki struktur identik (Gambar~\ref{fig:bert_architecture}). Pada setiap lapisan, representasi tersebut diperbarui melalui mekanisme \textit{self-attention} dan \textit{Position-wise Feed-Forward Network} (FFN), sehingga diperoleh urutan representasi:
+
+\begin{equation}
+\mathbf{H}^{(0)} \rightarrow \mathbf{H}^{(1)} \rightarrow \cdots \rightarrow \mathbf{H}^{(L)}.
+\end{equation}
+
+\begin{figure}[H]
+\centering
+\includegraphics[width=0.6\textwidth]{assets/pics/BERT/Encoder_Stack_BERT.png}
+\caption{Tumpukan $L$ lapisan \textit{Transformer Encoder} pada BERT \parencite{devlin2018bert}}
+\label{fig:bert_architecture}
+\end{figure}
+
+Setiap lapisan \textit{Transformer Encoder} terdiri atas dua sub-lapisan utama, yaitu \textit{Multi-Head Self-Attention} dan \textit{Position-wise Feed-Forward Network} (FFN). Kedua sub-lapisan tersebut dilengkapi dengan koneksi residual dan normalisasi lapisan melalui mekanisme \textit{Add \& Norm} (Gambar~\ref{fig:bert_encoder_layer}). Secara matematis, keluaran dari setiap lapisan dihitung sebagai:
+
+\begin{align}
+\mathbf{H}^{(\ell)}_{\text{attn}} &= \text{LayerNorm}\!\left(\mathbf{H}^{(\ell-1)} + \text{MultiHeadAttention}(\mathbf{H}^{(\ell-1)})\right), \\
+\mathbf{H}^{(\ell)} &= \text{LayerNorm}\!\left( \mathbf{H}^{(\ell)}_{\text{attn}} + \text{FFN}(\mathbf{H}^{(\ell)}_{\text{attn}})\right).
+\end{align}
+
+\begin{figure}[H]
+\centering
+\includegraphics[width=0.3\textwidth]{assets/pics/BERT/Transfomer_Encoder_Layer.png}
+\caption{Struktur satu lapisan \textit{Transformer Encoder} \parencite{devlin2018bert}}
+\label{fig:bert_encoder_layer}
+\end{figure}
+
+Jumlah lapisan $L$, dimensi \textit{hidden state} $d$, dan jumlah \textit{attention head} $h$ bergantung pada varian BERT yang digunakan. Konfigurasi parameter BERT pada penelitian ini dijelaskan pada Bab Metodologi.
+
+%-------------------------------------------------------------------------%
+\subsection{Mekanisme \textit{Self-Attention}}
+\label{subsec:bert_attention}
+%-------------------------------------------------------------------------%
+
+Mekanisme \textit{Multi-Head Self-Attention} memungkinkan setiap token memperhatikan token lain dalam suatu urutan berdasarkan tingkat relevansinya. \textit{Input} $\mathbf{H}^{(\ell-1)} \in \mathbb{R}^{n \times d}$ diproyeksikan menjadi tiga representasi, yaitu \textit{query} ($\mathbf{Q}$), \textit{key} ($\mathbf{K}$), dan \textit{value} ($\mathbf{V}$), melalui matriks bobot yang dipelajari selama proses pelatihan:
+
+\begin{align}
+\mathbf{Q} &= \mathbf{H}^{(\ell-1)}\mathbf{W}_Q \in \mathbb{R}^{n \times d_k}, \\
+\mathbf{K} &= \mathbf{H}^{(\ell-1)}\mathbf{W}_K \in \mathbb{R}^{n \times d_k}, \\
+\mathbf{V} &= \mathbf{H}^{(\ell-1)}\mathbf{W}_V \in \mathbb{R}^{n \times d_v}.
+\end{align}
+
+Dalam mekanisme ini, \textit{query} digunakan untuk menghitung tingkat kesesuaian dengan token lain, \textit{key} berfungsi sebagai representasi pembanding dalam perhitungan relevansi, sedangkan \textit{value} menyediakan informasi yang akan dikombinasikan berdasarkan bobot \textit{attention}. Skor relevansi antar-token diperoleh melalui perkalian $\mathbf{Q}\mathbf{K}^\top$, kemudian diskalakan dengan $\sqrt{d_k}$ dan dinormalisasi menggunakan fungsi \textit{softmax} untuk menghasilkan bobot \textit{attention}:
+
+\begin{equation}
+\text{Attention}(\mathbf{Q}, \mathbf{K}, \mathbf{V}) = \text{softmax}\!\left(\frac{\mathbf{Q}\mathbf{K}^\top}{\sqrt{d_k}} \right)\mathbf{V}.
+\label{eq:attention}
+\end{equation}
+
+Untuk menangkap hubungan antar-token dari beberapa ruang representasi yang berbeda, BERT menggunakan beberapa \textit{attention head} yang bekerja secara paralel sebanyak $h$ buah (\textit{Multi-Head Attention}, Gambar~\ref{fig:multihead_attention}). Hasil dari setiap \textit{head} kemudian digabungkan dan diproyeksikan kembali ke dimensi semula:
+
+\begin{equation}
+\text{MultiHead}(\mathbf{Q}, \mathbf{K}, \mathbf{V}) = \text{Concat}(\text{head}_1, \ldots, \text{head}_h)\,\mathbf{W}_O.
+\end{equation}
+
+\noindent dengan $\text{head}_i = \text{Attention}(\mathbf{Q}\mathbf{W}_Q^i,\, \mathbf{K}\mathbf{W}_K^i,\, \mathbf{V}\mathbf{W}_V^i)$. Pada BERT-Base, jumlah \textit{attention head} yang digunakan adalah $h=12$ dengan dimensi masing-masing $\mathbf{Q}$ dan $\mathbf{K}$ sebesar $d_k=64$, serta $\mathbf{V}$ sebesar $d_v=64$.
+
+\begin{figure}[H]
+\centering
+\includegraphics[width=0.3\textwidth]{assets/pics/BERT/transformer_attention.png}
+\caption{Mekanisme \textit{Scaled Dot-Product Attention} pada \textit{Multi-Head Attention} \parencite{vaswani2017attention}}
+\label{fig:multihead_attention}
+\end{figure}
+
+%-------------------------------------------------------------------------%
+\subsection{Ekstraksi Fitur dari Token \texttt{[CLS]}}
+\label{subsec:bert_feature}
+%-------------------------------------------------------------------------%
+
+Setelah melewati $L$ lapisan \textit{Transformer Encoder}, diperoleh \textit{hidden state} akhir $\mathbf{H}^{(L)}$ yang berisi representasi kontekstual dari seluruh token pada urutan input. Pada penelitian ini, representasi token \texttt{[CLS]} pada lapisan terakhir digunakan sebagai vektor fitur untuk setiap dokumen:
+
+\begin{equation}
+\mathbf{f} = \mathbf{H}^{(L)}_{[\text{CLS}]} \in \mathbb{R}^{d}.
+\end{equation}
+
+\noindent dengan $d$ merupakan dimensi \textit{hidden state} yang bergantung pada varian BERT yang digunakan. Token \texttt{[CLS]} dipilih karena representasinya telah diproses bersama seluruh token lainnya melalui mekanisme \textit{self-attention}, sehingga dapat digunakan sebagai representasi agregat dari suatu urutan teks. Karena parameter BERT dibekukan (\textit{frozen}) selama proses pelatihan, vektor fitur $\mathbf{f}$ diperoleh melalui proses \textit{forward pass} tanpa adanya pembaruan bobot. Selanjutnya, vektor tersebut digunakan sebagai masukan bagi \textit{autoencoder} untuk tahap reduksi dimensi.
 
 %-------------------------------------------------------------------------%
 \section{Multi-Task Learning}
@@ -1092,7 +1046,7 @@ $q_{ij}$ membuat distribusi keanggotaan lebih terkonsentrasi pada satu
 klaster.
 
 %-------------------------------------------------------------------------%
-\subsection{Hard Parameter Sharing}
+\subsection{\textit{Hard Parameter Sharing}}
 %-------------------------------------------------------------------------%
 
 \textit{Hard parameter sharing} merupakan pendekatan MTL yang paling umum
@@ -1176,7 +1130,7 @@ topik melalui \textit{clustering layer}, dan satu lagi untuk klasifikasi
 sentimen melalui \textit{sentiment classifier}.
 
 %-------------------------------------------------------------------------%
-\subsection{Soft Parameter Sharing}
+\subsection{\textit{Soft Parameter Sharing}}
 %-------------------------------------------------------------------------%
 
 \textit{Soft parameter sharing} mengambil pendekatan yang berbeda. Setiap
@@ -1323,7 +1277,7 @@ lebih dari satu topik. Sebagai inisialisasi, DEC menggunakan K-Means untuk
 menentukan pusat klaster awal di ruang \textit{embedding}.
 
 %-------------------------------------------------------------------------%
-\subsection{K-Means Clustering}
+\subsection{K-Means \textit{Clustering}}
 %-------------------------------------------------------------------------%
 
 K-Means merupakan algoritma \textit{centroid-based clustering} yang
@@ -1457,7 +1411,7 @@ Gradients}.
 \subsection{\textit{Occlusion-based Token Attribution}}
 %-------------------------------------------------------------------------%
 
-\textit{Occlusion-based attribution} merupakan salah satu metode
+\textit{Occlusion-based token attribution} merupakan salah satu metode
 \textit{post-hoc} yang banyak digunakan untuk menginterpretasi model
 berbasis teks \parencite{zeiler2014visualizing, li2016visualizing}. Metode
 ini mengukur pentingnya suatu token dengan cara menggantinya dan mengamati

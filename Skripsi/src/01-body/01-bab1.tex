@@ -149,51 +149,39 @@ Model JDST-DEC kemudian dibandingkan dengan beberapa metode pembanding, yaitu
 NN-BERT, MTL-GUI, BERTopic-HDBSCAN, dan BERTopic-KMeans
 \parencite{gui2022mtml, grootendorst2022bertopic}.
 
+
 %-----------------------------------------------------------------------------%
 \section{Rumusan Permasalahan}
 %-----------------------------------------------------------------------------%
-Dalam pemrosesan bahasa alami (\textit{Natural Language Processing}, NLP), klasifikasi sentimen dan pemodelan topik merupakan dua tugas utama yang sering dilakukan secara terpisah. Pendekatan tradisional seperti \textit{Latent Dirichlet Allocation} (LDA) berbasis probabilistik memiliki keterbatasan dalam menangkap hubungan semantik yang kompleks, sehingga kurang optimal untuk tugas yang membutuhkan pemahaman konteks yang lebih dalam.
 
-\bigskip
-
-Selain itu, pemisahan antara tugas klasifikasi sentimen dan pemodelan topik menyebabkan hilangnya potensi peningkatan performa yang bisa diperoleh dengan memanfaatkan hubungan alami antar tugas tersebut. Model berbasis \textit{deep learning}, seperti \textit{Bidirectional Encoder Representations from Transformers} (BERT), telah terbukti unggul dalam tugas klasifikasi sentimen, namun pendekatan ini belum sepenuhnya diintegrasikan dengan pemodelan topik dalam satu \textit{framework} yang efisien.
-
-\bigskip
-
-Beberapa permasalahan utama yang ingin dijawab dalam penelitian ini adalah:
+Berdasarkan latar belakang yang telah diuraikan, rumusan masalah pada penelitian ini dijabarkan sebagai berikut:
 
 \begin{enumerate}
-    \item Bagaimana mengembangkan model berbasis \textit{Fully Neural Network} yang dapat menangani klasifikasi sentimen dan pemodelan topik secara simultan?
-    \item Bagaimana pengaruh pendekatan \textit{Multi-Task Learning} (MTL) terhadap performa model dibandingkan dengan model \textit{single-task}?
-    \item Bagaimana penerapan \textit{Autoencoder} dapat membantu mengatasi permasalahan dimensi tinggi dalam data teks?
-    \item Sejauh mana model yang dikembangkan dapat meningkatkan efisiensi dan akurasi dibandingkan dengan metode sebelumnya, seperti analisis sentimen menggunakan BERTopic dan model sentimen BERT?
+    \item Bagaimana merancang \textit{Joint Document-Level Sentiment-Topic Model} (JDST) yang mengintegrasikan analisis sentimen dan pemodelan topik secara \textit{end-to-end} dalam satu kerangka \textit{multi-task learning} dengan memanfaatkan \textit{Deep Embedded Clustering} pada \textit{head} pemodelan topik?
+
+    \item Bagaimana penerapan \textit{Deep Embedded Clustering} pada \textit{head} pemodelan topik dalam kerangka \textit{joint modelling} untuk menghasilkan representasi topik dari representasi laten yang dihasilkan oleh \textit{shared encoder}?
+
+    \item Bagaimana kualitas klasifikasi sentimen yang dihasilkan model JDST dibandingkan dengan metode sebelumnya?
+
+    \item Bagaimana kualitas topik yang dihasilkan model JDST dibandingkan dengan metode sebelumnya?
 \end{enumerate}
-
-\bigskip
-
-Melalui penelitian ini, diharapkan dapat diperoleh solusi yang lebih efisien dan akurat dalam menangani kedua tugas secara simultan dengan memanfaatkan pendekatan pembelajaran mendalam berbasis \textit{Fully Neural Network}.
 
 
 %-----------------------------------------------------------------------------%
 \section{Tujuan Penelitian}
 %-----------------------------------------------------------------------------%
-Penelitian ini bertujuan untuk mengembangkan dan mengevaluasi model berbasis \textit{Fully Neural Network} yang mampu melakukan klasifikasi sentimen dan pemodelan topik secara simultan menggunakan pendekatan \textit{Multi-Task Learning} (MTL). Dengan pendekatan ini, model diharapkan dapat memanfaatkan hubungan antara kedua tugas tersebut untuk meningkatkan performa keseluruhan dan efisiensi dalam pemrosesan bahasa alami (\textit{Natural Language Processing}, NLP).
 
-\bigskip
-
-Secara spesifik, penelitian ini memiliki beberapa tujuan utama sebagai berikut:
+Berdasarkan rumusan masalah yang telah disusun, tujuan penelitian ini adalah sebagai berikut:
 
 \begin{enumerate}
-    \item Mengembangkan arsitektur berbasis \textit{Fully Neural Network} yang dapat secara bersamaan melakukan klasifikasi sentimen dan pemodelan topik dalam satu model terpadu. Dengan integrasi ini, model diharapkan mampu menangkap hubungan semantik yang lebih dalam dan menghasilkan representasi teks yang lebih bermakna.
+    \item Merancang \textit{Joint Document-Level Sentiment-Topic Model} (JDST) yang mengintegrasikan analisis sentimen dan pemodelan topik secara \textit{end-to-end} dalam satu kerangka \textit{multi-task learning} dengan memanfaatkan \textit{Deep Embedded Clustering} pada \textit{head} pemodelan topik.
 
-    \item Menganalisis pengaruh \textit{Multi-Task Learning} (MTL) terhadap efisiensi dan performa model dalam menangani kedua tugas secara simultan. Evaluasi akan dilakukan untuk memahami bagaimana strategi berbagi parameter antara dua tugas ini dapat meningkatkan akurasi, stabilitas, dan efisiensi model dibandingkan dengan pendekatan \textit{single-task}.
+    \item Menganalisis penerapan \textit{Deep Embedded Clustering} pada \textit{head} pemodelan topik dalam kerangka \textit{joint modelling} untuk menghasilkan representasi topik dari representasi laten yang dihasilkan oleh \textit{shared encoder}.
 
-    \item Menerapkan \textit{Autoencoder} untuk reduksi dimensi guna meningkatkan representasi fitur dan mengoptimalkan performa model \textit{Fully Neural Network}. \textit{Autoencoder} akan digunakan untuk mengekstraksi informasi laten dari teks secara lebih efektif, mengurangi redundansi fitur, dan membantu model dalam menangkap struktur data yang lebih informatif.
+    \item Membandingkan kualitas klasifikasi sentimen yang dihasilkan model JDST dengan metode sebelumnya.
+
+    \item Membandingkan kualitas topik yang dihasilkan model JDST dengan metode sebelumnya.
 \end{enumerate}
-
-\bigskip
-
-Melalui penelitian ini, diharapkan dapat diperoleh model yang lebih efisien, akurat, dan tangguh dalam menangani klasifikasi sentimen dan pemodelan topik secara simultan. Implementasi \textit{Fully Neural Network} dengan MTL dan \textit{Autoencoder} diharapkan dapat memberikan kontribusi dalam peningkatan teknik pemrosesan bahasa alami, terutama dalam konteks analisis teks skala besar dan kompleks.
 
 \section{Manfaat Penelitian}
 
