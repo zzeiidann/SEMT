@@ -1,28 +1,28 @@
 \contentsline {figure}{\numberline {1}{\ignorespaces Schematic diagram of the research framework.}}{x}{figure.caption.12}%
 \addvspace {10\p@ }
 \addvspace {10\p@ }
-\contentsline {figure}{\numberline {2.1}{\ignorespaces Ilustrasi \textit {neural network} secara biologis \blx@tocontentsinit {0}\parencite {aggarwal2018neural}}}{9}{figure.caption.19}%
-\contentsline {figure}{\numberline {2.2}{\ignorespaces \textit {Artificial Neural Network} dengan representasi bobot sinapsis \blx@tocontentsinit {0}\parencite {aggarwal2018neural}}}{9}{figure.caption.19}%
-\contentsline {figure}{\numberline {2.3}{\ignorespaces Arsitektur \textit {feed-forward neural network} \blx@tocontentsinit {0}\parencite {aggarwal2018neural}}}{10}{figure.caption.20}%
-\contentsline {figure}{\numberline {2.4}{\ignorespaces Grafik fungsi aktivasi: \textit {Softmax}, ReLU, dan GELU}}{12}{figure.caption.21}%
-\contentsline {figure}{\numberline {2.5}{\ignorespaces Ilustrasi graf komputasi pada proses \textit {backpropagation} \blx@tocontentsinit {0}\parencite {aggarwal2018neural}}}{13}{figure.caption.22}%
-\contentsline {figure}{\numberline {2.6}{\ignorespaces Ilustrasi \textit {bias-variance tradeoff} terhadap kompleksitas model (\blx@tocontentsinit {0}\cite {aggarwal2018neural}, telah diolah kembali)}}{15}{figure.caption.23}%
-\contentsline {figure}{\numberline {2.7}{\ignorespaces Arsitektur \textit {autoencoder} menunjukkan proses \textit {encoding} dan \textit {decoding} \blx@tocontentsinit {0}\parencite {aggarwal2018neural}}}{19}{figure.caption.24}%
-\contentsline {figure}{\numberline {2.8}{\ignorespaces Representasi \textit {input} BERT yang terdiri dari \textit {token}, \textit {segment}, dan \textit {position embedding} \blx@tocontentsinit {0}\parencite {devlin2018bert}}}{21}{figure.caption.25}%
-\contentsline {figure}{\numberline {2.9}{\ignorespaces Tumpukan $L$ lapisan \textit {Transformer Encoder} pada BERT \blx@tocontentsinit {0}\parencite {devlin2018bert}}}{22}{figure.caption.26}%
-\contentsline {figure}{\numberline {2.10}{\ignorespaces Struktur satu lapisan \textit {Transformer Encoder} \blx@tocontentsinit {0}\parencite {devlin2018bert}}}{23}{figure.caption.27}%
-\contentsline {figure}{\numberline {2.11}{\ignorespaces Mekanisme \textit {Scaled Dot-Product Attention} pada \textit {Multi-Head Attention} \blx@tocontentsinit {0}\parencite {vaswani2017attention}}}{24}{figure.caption.28}%
-\contentsline {figure}{\numberline {2.12}{\ignorespaces Ilustrasi arsitektur \textit {hard parameter sharing} dalam \textit {Multi-Task Learning} (\blx@tocontentsinit {0}\cite {ruder2017overview}, telah diolah kembali)}}{27}{figure.caption.29}%
-\contentsline {figure}{\numberline {2.13}{\ignorespaces Ilustrasi arsitektur \textit {soft parameter sharing} (\blx@tocontentsinit {0}\cite {ruder2017overview}, telah diolah kembali)}}{28}{figure.caption.30}%
+\contentsline {figure}{\numberline {2.1}{\ignorespaces Ilustrasi \textit {neural network} secara biologis \blx@tocontentsinit {0}\parencite {aggarwal2018neural}}}{8}{figure.caption.19}%
+\contentsline {figure}{\numberline {2.2}{\ignorespaces \textit {Artificial Neural Network} dengan representasi bobot sinapsis \blx@tocontentsinit {0}\parencite {aggarwal2018neural}}}{8}{figure.caption.19}%
+\contentsline {figure}{\numberline {2.3}{\ignorespaces Arsitektur \textit {feed-forward neural network} \blx@tocontentsinit {0}\parencite {aggarwal2018neural}}}{9}{figure.caption.20}%
+\contentsline {figure}{\numberline {2.4}{\ignorespaces Grafik fungsi aktivasi: \textit {Softmax}, ReLU, dan GELU}}{11}{figure.caption.21}%
+\contentsline {figure}{\numberline {2.5}{\ignorespaces Ilustrasi graf komputasi pada proses \textit {backpropagation} \blx@tocontentsinit {0}\parencite {aggarwal2018neural}}}{12}{figure.caption.22}%
+\contentsline {figure}{\numberline {2.6}{\ignorespaces Ilustrasi \textit {bias-variance tradeoff} terhadap kompleksitas model (\blx@tocontentsinit {0}\cite {aggarwal2018neural}, telah diolah kembali)}}{14}{figure.caption.23}%
+\contentsline {figure}{\numberline {2.7}{\ignorespaces Arsitektur \textit {autoencoder} menunjukkan proses \textit {encoding} dan \textit {decoding} \blx@tocontentsinit {0}\parencite {aggarwal2018neural}}}{18}{figure.caption.24}%
+\contentsline {figure}{\numberline {2.8}{\ignorespaces Representasi \textit {input} BERT yang terdiri dari \textit {token}, \textit {segment}, dan \textit {position embedding} \blx@tocontentsinit {0}\parencite {devlin2018bert}}}{20}{figure.caption.25}%
+\contentsline {figure}{\numberline {2.9}{\ignorespaces Tumpukan $L$ lapisan \textit {Transformer Encoder} pada BERT \blx@tocontentsinit {0}\parencite {devlin2018bert}}}{21}{figure.caption.26}%
+\contentsline {figure}{\numberline {2.10}{\ignorespaces Struktur satu lapisan \textit {Transformer Encoder} \blx@tocontentsinit {0}\parencite {devlin2018bert}}}{22}{figure.caption.27}%
+\contentsline {figure}{\numberline {2.11}{\ignorespaces Mekanisme \textit {Scaled Dot-Product Attention} pada \textit {Multi-Head Attention} \blx@tocontentsinit {0}\parencite {vaswani2017attention}}}{23}{figure.caption.28}%
+\contentsline {figure}{\numberline {2.12}{\ignorespaces Ilustrasi arsitektur \textit {hard parameter sharing} dalam \textit {Multi-Task Learning} (\blx@tocontentsinit {0}\cite {ruder2017overview}, telah diolah kembali)}}{26}{figure.caption.29}%
+\contentsline {figure}{\numberline {2.13}{\ignorespaces Ilustrasi arsitektur \textit {soft parameter sharing} (\blx@tocontentsinit {0}\cite {ruder2017overview}, telah diolah kembali)}}{27}{figure.caption.30}%
 \addvspace {10\p@ }
-\contentsline {figure}{\numberline {3.1}{\ignorespaces Alur metode analisis sentimen dan pendeteksian topik}}{33}{figure.caption.32}%
-\contentsline {figure}{\numberline {3.2}{\ignorespaces Representasi teks menggunakan BERT (\blx@tocontentsinit {0}\parencite {devlin2018bert}; telah diolah kembali).}}{34}{figure.caption.33}%
-\contentsline {figure}{\numberline {3.3}{\ignorespaces Ilustrasi \textit {autoencoder} lengkap (kiri) dan komponen \textit {encoder} setelah \textit {decoder} dilepas (kanan).}}{37}{figure.caption.34}%
-\contentsline {figure}{\numberline {3.4}{\ignorespaces Arsitektur \textit {clustering head} berbasis DEC.}}{41}{figure.caption.36}%
-\contentsline {figure}{\numberline {3.5}{\ignorespaces Arsitektur \textit {sentiment head}.}}{42}{figure.caption.37}%
+\contentsline {figure}{\numberline {3.1}{\ignorespaces Alur metode analisis sentimen dan pendeteksian topik}}{32}{figure.caption.32}%
+\contentsline {figure}{\numberline {3.2}{\ignorespaces Representasi teks menggunakan BERT (\blx@tocontentsinit {0}\parencite {devlin2018bert}; telah diolah kembali).}}{33}{figure.caption.33}%
+\contentsline {figure}{\numberline {3.3}{\ignorespaces Ilustrasi \textit {autoencoder} lengkap (kiri) dan komponen \textit {encoder} setelah \textit {decoder} dilepas (kanan).}}{36}{figure.caption.34}%
+\contentsline {figure}{\numberline {3.4}{\ignorespaces Arsitektur \textit {clustering head} berbasis DEC.}}{40}{figure.caption.36}%
+\contentsline {figure}{\numberline {3.5}{\ignorespaces Arsitektur \textit {sentiment head}.}}{41}{figure.caption.37}%
 \addvspace {10\p@ }
-\contentsline {figure}{\numberline {4.1}{\ignorespaces Diagram alur simulasi penelitian.}}{48}{figure.caption.40}%
-\contentsline {figure}{\numberline {4.2}{\ignorespaces Dinamika $\mathcal {L}_{\text {clust}}$ dan $\mathcal {L}_{\text {sent}}$ (ternormalisasi \textit {min-max}) selama \textit {joint training} pada dataset IMDB ($K=50$) dan Yelp ($K=30$).}}{63}{figure.caption.58}%
-\contentsline {figure}{\numberline {4.3}{\ignorespaces Skenario dataset kecil: $\mathcal {L}_{\text {sent}}$ mencapai kondisi stabil lebih dahulu, kemudian $\mathcal {L}_{\text {clust}}$ mulai menurun dan kedua komponen menunjukkan pola yang lebih seimbang.}}{63}{figure.caption.59}%
-\contentsline {figure}{\numberline {4.4}{\ignorespaces Ringkasan hasil atribusi token pada 30 klaster. Panel~(a) menunjukkan nilai atribusi tertinggi pada setiap klaster, sedangkan panel~(b)--(g) menampilkan token dengan kontribusi terbesar pada beberapa klaster terpilih berdasarkan skor atribusi rata-rata.}}{65}{figure.caption.60}%
+\contentsline {figure}{\numberline {4.1}{\ignorespaces Diagram alur simulasi penelitian.}}{47}{figure.caption.40}%
+\contentsline {figure}{\numberline {4.2}{\ignorespaces Dinamika $\mathcal {L}_{\text {clust}}$ dan $\mathcal {L}_{\text {sent}}$ (ternormalisasi \textit {min-max}) selama \textit {joint training} pada dataset IMDB ($K=50$) dan Yelp ($K=30$).}}{62}{figure.caption.58}%
+\contentsline {figure}{\numberline {4.3}{\ignorespaces Skenario dataset kecil: $\mathcal {L}_{\text {sent}}$ mencapai kondisi stabil lebih dahulu, kemudian $\mathcal {L}_{\text {clust}}$ mulai menurun dan kedua komponen menunjukkan pola yang lebih seimbang.}}{62}{figure.caption.59}%
+\contentsline {figure}{\numberline {4.4}{\ignorespaces Ringkasan hasil atribusi token pada 30 klaster. Panel~(a) menunjukkan nilai atribusi tertinggi pada setiap klaster, sedangkan panel~(b)--(g) menampilkan token dengan kontribusi terbesar pada beberapa klaster terpilih berdasarkan skor atribusi rata-rata.}}{64}{figure.caption.60}%
 \addvspace {10\p@ }
